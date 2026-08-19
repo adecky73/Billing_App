@@ -339,6 +339,33 @@ td.ph{color:var(--on-surface-var);text-align:left;padding:24px 4px;border-bottom
 }
 .hint{color:var(--on-surface-var);font-size:13px}
 
+/* ---------- naming gate ---------- */
+.gate{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  background:var(--primary-c);color:var(--on-primary-c);
+  border-radius:var(--r-xl);padding:18px 20px;margin-bottom:12px;
+}
+.gate-txt{flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.gate-txt strong{font-size:17px;font-weight:500}
+.gate-txt span{font-size:13.5px;line-height:1.5;opacity:.85}
+.gate-act{display:flex;gap:8px;flex-wrap:wrap}
+/* the banner already uses the container tint, so the buttons have to invert
+   against it — otherwise the primary button is the same colour as its backdrop */
+.gate .btn{background:var(--surface);color:var(--on-surface)}
+.gate .btn:hover{background:var(--surface-2)}
+.gate .btn.primary{background:var(--on-primary-c);color:var(--primary-c)}
+.gate .btn.primary:hover{background:var(--on-primary-c);filter:brightness(1.15)}
+.needs-title #tripTitle{
+  background:var(--surface);
+  box-shadow:0 0 0 2px var(--focus);
+}
+.gated[inert]{opacity:.45;filter:saturate(.5)}
+@media (max-width:700px){
+  .gate{padding:16px;border-radius:var(--r-l)}
+  .gate-act{width:100%}
+  .gate-act .btn{flex:1 1 auto}
+}
+
 /* ---------- install hint ---------- */
 .iosbar{
   display:flex;align-items:flex-start;gap:12px;
@@ -548,13 +575,25 @@ footer .ver{font-size:11.5px;opacity:.8}
     </div>
   </header>
 
+  <div class="gate" id="gateBar" hidden>
+    <div class="gate-txt">
+      <strong id="gateHead">Name this sheet to start</strong>
+      <span id="gateSub">Give it a name — “Skitrip 2026”, “Flat share March” — and everything below unlocks.
+        The name is also the filename when you save.</span>
+    </div>
+    <div class="gate-act">
+      <button class="btn" id="gateOpen">📂 Open a saved file</button>
+      <button class="btn primary" id="gateName">Name it</button>
+    </div>
+  </div>
+
   <div class="iosbar" id="installHelp" hidden>
     <span class="ico" aria-hidden="true">📲</span>
     <span class="txt" id="installHelpTxt"></span>
     <button class="x" id="installHelpX" aria-label="Dismiss">×</button>
   </div>
 
-  <div class="card">
+  <div class="card gated">
     <div class="card-h">
       <h2>People</h2>
       <span class="spacer"></span>
@@ -565,7 +604,7 @@ footer .ver{font-size:11.5px;opacity:.8}
     </div>
   </div>
 
-  <div class="card">
+  <div class="card gated">
     <div class="card-h">
       <h2>Expenses</h2>
       <span class="spacer"></span>
@@ -581,7 +620,7 @@ footer .ver{font-size:11.5px;opacity:.8}
     </div>
   </div>
 
-  <div class="grid2">
+  <div class="grid2 gated">
     <div class="card">
       <div class="card-h"><h2>Balance</h2></div>
       <div class="card-b" id="balances"></div>
@@ -1171,6 +1210,7 @@ function renderAll(){
   $('tripTitle').value = state.title;
   document.title = (state.title || '').trim() ? state.title + ' — Billing Tool' : 'Billing Tool';
   renderPeople(); renderTable(); renderResults();
+  applyGate();
 }
 
 /* ============================ export / import ============================ */
@@ -1480,6 +1520,7 @@ $('addRow').addEventListener('click', function(){
 
 $('tripTitle').addEventListener('input', function(){
   state.title = this.value;
+  applyGate();
   document.title = (state.title || '').trim() ? state.title + ' — Billing Tool' : 'Billing Tool';
   save();
 });
@@ -1498,7 +1539,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.11.0';
+var APP_VERSION = '1.12.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -1611,6 +1652,30 @@ if(!isNativeShell && 'serviceWorker' in navigator &&
     navigator.serviceWorker.register('sw.js').catch(function(){});
   });
 }
+
+/* A sheet must be named before anything can be entered. The name doubles as the
+   filename on save, so an unnamed sheet would also produce unnamed backups —
+   which is how people end up with three files called billing-sheet.json. */
+function applyGate(){
+  var locked = !(state.title || '').trim();
+  document.body.classList.toggle('needs-title', locked);
+  var hasData = state.people.length || state.expenses.length;
+  $('gateBar').hidden = !locked;
+  if(locked){
+    $('gateHead').textContent = hasData ? 'This sheet needs a name again' : 'Name this sheet to start';
+    $('gateSub').textContent = hasData
+      ? 'Editing is paused until it has a name. Nothing has been lost — the entries are still below.'
+      : 'Give it a name — “Skitrip 2026”, “Flat share March” — and everything below unlocks. '
+        + 'The name is also the filename when you save.';
+  }
+  var cards = document.querySelectorAll('.gated');
+  for(var i=0;i<cards.length;i++){
+    if(locked) cards[i].setAttribute('inert',''); else cards[i].removeAttribute('inert');
+  }
+}
+
+$('gateName').addEventListener('click', function(){ $('tripTitle').focus(); });
+$('gateOpen').addEventListener('click', function(){ $('fileInput').click(); });
 
 /* go */
 initMenu();
