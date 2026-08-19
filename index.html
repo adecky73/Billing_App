@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4f46e5">
+<meta name="description" content="Split shared expenses and settle up with the fewest transfers.">
+<title>Billing Tool</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Billing Tool">
+<style>
+:root{
+  --bg:#f6f7fb; --panel:#ffffff; --panel-2:#fbfbfe; --ink:#1b1d29; --ink-soft:#5b6070;
+  --line:#e3e5ee; --line-strong:#c9cde0; --accent:#4f46e5; --accent-soft:#eef0ff;
+  --pos:#0a7d46; --pos-soft:#e6f6ee; --neg:#c0392b; --neg-soft:#fdeceb;
+  --warn:#9a6700; --warn-soft:#fff6dd;
+  --radius:14px; --shadow:0 1px 2px rgba(16,20,50,.05),0 8px 24px rgba(16,20,50,.06);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0f1117; --panel:#171a23; --panel-2:#1c202b; --ink:#e9ebf2; --ink-soft:#a0a6b8;
+    --line:#272b38; --line-strong:#394052; --accent:#8b85ff; --accent-soft:#232449;
+    --pos:#4ade80; --pos-soft:#12301f; --neg:#f87171; --neg-soft:#341917;
+    --warn:#fbbf24; --warn-soft:#3a2c10;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+html[data-theme="light"]{
+  --bg:#f6f7fb; --panel:#ffffff; --panel-2:#fbfbfe; --ink:#1b1d29; --ink-soft:#5b6070;
+  --line:#e3e5ee; --line-strong:#c9cde0; --accent:#4f46e5; --accent-soft:#eef0ff;
+  --pos:#0a7d46; --pos-soft:#e6f6ee; --neg:#c0392b; --neg-soft:#fdeceb;
+  --warn:#9a6700; --warn-soft:#fff6dd;
+  --shadow:0 1px 2px rgba(16,20,50,.05),0 8px 24px rgba(16,20,50,.06);
+}
+html[data-theme="dark"]{
+  --bg:#0f1117; --panel:#171a23; --panel-2:#1c202b; --ink:#e9ebf2; --ink-soft:#a0a6b8;
+  --line:#272b38; --line-strong:#394052; --accent:#8b85ff; --accent-soft:#232449;
+  --pos:#4ade80; --pos-soft:#12301f; --neg:#f87171; --neg-soft:#341917;
+  --warn:#fbbf24; --warn-soft:#3a2c10;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-text-size-adjust:100%; padding-bottom:env(safe-area-inset-bottom);
+}
+.wrap{max-width:1120px;margin:0 auto;padding:16px 16px 64px}
+h1,h2,h3{margin:0;font-weight:650;letter-spacing:-.01em}
+button{font:inherit;color:inherit}
+input,select{font:inherit;color:inherit}
+
+/* ---------- header ---------- */
+header.top{
+  display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  padding:14px 0 18px;
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#a78bfa);
+  display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;flex:none}
+#tripTitle{
+  font-size:20px;font-weight:680;background:transparent;border:1px solid transparent;
+  border-radius:8px;padding:3px 7px;min-width:120px;max-width:52vw;
+}
+#tripTitle:hover{border-color:var(--line)}
+#tripTitle:focus{outline:none;border-color:var(--accent);background:var(--panel)}
+.top-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  border:1px solid var(--line-strong);background:var(--panel);border-radius:10px;
+  padding:8px 12px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;
+  transition:background .12s,border-color .12s,transform .06s;white-space:nowrap;
+}
+.btn:hover{background:var(--panel-2);border-color:var(--accent)}
+.btn:active{transform:translateY(1px)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.07);background:var(--accent)}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--panel)}
+.btn.sm{padding:5px 9px;font-size:13px;border-radius:8px}
+
+/* ---------- panels ---------- */
+.card{
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+  box-shadow:var(--shadow);margin-bottom:16px;overflow:hidden;
+}
+.card > .card-h{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:13px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);
+}
+.card-h h2{font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft)}
+.card-h .spacer{margin-left:auto}
+.card-b{padding:14px 16px}
+
+/* ---------- people ---------- */
+.people{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{
+  display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);
+  background:var(--panel-2);border-radius:999px;padding:5px 6px 5px 12px;
+}
+.chip input{
+  background:transparent;border:none;width:auto;min-width:40px;max-width:150px;
+  font-weight:600;padding:1px 2px;border-radius:5px;
+}
+.chip input:focus{outline:1px solid var(--accent);background:var(--panel)}
+.chip .x{
+  border:none;background:transparent;cursor:pointer;color:var(--ink-soft);
+  width:22px;height:22px;border-radius:999px;display:grid;place-items:center;font-size:15px;line-height:1;
+}
+.chip .x:hover{background:var(--neg-soft);color:var(--neg)}
+#newPerson{
+  border:1px dashed var(--line-strong);background:transparent;border-radius:999px;
+  padding:6px 13px;min-width:150px;
+}
+#newPerson:focus{outline:none;border-color:var(--accent);border-style:solid}
+
+/* ---------- table ---------- */
+.tablewrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:640px}
+th,td{padding:7px 9px;text-align:left;vertical-align:middle;border-bottom:1px solid var(--line)}
+thead th{
+  position:sticky;top:0;z-index:2;background:var(--panel-2);font-size:12px;font-weight:650;
+  text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);white-space:nowrap;
+  border-bottom:1px solid var(--line-strong);
+}
+tbody tr:hover{background:var(--panel-2)}
+tbody tr.unassigned{background:var(--warn-soft)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+th.share,td.share{text-align:center;padding:5px 4px}
+th.share{cursor:pointer}
+th.share .pname{display:block;max-width:96px;overflow:hidden;text-overflow:ellipsis}
+td.desc input,td.amt input{
+  width:100%;background:transparent;border:1px solid transparent;border-radius:7px;padding:6px 7px;
+}
+td.amt input{text-align:right;font-variant-numeric:tabular-nums}
+td.desc input:hover,td.amt input:hover{border-color:var(--line)}
+td.desc input:focus,td.amt input:focus{outline:none;border-color:var(--accent);background:var(--bg)}
+td.payer select{
+  width:100%;background:transparent;border:1px solid transparent;border-radius:7px;padding:6px 5px;
+  font-weight:600;cursor:pointer;
+}
+td.payer select:hover{border-color:var(--line)}
+td.payer select:focus{outline:none;border-color:var(--accent)}
+td.payer select.empty{color:var(--neg);font-weight:400}
+.sharebtn{
+  width:34px;height:32px;border-radius:8px;border:1px solid var(--line);background:transparent;
+  cursor:pointer;color:var(--ink-soft);font-weight:650;font-size:13px;
+  display:inline-grid;place-items:center;transition:all .1s;
+}
+.sharebtn:hover{border-color:var(--accent)}
+.sharebtn[data-n="0"]{opacity:.45}
+.sharebtn[data-n="1"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.sharebtn[data-n="2"],.sharebtn.multi{background:var(--accent);border-color:var(--accent);color:#fff}
+.rowdel{
+  border:none;background:transparent;cursor:pointer;color:var(--ink-soft);
+  width:28px;height:28px;border-radius:7px;font-size:16px;line-height:1;
+}
+.rowdel:hover{background:var(--neg-soft);color:var(--neg)}
+tfoot td{font-weight:700;border-top:1px solid var(--line-strong);border-bottom:none;background:var(--panel-2)}
+tbody tr.placeholder:hover{background:transparent}
+td.ph{color:var(--ink-soft);text-align:center;padding:26px 12px;border-bottom:none}
+
+/* ---------- results ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:820px){.grid2{grid-template-columns:1fr}}
+.balrow{
+  display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed var(--line);
+}
+.balrow:last-child{border-bottom:none}
+.balrow .nm{font-weight:650}
+.balrow .sub{color:var(--ink-soft);font-size:12.5px}
+.balrow .val{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;
+  padding:3px 9px;border-radius:8px;white-space:nowrap}
+.val.pos{color:var(--pos);background:var(--pos-soft)}
+.val.neg{color:var(--neg);background:var(--neg-soft)}
+.val.zero{color:var(--ink-soft)}
+.tr{
+  display:flex;align-items:baseline;gap:8px;padding:10px 0;border-bottom:1px dashed var(--line);flex-wrap:wrap;
+}
+.tr:last-child{border-bottom:none}
+.tr .from{font-weight:650}
+.tr .arrow{color:var(--accent);font-weight:700}
+.tr .amt{font-variant-numeric:tabular-nums;font-weight:700;color:var(--neg)}
+.tr .to{font-weight:650}
+.empty-note{color:var(--ink-soft);padding:6px 0}
+.note{
+  background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:9px 12px;
+  font-size:13.5px;margin-bottom:12px;
+}
+.hint{color:var(--ink-soft);font-size:12.5px}
+
+/* ---------- menu ---------- */
+.menu-anchor{position:relative}
+.menu{
+  position:absolute;right:0;top:calc(100% + 6px);z-index:50;min-width:240px;
+  background:var(--panel);border:1px solid var(--line-strong);border-radius:12px;
+  box-shadow:var(--shadow);padding:6px;display:none;
+}
+.menu.open{display:block}
+.menu button{
+  display:flex;width:100%;text-align:left;border:none;background:transparent;
+  padding:9px 11px;border-radius:8px;cursor:pointer;gap:9px;align-items:center;
+}
+.menu button:hover{background:var(--accent-soft)}
+.menu hr{border:none;border-top:1px solid var(--line);margin:5px 4px}
+.menu .danger:hover{background:var(--neg-soft);color:var(--neg)}
+.menu .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);padding:8px 11px 3px}
+
+footer{color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0 0;line-height:1.7}
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:100;
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;
+  box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .2s,bottom .2s;
+}
+.toast.show{opacity:1;bottom:34px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- phone layout: one card per expense ---------- */
+.mlabel{display:none}
+@media (max-width:700px){
+  .wrap{padding:12px 12px 56px}
+  .tablewrap{overflow:visible}
+  table{min-width:0}
+  table,tbody,tfoot,tr,td{display:block;width:auto}
+  thead{display:none}
+  tbody tr{
+    display:flex;flex-wrap:wrap;align-items:center;
+    border:1px solid var(--line);border-radius:12px;margin:0 0 10px;padding:8px 8px 6px;
+    position:relative;background:var(--panel);
+  }
+  tbody tr:hover{background:var(--panel)}
+  tbody tr.unassigned{background:var(--warn-soft)}
+  tbody tr.placeholder{display:block;border-style:dashed;text-align:center}
+  tbody td{border:none;padding:3px 4px}
+  td.ph{padding:18px 8px}
+  .mlabel{
+    display:inline;font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+    color:var(--ink-soft);font-weight:650;
+  }
+  td.payer{order:1;flex:1 1 50%;min-width:0}
+  td.payer select{font-size:15px;padding:7px 6px;border-color:var(--line)}
+  td.amt{order:2;flex:0 1 40%;min-width:0;padding-right:28px}
+  td.amt input{border-color:var(--line);font-size:16px;font-weight:650;padding:7px 8px}
+  td.desc{order:3;flex:1 1 100%}
+  td.desc input{border-color:var(--line);font-size:15px;padding:7px 8px}
+  td.share{
+    order:4;display:inline-flex;align-items:center;gap:5px;width:auto;
+    border:1px solid var(--line);border-radius:999px;padding:2px 3px 2px 10px;margin:4px 4px 0 0;
+  }
+  td.share .mlabel{max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  td.share .sharebtn{width:30px;height:28px}
+  td.pershare{
+    order:5;flex:1 1 100%;text-align:left;padding-top:7px;margin-top:6px;
+    border-top:1px dashed var(--line);color:var(--ink-soft);
+  }
+  td.pershare .v{font-weight:700;color:var(--ink)}
+  tbody td:last-child{position:absolute;top:6px;right:6px;padding:0}
+  tfoot tr{display:flex;align-items:center;gap:8px;padding:6px 4px}
+  tfoot td{display:block;border:none;background:transparent}
+  tfoot td.num{margin-left:auto;font-size:17px}
+  tfoot td:last-child{display:none}
+  .card-h .hint{font-size:12px;flex-basis:100%;order:3}
+  .card-h .btn{order:2}
+}
+
+@media print{
+  body{background:#fff}
+  .top-actions,.rowdel,.card-h .btn,#newPerson,.chip .x,footer .noprint{display:none!important}
+  .card{box-shadow:none;border-color:#ccc;break-inside:avoid}
+  .tablewrap{overflow:visible}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo">€</div>
+      <input id="tripTitle" value="" placeholder="Name this sheet…" aria-label="Title of this billing sheet" spellcheck="false">
+    </div>
+    <div class="top-actions">
+      <button class="btn" id="installBtn" hidden>⬇︎ Install app</button>
+      <button class="btn ghost" id="themeBtn" title="Switch light / dark" aria-label="Switch light or dark theme"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg></button>
+      <div class="menu-anchor">
+        <button class="btn" id="menuBtn" aria-haspopup="true" aria-expanded="false">Menu ▾</button>
+        <div class="menu" id="menu" role="menu">
+          <div class="lbl">Save &amp; share</div>
+          <button data-act="save">💾 Save to file (.json)</button>
+          <button data-act="load">📂 Open file (.json)</button>
+          <button data-act="csv">📊 Export for Excel (.csv)</button>
+          <button data-act="copy">📋 Copy summary as text</button>
+          <button data-act="print">🖨 Print / save as PDF</button>
+          <hr>
+          <div class="lbl">Settings</div>
+          <button data-act="currency">💱 Currency symbol …</button>
+          <hr>
+          <button data-act="clear" class="danger">🗑 Clear everything</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="card">
+    <div class="card-h">
+      <h2>People</h2>
+      <span class="spacer"></span>
+      <span class="hint" id="peopleHint"></span>
+    </div>
+    <div class="card-b">
+      <div class="people" id="people"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h">
+      <h2>Expenses</h2>
+      <span class="spacer"></span>
+      <span class="hint">Tap a cell to include someone · tap again for a double share</span>
+      <button class="btn sm primary" id="addRow">+ Add expense</button>
+    </div>
+    <div class="tablewrap">
+      <table id="tbl">
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+        <tfoot id="tfoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <div class="card-h"><h2>Balance</h2></div>
+      <div class="card-b" id="balances"></div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <h2>Settlement</h2>
+        <span class="spacer"></span>
+        <span class="hint" id="trCount"></span>
+      </div>
+      <div class="card-b" id="transfers"></div>
+    </div>
+  </div>
+
+  <footer>
+    <div>Billing Tool — web version of the Excel/VBA tool “Billing Tool v11, © Andreas Deckert 2023”.</div>
+    <div class="noprint">All data stays on this device. Nothing is uploaded anywhere.</div>
+  </footer>
+</div>
+
+<input type="file" id="fileInput" accept=".json,application/json" class="sr">
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   BILLING TOOL — calculation core
+   Cent-exact reimplementation of the VBA logic of
+   "Billing Tool v11, (c) Andreas Deckert 2023".
+
+   All money is handled as integer cents. No floating point
+   is used anywhere in the calculation path, so balances always
+   sum to exactly zero and the rounding drift documented in the
+   original VBA ("BUGS not solved yet") cannot occur.
+   ============================================================ */
+
+/** Parse a user-typed amount ("1.234,56", "1234.56", "12,5") into integer cents. */
+function parseAmount(input) {
+  if (typeof input === 'number') return Math.round(input * 100);
+  let s = String(input == null ? '' : input).trim();
+  if (!s) return 0;
+  s = s.replace(/[^\d.,\-]/g, '');
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  if (lastComma > -1 && lastDot > -1) {
+    // the rightmost separator is the decimal separator
+    if (lastComma > lastDot) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(/,/g, '');
+  } else if (lastComma > -1) {
+    // a single comma: decimal separator unless it looks like a thousands group
+    s = /,\d{3}$/.test(s) ? s.replace(/,/g, '') : s.replace(',', '.');
+  }
+  const n = parseFloat(s);
+  if (!isFinite(n)) return 0;
+  return Math.round(n * 100);
+}
+
+/** Format integer cents as a plain number string with two decimals. */
+function formatCents(cents, opts) {
+  const o = opts || {};
+  const sign = cents < 0 ? '-' : '';
+  const abs = Math.abs(cents);
+  const s = (abs / 100).toFixed(2);
+  const [int, frac] = s.split('.');
+  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, o.thousands === undefined ? ',' : o.thousands);
+  const dec = o.decimal === undefined ? '.' : o.decimal;
+  return sign + grouped + dec + frac;
+}
+
+/**
+ * Split one expense over its sharers, cent-exact.
+ * shares: array of non-negative integers, one per participant
+ *         (1 = the old "x", 2 = the old "xx", any n is allowed).
+ * Returns an array of integer cents that sums to exactly `cents`.
+ * The remainder (cents % totalShares) is handed out one cent at a time,
+ * to the sharers with the most shares first, then by position — deterministic.
+ */
+function splitExpense(cents, shares) {
+  const out = shares.map(() => 0);
+  const totalShares = shares.reduce((a, b) => a + b, 0);
+  if (totalShares <= 0) return out;
+
+  const neg = cents < 0;
+  const abs = Math.abs(cents);
+  const perShare = Math.floor(abs / totalShares);
+  let remainder = abs - perShare * totalShares;
+
+  for (let i = 0; i < shares.length; i++) out[i] = perShare * shares[i];
+
+  if (remainder > 0) {
+    const order = shares
+      .map((s, i) => ({ s, i }))
+      .filter((e) => e.s > 0)
+      .sort((a, b) => b.s - a.s || a.i - b.i);
+    let k = 0;
+    while (remainder > 0) {
+      const e = order[k % order.length];
+      out[e.i] += 1;
+      remainder -= 1;
+      k += 1;
+    }
+  }
+  if (neg) for (let i = 0; i < out.length; i++) out[i] = -out[i];
+  return out;
+}
+
+/**
+ * Compute paid / owed / balance per participant.
+ * people:   [{id, name}]
+ * expenses: [{payerId, desc, cents, shares:{id:number}}]
+ */
+function computeBalances(people, expenses) {
+  const idx = new Map(people.map((p, i) => [p.id, i]));
+  const paid = people.map(() => 0);
+  const owed = people.map(() => 0);
+  const perExpense = [];
+
+  for (const ex of expenses) {
+    const shares = people.map((p) => {
+      const v = ex.shares ? ex.shares[p.id] : 0;
+      const n = Math.max(0, Math.floor(Number(v) || 0));
+      return n;
+    });
+    const totalShares = shares.reduce((a, b) => a + b, 0);
+    const split = splitExpense(ex.cents || 0, shares);
+    for (let i = 0; i < people.length; i++) owed[i] += split[i];
+    if (ex.payerId != null && idx.has(ex.payerId)) paid[idx.get(ex.payerId)] += ex.cents || 0;
+    perExpense.push({
+      shares,
+      totalShares,
+      split,
+      // "per person" as in the original sheet: amount / number of shares
+      perShare: totalShares > 0 ? (ex.cents || 0) / totalShares : 0,
+      unassigned: totalShares === 0 && (ex.cents || 0) !== 0,
+    });
+  }
+
+  const rows = people.map((p, i) => ({
+    id: p.id,
+    name: p.name,
+    paid: paid[i],
+    owed: owed[i],
+    balance: paid[i] - owed[i],
+  }));
+  return { rows, perExpense, total: expenses.reduce((a, e) => a + (e.cents || 0), 0) };
+}
+
+/* ---------- settlement ---------------------------------------------------
+   Minimising the number of transfers is the "partition into zero-sum
+   subsets" problem: with m participants holding a non-zero balance and g
+   disjoint groups that each sum to zero, m - g transfers are needed, and
+   that is optimal. For m <= 14 we solve the partition exactly with a
+   subset DP; above that we fall back to plain greedy (one group), which
+   still never needs more than m - 1 transfers.
+------------------------------------------------------------------------- */
+
+function _partitionZeroSum(values) {
+  const m = values.length;
+  if (m === 0) return [];
+  if (m > 14) return [values.map((_, i) => i)];
+
+  const size = 1 << m;
+  const sums = new Int32Array(size);
+  for (let mask = 1; mask < size; mask++) {
+    const low = mask & -mask;
+    const i = 31 - Math.clz32(low);
+    sums[mask] = sums[mask ^ low] + values[i];
+  }
+  const dp = new Int8Array(size).fill(-1);
+  const choice = new Int32Array(size);
+  dp[0] = 0;
+  for (let mask = 1; mask < size; mask++) {
+    const low = mask & -mask;
+    let best = -1;
+    let bestSub = 0;
+    for (let sub = mask; sub > 0; sub = (sub - 1) & mask) {
+      if (!(sub & low)) continue;
+      if (sums[sub] !== 0) continue;
+      const rest = dp[mask ^ sub];
+      if (rest >= 0 && rest + 1 > best) {
+        best = rest + 1;
+        bestSub = sub;
+      }
+    }
+    dp[mask] = best;
+    choice[mask] = bestSub;
+  }
+
+  const full = size - 1;
+  if (dp[full] < 0) return [values.map((_, i) => i)]; // shouldn't happen: total is 0
+  const groups = [];
+  let mask = full;
+  while (mask) {
+    const sub = choice[mask];
+    const g = [];
+    for (let i = 0; i < m; i++) if (sub & (1 << i)) g.push(i);
+    groups.push(g);
+    mask ^= sub;
+  }
+  return groups;
+}
+
+/**
+ * Turn balances into a list of transfers.
+ * rows: [{id, name, balance}] — balances must sum to zero.
+ * Returns [{fromId, fromName, toId, toName, cents}]
+ */
+function settle(rows) {
+  const nz = rows.filter((r) => r.balance !== 0);
+  if (!nz.length) return [];
+  const total = nz.reduce((a, r) => a + r.balance, 0);
+  if (total !== 0) throw new Error('balances do not sum to zero: ' + total);
+
+  const groups = _partitionZeroSum(nz.map((r) => r.balance));
+  const transfers = [];
+
+  for (const g of groups) {
+    const creditors = g.filter((i) => nz[i].balance > 0).map((i) => ({ i, left: nz[i].balance }));
+    const debtors = g.filter((i) => nz[i].balance < 0).map((i) => ({ i, left: -nz[i].balance }));
+    creditors.sort((a, b) => b.left - a.left);
+    debtors.sort((a, b) => b.left - a.left);
+    let c = 0;
+    let d = 0;
+    while (c < creditors.length && d < debtors.length) {
+      const amount = Math.min(creditors[c].left, debtors[d].left);
+      if (amount > 0) {
+        transfers.push({
+          fromId: nz[debtors[d].i].id,
+          fromName: nz[debtors[d].i].name,
+          toId: nz[creditors[c].i].id,
+          toName: nz[creditors[c].i].name,
+          cents: amount,
+        });
+      }
+      creditors[c].left -= amount;
+      debtors[d].left -= amount;
+      if (creditors[c].left === 0) c++;
+      if (debtors[d].left === 0) d++;
+    }
+  }
+  transfers.sort((a, b) => a.fromName.localeCompare(b.fromName) || b.cents - a.cents);
+  return transfers;
+}
+</script>
+<script>
+(function(){
+'use strict';
+
+/* ============================ state ============================ */
+var STORE_KEY = 'billing-tool.v1';
+var state = null;
+var memoryOnly = false;
+
+function uid(){ return 'p' + Math.random().toString(36).slice(2,9); }
+
+/* The app ships without any data: no people, no expenses, no example. */
+function emptyState(){
+  return { title:'', currency:'€', people:[], expenses:[] };
+}
+
+function load(){
+  try{
+    var raw = localStorage.getItem(STORE_KEY);
+    if(raw){
+      var st = JSON.parse(raw);
+      if(st && st.people && st.expenses) return normalize(st);
+    }
+  }catch(e){ memoryOnly = true; }
+  return emptyState();
+}
+function save(){
+  if(memoryOnly) return;
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+  catch(e){ memoryOnly = true; }
+}
+function normalize(st){
+  st.currency = st.currency || '€';
+  st.title = st.title || 'Billing sheet';
+  st.people = (st.people||[]).map(function(p){ return {id:p.id||uid(), name:String(p.name||'').toUpperCase()}; });
+  st.expenses = (st.expenses||[]).map(function(e){
+    var sh={};
+    for(var k in (e.shares||{})){ var n=Math.max(0,Math.floor(Number(e.shares[k])||0)); if(n) sh[k]=n; }
+    return {id:e.id||uid(), payerId:e.payerId||null, desc:String(e.desc||''), cents:Math.round(Number(e.cents)||0), shares:sh};
+  });
+  return st;
+}
+
+/* ============================ helpers ============================ */
+function money(cents){ return formatCents(cents) + ' ' + state.currency; }
+function sheetTitle(){ return (state.title || '').trim() || 'Billing sheet'; }
+function el(tag, cls, txt){
+  var n = document.createElement(tag);
+  if(cls) n.className = cls;
+  if(txt != null) n.textContent = txt;
+  return n;
+}
+function $(id){ return document.getElementById(id); }
+var toastTimer;
+function toast(msg){
+  var t = $('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+}
+function personName(id){
+  for(var i=0;i<state.people.length;i++) if(state.people[i].id===id) return state.people[i].name;
+  return '';
+}
+
+/* ============================ rendering ============================ */
+function renderPeople(){
+  var box = $('people'); box.innerHTML = '';
+  state.people.forEach(function(p){
+    var chip = el('div','chip');
+    var inp = document.createElement('input');
+    inp.value = p.name; inp.size = Math.max(4, p.name.length);
+    inp.setAttribute('aria-label','Name');
+    inp.addEventListener('input', function(){
+      p.name = inp.value.toUpperCase();
+      inp.value = p.name;
+      inp.size = Math.max(4, p.name.length);
+      updateHeaderNames(); renderResults(); save();
+    });
+    var x = el('button','x','×');
+    x.title = 'Remove ' + p.name;
+    x.addEventListener('click', function(){
+      var used = state.expenses.some(function(e){ return e.payerId===p.id || (e.shares[p.id]||0)>0; });
+      if(used && !confirm('“'+p.name+'” is used in the expense list. Remove anyway? Their entries will be unassigned.')) return;
+      state.people = state.people.filter(function(q){ return q.id!==p.id; });
+      state.expenses.forEach(function(e){ if(e.payerId===p.id) e.payerId=null; delete e.shares[p.id]; });
+      renderAll(); save();
+    });
+    chip.appendChild(inp); chip.appendChild(x);
+    box.appendChild(chip);
+  });
+
+  var add = document.createElement('input');
+  add.id = 'newPerson'; add.placeholder = '+ add person'; add.setAttribute('aria-label','Add a person');
+  add.addEventListener('keydown', function(ev){
+    if(ev.key === 'Enter'){
+      var nm = add.value.trim().toUpperCase();
+      if(!nm) return;
+      if(state.people.some(function(p){return p.name===nm;})){ toast('That name already exists.'); return; }
+      state.people.push({id:uid(), name:nm});
+      renderAll(); save();
+      var np = $('newPerson'); if(np) np.focus();
+    }
+  });
+  box.appendChild(add);
+  $('peopleHint').textContent = state.people.length
+    ? state.people.length + ' ' + (state.people.length===1?'person':'people')
+    : 'type a name and press Enter';
+}
+
+function updateHeaderNames(){
+  var ths = $('thead').querySelectorAll('th.share .pname');
+  for(var i=0;i<ths.length && i<state.people.length;i++) ths[i].textContent = state.people[i].name;
+  var sels = $('tbody').querySelectorAll('td.payer select');
+  for(var j=0;j<sels.length;j++){
+    var opts = sels[j].options;
+    for(var k=0;k<opts.length;k++){
+      if(opts[k].value) opts[k].textContent = personName(opts[k].value);
+    }
+  }
+  var rows = $('tbody').children;
+  for(var r=0;r<rows.length;r++){
+    var labels = rows[r].querySelectorAll('td.share .mlabel');
+    for(var m=0;m<labels.length && m<state.people.length;m++) labels[m].textContent = state.people[m].name;
+  }
+}
+
+function renderTable(){
+  var head = $('thead'); head.innerHTML = '';
+  head.appendChild(el('th', null, 'Paid by'));
+  head.appendChild(el('th', null, 'Expenditure'));
+  var thA = el('th','num','Amount'); head.appendChild(thA);
+  state.people.forEach(function(p, i){
+    var th = el('th','share');
+    var span = el('span','pname', p.name);
+    th.appendChild(span);
+    th.title = 'Click to include/exclude ' + p.name + ' in every expense';
+    th.addEventListener('click', function(){
+      var allIn = state.expenses.every(function(e){ return (e.shares[p.id]||0) > 0; });
+      state.expenses.forEach(function(e){ if(allIn) delete e.shares[p.id]; else if(!e.shares[p.id]) e.shares[p.id]=1; });
+      renderTable(); renderResults(); save();
+    });
+    head.appendChild(th);
+  });
+  head.appendChild(el('th','num','Per share'));
+  head.appendChild(el('th', null, ''));
+
+  var body = $('tbody'); body.innerHTML = '';
+  var res = computeBalances(state.people, state.expenses);
+
+  state.expenses.forEach(function(ex, ri){
+    var tr = document.createElement('tr');
+    if(res.perExpense[ri].unassigned) tr.className = 'unassigned';
+
+    // payer
+    var tdP = el('td','payer');
+    var sel = document.createElement('select');
+    var o0 = document.createElement('option'); o0.value=''; o0.textContent='— who paid? —'; sel.appendChild(o0);
+    state.people.forEach(function(p){
+      var o = document.createElement('option'); o.value=p.id; o.textContent=p.name; sel.appendChild(o);
+    });
+    sel.value = ex.payerId || '';
+    if(!ex.payerId) sel.className = 'empty';
+    sel.addEventListener('change', function(){
+      ex.payerId = sel.value || null;
+      sel.className = ex.payerId ? '' : 'empty';
+      renderResults(); save();
+    });
+    tdP.appendChild(sel); tr.appendChild(tdP);
+
+    // description
+    var tdD = el('td','desc');
+    var inD = document.createElement('input');
+    inD.value = ex.desc; inD.placeholder = 'what was it for?'; inD.setAttribute('aria-label','Description');
+    inD.addEventListener('input', function(){ ex.desc = inD.value; save(); });
+    tdD.appendChild(inD); tr.appendChild(tdD);
+
+    // amount
+    var tdA = el('td','amt');
+    var inA = document.createElement('input');
+    inA.inputMode = 'decimal'; inA.setAttribute('aria-label','Amount');
+    inA.value = ex.cents ? formatCents(ex.cents) : '';
+    inA.placeholder = '0.00';
+    inA.addEventListener('input', function(){
+      ex.cents = parseAmount(inA.value);
+      updatePerShare(); renderResults(); save();
+    });
+    inA.addEventListener('blur', function(){ inA.value = ex.cents ? formatCents(ex.cents) : ''; });
+    inA.addEventListener('focus', function(){ inA.select(); });
+    tdA.appendChild(inA); tr.appendChild(tdA);
+
+    // shares
+    state.people.forEach(function(p){
+      var td = el('td','share');
+      td.appendChild(el('span','mlabel', p.name));
+      var b = el('button','sharebtn');
+      var n = ex.shares[p.id] || 0;
+      paintShare(b, n);
+      b.setAttribute('aria-label', p.name + ' share for ' + (ex.desc||'this expense'));
+      b.addEventListener('click', function(ev){
+        var cur = ex.shares[p.id] || 0;
+        var next;
+        if(ev.shiftKey) next = cur + 1;
+        else next = cur === 0 ? 1 : (cur === 1 ? 2 : 0);
+        if(next <= 0) delete ex.shares[p.id]; else ex.shares[p.id] = next;
+        paintShare(b, next);
+        updatePerShare(); renderResults(); save();
+      });
+      td.appendChild(b); tr.appendChild(td);
+    });
+
+    // per share
+    var tdS = el('td','num pershare');
+    tdS.appendChild(el('span','mlabel','per share '));
+    tdS.appendChild(el('span','v',''));
+    tr.appendChild(tdS);
+
+    // delete
+    var tdX = el('td');
+    var del = el('button','rowdel','×');
+    del.title = 'Delete this row';
+    del.addEventListener('click', function(){
+      state.expenses = state.expenses.filter(function(e){ return e.id !== ex.id; });
+      renderTable(); renderResults(); save();
+    });
+    tdX.appendChild(del); tr.appendChild(tdX);
+
+    body.appendChild(tr);
+  });
+
+  if(!state.expenses.length){
+    var etr = document.createElement('tr');
+    etr.className = 'placeholder';
+    var etd = el('td','ph', state.people.length
+      ? 'No expenses yet — hit “+ Add expense”.'
+      : 'Add the people first, then start entering expenses.');
+    etd.colSpan = state.people.length + 5;
+    etr.appendChild(etd);
+    body.appendChild(etr);
+  }
+
+  var foot = $('tfoot'); foot.innerHTML = '';
+  if(state.expenses.length){
+    var ftr = document.createElement('tr');
+    var fc = el('td', null, 'Total'); fc.colSpan = 2; ftr.appendChild(fc);
+    var ft = el('td','num total', ''); ftr.appendChild(ft);
+    var fill = el('td'); fill.colSpan = state.people.length + 2; ftr.appendChild(fill);
+    foot.appendChild(ftr);
+  }
+
+  updatePerShare();
+}
+
+function paintShare(btn, n){
+  btn.dataset.n = n;
+  btn.className = 'sharebtn' + (n > 2 ? ' multi' : '');
+  btn.textContent = n === 0 ? '·' : (n === 1 ? '✓' : n + '×');
+  btn.title = n === 0 ? 'not involved — click to include (shift-click for more shares)'
+                      : (n === 1 ? 'one share — click for a double share' : n + ' shares — click to remove');
+}
+
+function updatePerShare(){
+  var res = computeBalances(state.people, state.expenses);
+  var cells = $('tbody').querySelectorAll('td.pershare .v');
+  for(var i=0;i<cells.length;i++){
+    var pe = res.perExpense[i];
+    cells[i].textContent = pe.totalShares > 0 ? formatCents(Math.round(pe.perShare)) + ' ' + state.currency : '—';
+    cells[i].style.color = pe.totalShares > 0 ? '' : 'var(--warn)';
+    var row = $('tbody').children[i];
+    if(row) row.className = pe.unassigned ? 'unassigned' : '';
+  }
+  var tot = $('tfoot').querySelector('.total');
+  if(tot) tot.textContent = money(res.total);
+}
+
+function renderResults(){
+  var res = computeBalances(state.people, state.expenses);
+  var rows = res.rows.slice().sort(function(a,b){ return b.balance - a.balance || a.name.localeCompare(b.name); });
+
+  var bb = $('balances'); bb.innerHTML = '';
+  var unassigned = res.perExpense.filter(function(p){ return p.unassigned; }).length;
+  var noPayer = state.expenses.filter(function(e){ return !e.payerId && e.cents; }).length;
+  if(unassigned || noPayer){
+    var msgs = [];
+    if(noPayer) msgs.push(noPayer + ' expense' + (noPayer>1?'s have':' has') + ' no payer');
+    if(unassigned) msgs.push(unassigned + ' expense' + (unassigned>1?'s are':' is') + ' not shared by anyone');
+    bb.appendChild(el('div','note', '⚠ ' + msgs.join(' · ') + ' — the result below ignores those.'));
+  }
+  if(!rows.length){ bb.appendChild(el('div','empty-note','Add some people first.')); }
+  rows.forEach(function(r){
+    var row = el('div','balrow');
+    var left = el('div');
+    left.appendChild(el('div','nm', r.name));
+    left.appendChild(el('div','sub', 'paid ' + money(r.paid) + ' · share ' + money(r.owed)));
+    row.appendChild(left);
+    var v = el('div','val ' + (r.balance>0?'pos':(r.balance<0?'neg':'zero')),
+      (r.balance>0?'+':'') + money(r.balance));
+    row.appendChild(v);
+    bb.appendChild(row);
+  });
+
+  var tb = $('transfers'); tb.innerHTML = '';
+  var transfers = [];
+  try{ transfers = settle(res.rows); }
+  catch(e){ tb.appendChild(el('div','note','Could not compute transfers: ' + e.message)); }
+
+  if(!transfers.length){
+    tb.appendChild(el('div','empty-note', res.total ? '✓ All settled — nobody owes anything.' : 'Nothing to settle yet.'));
+    $('trCount').textContent = '';
+  }else{
+    transfers.forEach(function(t){
+      var d = el('div','tr');
+      d.appendChild(el('span','from', t.fromName));
+      d.appendChild(el('span','arrow','→'));
+      d.appendChild(el('span',null,'pays'));
+      d.appendChild(el('span','amt', money(t.cents)));
+      d.appendChild(el('span',null,'to'));
+      d.appendChild(el('span','to', t.toName));
+      tb.appendChild(d);
+    });
+    var n = res.rows.filter(function(r){return r.balance!==0;}).length;
+    $('trCount').textContent = transfers.length + ' transfer' + (transfers.length>1?'s':'') +
+      ' (fewest possible for ' + n + ' people)';
+  }
+}
+
+function renderAll(){
+  $('tripTitle').value = state.title;
+  document.title = (state.title || '').trim() ? state.title + ' — Billing Tool' : 'Billing Tool';
+  renderPeople(); renderTable(); renderResults();
+}
+
+/* ============================ export / import ============================ */
+function summaryText(){
+  var res = computeBalances(state.people, state.expenses);
+  var t = sheetTitle();
+  var lines = [t, ''.padEnd(t.length, '='), ''];
+  lines.push('Total: ' + money(res.total) + '  (' + state.expenses.length + ' expenses, ' + state.people.length + ' people)');
+  lines.push('');
+  lines.push('Balance');
+  res.rows.slice().sort(function(a,b){return b.balance-a.balance;}).forEach(function(r){
+    lines.push('  ' + r.name + ': ' + (r.balance>0?'+':'') + money(r.balance) +
+               '   (paid ' + money(r.paid) + ', share ' + money(r.owed) + ')');
+  });
+  lines.push('');
+  lines.push('Settlement');
+  var t = [];
+  try{ t = settle(res.rows); }catch(e){}
+  if(!t.length) lines.push('  nothing to transfer');
+  t.forEach(function(x){ lines.push('  ' + x.fromName + ' → ' + money(x.cents) + ' → ' + x.toName); });
+  return lines.join('\n');
+}
+
+function download(name, mime, text){
+  var blob = new Blob([text], {type: mime});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+}
+function slug(s){ return (s||'billing').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'billing'; }
+
+function exportCsv(){
+  var res = computeBalances(state.people, state.expenses);
+  var sep = ';';
+  function q(v){ v = String(v==null?'':v); return /[";\n]/.test(v) ? '"'+v.replace(/"/g,'""')+'"' : v; }
+  var out = [];
+  out.push([sheetTitle()].map(q).join(sep));
+  out.push('');
+  out.push(['Paid by','Expenditure','Amount'].concat(state.people.map(function(p){return p.name;})).concat(['Per share']).map(q).join(sep));
+  state.expenses.forEach(function(ex, i){
+    var pe = res.perExpense[i];
+    var row = [personName(ex.payerId), ex.desc, (ex.cents/100).toFixed(2).replace('.',',')];
+    state.people.forEach(function(p){ var n = ex.shares[p.id]||0; row.push(n===0?'':(n===1?'x':n+'x')); });
+    row.push(pe.totalShares ? (pe.perShare/100).toFixed(2).replace('.',',') : '');
+    out.push(row.map(q).join(sep));
+  });
+  out.push(['','Total',(res.total/100).toFixed(2).replace('.',',')].map(q).join(sep));
+  out.push('');
+  out.push(['Name','Paid','Share','Balance'].map(q).join(sep));
+  res.rows.slice().sort(function(a,b){return b.balance-a.balance;}).forEach(function(r){
+    out.push([r.name,(r.paid/100).toFixed(2).replace('.',','),(r.owed/100).toFixed(2).replace('.',','),(r.balance/100).toFixed(2).replace('.',',')].map(q).join(sep));
+  });
+  out.push('');
+  out.push(['Settlement'].map(q).join(sep));
+  try{
+    settle(res.rows).forEach(function(t){
+      out.push([t.fromName,'pays',(t.cents/100).toFixed(2).replace('.',','),'to',t.toName].map(q).join(sep));
+    });
+  }catch(e){}
+  download(slug(sheetTitle())+'.csv','text/csv;charset=utf-8','﻿'+out.join('\r\n'));
+  toast('CSV exported — opens directly in Excel.');
+}
+
+/* ============================ wiring ============================ */
+function initMenu(){
+  var menu = $('menu'), btn = $('menuBtn');
+  function close(){ menu.classList.remove('open'); btn.setAttribute('aria-expanded','false'); }
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    var open = !menu.classList.contains('open');
+    menu.classList.toggle('open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', close);
+  menu.addEventListener('click', function(e){ e.stopPropagation(); });
+  menu.addEventListener('click', function(e){
+    var t = e.target.closest('button[data-act]');
+    if(!t) return;
+    close();
+    var act = t.dataset.act;
+    if(act==='save'){
+      download(slug(sheetTitle())+'.json','application/json', JSON.stringify(state,null,2));
+      toast('Saved to your downloads.');
+    }
+    else if(act==='load'){ $('fileInput').click(); }
+    else if(act==='csv'){ exportCsv(); }
+    else if(act==='copy'){
+      var txt = summaryText();
+      if(navigator.share && /Mobi|Android|iPhone|iPad/.test(navigator.userAgent)){
+        navigator.share({title:sheetTitle(), text:txt}).catch(function(){});
+      }else if(navigator.clipboard){
+        navigator.clipboard.writeText(txt).then(function(){ toast('Summary copied to clipboard.'); },
+          function(){ prompt('Copy the summary:', txt); });
+      }else{ prompt('Copy the summary:', txt); }
+    }
+    else if(act==='print'){ window.print(); }
+    else if(act==='currency'){
+      var c = prompt('Currency symbol:', state.currency);
+      if(c!=null && c.trim()){ state.currency = c.trim().slice(0,4); renderAll(); save(); }
+    }
+    else if(act==='clear'){
+      if(confirm('Delete all people and expenses? This cannot be undone.')){
+        state = emptyState(); renderAll(); save(); toast('Cleared.');
+      }
+    }
+  });
+}
+
+$('fileInput').addEventListener('change', function(){
+  var f = this.files && this.files[0];
+  if(!f) return;
+  var fr = new FileReader();
+  fr.onload = function(){
+    try{
+      var st = JSON.parse(fr.result);
+      if(!st.people || !st.expenses) throw new Error('not a billing file');
+      state = normalize(st); renderAll(); save(); toast('Loaded “' + sheetTitle() + '”.');
+    }catch(e){ alert('Could not read that file: ' + e.message); }
+  };
+  fr.readAsText(f);
+  this.value = '';
+});
+
+$('addRow').addEventListener('click', function(){
+  if(!state.people.length){
+    toast('Add at least one person first.');
+    var np0 = $('newPerson'); if(np0) np0.focus();
+    return;
+  }
+  var shares = {};
+  var last = state.expenses[state.expenses.length-1];
+  if(last && Object.keys(last.shares).length){ for(var k in last.shares) shares[k] = last.shares[k]; }
+  else state.people.forEach(function(p){ shares[p.id] = 1; });
+  state.expenses.push({id:uid(), payerId:(last && last.payerId) || (state.people[0]&&state.people[0].id) || null, desc:'', cents:0, shares:shares});
+  renderTable(); renderResults(); save();
+  var rows = $('tbody').querySelectorAll('tr');
+  var lastRow = rows[rows.length-1];
+  if(lastRow) lastRow.querySelector('td.desc input').focus();
+});
+
+$('tripTitle').addEventListener('input', function(){
+  state.title = this.value;
+  document.title = (state.title || '').trim() ? state.title + ' — Billing Tool' : 'Billing Tool';
+  save();
+});
+
+(function themeInit(){
+  var saved = null;
+  try{ saved = localStorage.getItem('billing-tool.theme'); }catch(e){}
+  if(saved) document.documentElement.dataset.theme = saved;
+  $('themeBtn').addEventListener('click', function(){
+    var cur = document.documentElement.dataset.theme;
+    if(!cur) cur = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    var next = cur === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = next;
+    try{ localStorage.setItem('billing-tool.theme', next); }catch(e){}
+  });
+})();
+
+/* PWA install + service worker */
+var deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault(); deferredPrompt = e;
+  var b = $('installBtn'); b.hidden = false;
+  b.onclick = function(){
+    b.hidden = true;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(){ deferredPrompt = null; });
+  };
+});
+if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
+
+/* go */
+initMenu();
+state = load();
+renderAll();
+if(!state.people.length && !state.expenses.length){
+  var np1 = $('newPerson'); if(np1) np1.focus();
+}
+if(memoryOnly){
+  setTimeout(function(){ toast('Auto-save unavailable here — use Menu → Save to file.'); }, 800);
+}
+})();
+</script>
+</body>
+</html>
