@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#4f46e5">
+<meta name="theme-color" content="#15803d">
 <meta name="description" content="Split shared expenses and settle up with the fewest transfers.">
 <title>Billing Tool</title>
 <link rel="manifest" href="manifest.webmanifest">
@@ -144,7 +144,15 @@ body{
   padding-bottom:env(safe-area-inset-bottom);
   -webkit-tap-highlight-color:transparent;
 }
-.wrap{max-width:1120px;margin:0 auto;padding:8px 16px 72px}
+.wrap{
+  max-width:1120px;margin:0 auto;
+  padding-top:calc(8px + env(safe-area-inset-top, 0px));
+  padding-right:calc(16px + env(safe-area-inset-right, 0px));
+  padding-bottom:72px;
+  padding-left:calc(16px + env(safe-area-inset-left, 0px));
+}
+/* WebViews that report no inset but still draw under the status bar */
+body.inset-fallback .wrap{padding-top:34px}
 h1,h2,h3{margin:0;font-weight:500;letter-spacing:0}
 button{font:inherit;color:inherit}
 input,select{font:inherit;color:inherit}
@@ -159,13 +167,13 @@ header.top{
   display:flex;gap:8px;align-items:center;flex-wrap:wrap;
   padding:12px 0 16px;min-height:64px;
 }
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 200px}
 .logo{width:44px;height:44px;flex:none;display:block}
 .logo svg{display:block;width:100%;height:100%}
 #tripTitle{
   font-size:22px;font-weight:400;letter-spacing:0;
   background:transparent;border:none;border-radius:var(--r-s);
-  padding:4px 8px;min-width:130px;max-width:50vw;
+  padding:4px 8px;min-width:0;flex:1 1 auto;width:100%;max-width:520px;
 }
 #tripTitle:hover{background:var(--surface-2)}
 #tripTitle:focus{outline:2px solid var(--focus);outline-offset:-2px;background:var(--surface-1)}
@@ -297,7 +305,7 @@ tfoot td{
   border-bottom:none;background:transparent;padding-top:12px;padding-bottom:12px;
 }
 tbody tr.placeholder:hover{background:transparent}
-td.ph{color:var(--on-surface-var);text-align:center;padding:32px 12px;border-bottom:none}
+td.ph{color:var(--on-surface-var);text-align:left;padding:24px 4px;border-bottom:none}
 
 /* ---------- results ---------- */
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -387,7 +395,13 @@ footer .ver{font-size:11.5px;opacity:.8}
 /* ---------- phone layout: one card per expense ---------- */
 .mlabel{display:none}
 @media (max-width:700px){
-  .wrap{padding:4px 12px 64px}
+  .wrap{
+    padding-top:calc(4px + env(safe-area-inset-top, 0px));
+    padding-right:calc(12px + env(safe-area-inset-right, 0px));
+    padding-bottom:64px;
+    padding-left:calc(12px + env(safe-area-inset-left, 0px));
+  }
+  body.inset-fallback .wrap{padding-top:30px}
   .tablewrap{overflow:visible}
   table{min-width:0}
   table,tbody,tfoot,tr,td{display:block;width:auto}
@@ -399,9 +413,9 @@ footer .ver{font-size:11.5px;opacity:.8}
   }
   tbody tr:hover{background:var(--surface-2)}
   tbody tr.unassigned{background:var(--warn-c)}
-  tbody tr.placeholder{display:block;text-align:center;background:transparent;border:1px dashed var(--outline-var)}
+  tbody tr.placeholder{display:block;text-align:left;background:transparent;border:1px dashed var(--outline-var)}
   tbody td{border:none;padding:3px 4px}
-  td.ph{padding:24px 8px}
+  td.ph{padding:18px 12px}
   .mlabel{
     display:inline;font-size:11px;text-transform:uppercase;letter-spacing:.06em;
     color:var(--on-surface-var);font-weight:500;
@@ -424,14 +438,16 @@ footer .ver{font-size:11.5px;opacity:.8}
     border-top:1px solid var(--outline-var);color:var(--on-surface-var);
   }
   td.pershare .v{font-weight:500;color:var(--on-surface)}
-  tbody td:last-child{position:absolute;top:8px;right:6px;padding:0}
+  /* the delete button floats in the corner — but the placeholder row has a
+     single cell, which would otherwise be caught by :last-child too */
+  tbody tr:not(.placeholder) td:last-child{position:absolute;top:8px;right:6px;padding:0}
   tfoot tr{display:flex;align-items:center;gap:8px;padding:8px 6px}
   tfoot td{display:block;border:none;background:transparent;padding:0}
   tfoot td.num{margin-left:auto;font-size:18px}
   tfoot td:last-child{display:none}
   .card-h .hint{font-size:12px;flex-basis:100%;order:3}
   .card-h .btn{order:2}
-  #tripTitle{font-size:20px;max-width:44vw}
+  #tripTitle{font-size:20px;max-width:none;width:100%;min-width:0}
 }
 
 @media print{
@@ -452,8 +468,8 @@ footer .ver{font-size:11.5px;opacity:.8}
       <div class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
     <linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#4f46e5"/>
-      <stop offset="1" stop-color="#a78bfa"/>
+      <stop offset="0" stop-color="#0f5132"/>
+      <stop offset="1" stop-color="#1f9d55"/>
     </linearGradient>
 
     <!-- one figure, in a 100 x 140 box: head plus a bell-shaped body -->
@@ -554,12 +570,12 @@ footer .ver{font-size:11.5px;opacity:.8}
   <footer>
     <div>Billing Tool for easy group transfers, © Andreas Deckert</div>
     <div class="noprint">All data stays on this device. Nothing is uploaded anywhere.</div>
-    <div class="noprint">Each browser keeps its own copy — use <strong>Menu → Save to file</strong> to move a sheet between browsers or devices.</div>
+    <div class="noprint" id="browserNote">Each browser keeps its own copy — use <strong>Menu → Save to file</strong> to move a sheet between browsers or devices.</div>
     <div class="noprint ver">Version <strong id="verNo">–</strong> · <span id="verMode">–</span></div>
   </footer>
 </div>
 
-<input type="file" id="fileInput" accept=".json,application/json" class="sr">
+<input type="file" id="fileInput" accept="application/json,.json,text/plain" class="sr">
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1134,12 +1150,19 @@ function summaryText(){
 }
 
 function download(name, mime, text){
-  var blob = new Blob([text], {type: mime});
-  var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
-  a.href = url; a.download = name;
+  a.download = name;
+  var url = null;
+  try{
+    url = URL.createObjectURL(new Blob([text], {type: mime}));
+    a.href = url;
+  }catch(e){
+    /* some WebViews refuse blob: downloads outright */
+    a.href = 'data:' + mime + ';base64,' + btoa(unescape(encodeURIComponent(text)));
+  }
   document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  if(url) setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  return text.length;
 }
 function slug(s){ return (s||'billing').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'billing'; }
 
@@ -1193,8 +1216,10 @@ function initMenu(){
     close();
     var act = t.dataset.act;
     if(act==='save'){
-      download(slug(sheetTitle())+'.json','application/json', JSON.stringify(state,null,2));
-      toast('Saved to your downloads.');
+      var payload = JSON.stringify(state, null, 2);
+      download(slug(sheetTitle())+'.json','application/json', payload);
+      toast('Saved ' + state.people.length + ' people and ' + state.expenses.length +
+            ' expenses (' + Math.max(1, Math.round(payload.length/1024)) + ' KB) to Downloads.');
     }
     else if(act==='load'){ $('fileInput').click(); }
     else if(act==='csv'){ exportCsv(); }
@@ -1244,17 +1269,48 @@ function initMenu(){
 
 $('fileInput').addEventListener('change', function(){
   var f = this.files && this.files[0];
-  if(!f) return;
+  var input = this;
+  if(!f){ return; }
   var fr = new FileReader();
-  fr.onload = function(){
-    try{
-      var st = JSON.parse(fr.result);
-      if(!st.people || !st.expenses) throw new Error('not a billing file');
-      state = normalize(st); renderAll(); save(); toast('Loaded “' + sheetTitle() + '”.');
-    }catch(e){ alert('Could not read that file: ' + e.message); }
+
+  /* Without this handler a failed read was completely silent — which is exactly
+     what an Android file picker does when it hands back a URI the app may not
+     read. Never fail quietly on the one action that restores someone's data. */
+  fr.onerror = function(){
+    input.value = '';
+    alert('Android would not let the app read “' + (f.name || 'that file') + '”.\n\n' +
+          'Try copying the file into the phone\'s Downloads folder first, then pick it ' +
+          'from there rather than from a cloud folder or a recent-files shortcut.');
   };
+
+  fr.onload = function(){
+    input.value = '';
+    var text = String(fr.result == null ? '' : fr.result);
+    if(!text.trim()){
+      alert('“' + (f.name || 'That file') + '” is empty (0 characters were read).');
+      return;
+    }
+    var st;
+    try{
+      st = JSON.parse(text);
+    }catch(e){
+      alert('That file is not readable JSON.\n\n' + e.message +
+            '\n\nIt starts with: ' + text.slice(0, 60));
+      return;
+    }
+    if(!st || !Array.isArray(st.people) || !Array.isArray(st.expenses)){
+      alert('That JSON file is not a billing sheet — it has no "people" and "expenses" lists.');
+      return;
+    }
+    state = normalize(st);
+    renderAll();
+    save();
+    toast('Loaded ' + state.people.length + ' ' + (state.people.length===1?'person':'people') +
+          ' and ' + state.expenses.length + ' ' +
+          (state.expenses.length===1?'expense':'expenses') + '.');
+  };
+
   fr.readAsText(f);
-  this.value = '';
 });
 
 $('addRow').addEventListener('click', function(){
@@ -1263,15 +1319,18 @@ $('addRow').addEventListener('click', function(){
     var np0 = $('newPerson'); if(np0) np0.focus();
     return;
   }
-  /* A new expense starts with nobody selected — who shares a cost is the one
-     thing that genuinely differs from row to row, so guessing it is more likely
-     to be wrong than right, and a wrong tick is easy to miss. */
-  var last = state.expenses[state.expenses.length-1];
-  state.expenses.push({id:uid(), payerId:(last && last.payerId) || null, desc:'', cents:0, shares:{}});
+  /* A new expense goes to the TOP of the list and starts completely blank:
+     nobody selected, no payer. Who paid and who shares are the two things that
+     genuinely differ from row to row — guessing them is more likely to be wrong
+     than right, and a wrong tick is easy to miss. */
+  state.expenses.unshift({id:uid(), payerId:null, desc:'', cents:0, shares:{}});
   renderTable(); renderResults(); save();
-  var rows = $('tbody').querySelectorAll('tr');
-  var lastRow = rows[rows.length-1];
-  if(lastRow) lastRow.querySelector('td.desc input').focus();
+  var firstRow = $('tbody').querySelector('tr');
+  if(firstRow){
+    firstRow.scrollIntoView({block:'nearest'});
+    var d = firstRow.querySelector('td.desc input');
+    if(d) d.focus();
+  }
 });
 
 $('tripTitle').addEventListener('input', function(){
@@ -1294,7 +1353,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.7.1';
+var APP_VERSION = '1.9.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -1410,7 +1469,25 @@ initMenu();
 if(isNativeShell){
   var updBtn = document.querySelector('#menu [data-act="update"]');
   if(updBtn) updBtn.textContent = 'ℹ️ About updating this app';
+  /* there is only one copy of the data in a packaged app */
+  var bn = $('browserNote'); if(bn) bn.hidden = true;
 }
+
+/* Android 15+ draws apps edge to edge, so the top of the page ends up underneath
+   the status bar — the menu button lands on the battery icon. The safe-area
+   insets fix that; where the WebView reports none, fall back to a fixed inset. */
+(function safeArea(){
+  function apply(){
+    var probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top,0px)';
+    document.body.appendChild(probe);
+    var inset = probe.getBoundingClientRect().height;
+    probe.remove();
+    if(inset < 1 && (isNativeShell || isStandalone)) document.body.classList.add('inset-fallback');
+  }
+  if(document.readyState === 'complete') apply();
+  else window.addEventListener('load', apply);
+})();
 state = load();
 renderAll();
 if(!state.people.length && !state.expenses.length){
