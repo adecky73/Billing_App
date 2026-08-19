@@ -81,8 +81,11 @@ jobs:
         run: |
           set -euo pipefail
           npm init -y >/dev/null
+          # filesystem + share let the app hand a real file to Android's share sheet;
+          # without them an <a download> is silently ignored inside the WebView
           npm install --no-audit --no-fund \
-            @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7
+            @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7 \
+            @capacitor/filesystem@^7 @capacitor/share@^7
           npx cap init "$APP_NAME" "$APP_ID" --web-dir www
           npx cap add android
           npx cap sync android
