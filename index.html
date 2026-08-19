@@ -1200,8 +1200,37 @@ function summaryText(){
         where an <a download> can be swallowed without any error at all
      2. a normal browser download
      3. the text on screen, to copy by hand — the escape hatch that always works  */
+/* Capacitor route: write the file, then hand it to Android's share sheet so the
+   user picks where it lands. Needs @capacitor/filesystem and @capacitor/share to
+   be part of the build; returns false when they are not. */
+function saveViaCapacitor(name, mime, text, done){
+  var P = window.Capacitor && window.Capacitor.Plugins;
+  if(!P || !P.Filesystem || !P.Share) return false;
+  P.Filesystem.writeFile({ path:name, data:text, directory:'CACHE', encoding:'utf8' })
+    .then(function(){ return P.Filesystem.getUri({ path:name, directory:'CACHE' }); })
+    .then(function(r){
+      return P.Share.share({ title:name, url:r.uri, dialogTitle:'Save or send ' + name });
+    })
+    .then(function(){ done('sent to the share sheet'); })
+    .catch(function(e){
+      showRaw(name, text);
+      done('shown on screen — Android refused: ' + ((e && e.message) || e));
+    });
+  return true;
+}
+
 function saveFile(name, mime, text, done){
   done = done || function(){};
+
+  /* An <a download> inside an Android WebView does nothing at all, and throws no
+     error while doing it — so in the packaged app we must never take that route,
+     or we would claim a save that never happened. */
+  if(isNativeShell){
+    if(saveViaCapacitor(name, mime, text, done)) return;
+    showRaw(name, text);
+    done('shown on screen');
+    return;
+  }
 
   function viaAnchor(){
     var a = document.createElement('a');
@@ -1469,7 +1498,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.10.1';
+var APP_VERSION = '1.11.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
