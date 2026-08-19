@@ -10,6 +10,7 @@
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Billing Tool">
 <style>
 :root{
@@ -43,6 +44,7 @@ html[data-theme="dark"]{
   --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0;padding:0}
 body{
   background:var(--bg); color:var(--ink); font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
@@ -80,6 +82,22 @@ header.top{
 .btn.ghost{border-color:transparent;background:transparent}
 .btn.ghost:hover{background:var(--panel)}
 .btn.sm{padding:5px 9px;font-size:13px;border-radius:8px}
+
+/* ---------- iOS install hint ---------- */
+.iosbar{
+  display:flex;align-items:flex-start;gap:10px;
+  background:var(--accent-soft);border:1px solid var(--accent);
+  border-radius:var(--radius);padding:11px 12px;margin-bottom:16px;
+  font-size:13.5px;line-height:1.5;
+}
+.iosbar .ico{font-size:17px;line-height:1.3;flex:none}
+.iosbar .txt{flex:1;min-width:0}
+.iosbar .shareico{display:inline-block;vertical-align:-2px;margin:0 1px;color:var(--accent)}
+.iosbar .x{
+  border:none;background:transparent;cursor:pointer;color:var(--ink-soft);flex:none;
+  width:24px;height:24px;border-radius:999px;font-size:17px;line-height:1;
+}
+.iosbar .x:hover{background:var(--panel)}
 
 /* ---------- panels ---------- */
 .card{
@@ -302,6 +320,19 @@ footer{color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0 0;
       </div>
     </div>
   </header>
+
+  <div class="iosbar" id="iosHint" hidden>
+    <span class="ico" aria-hidden="true">📲</span>
+    <span class="txt">
+      <strong>Install on this iPhone:</strong> tap the <strong>Share</strong> button
+      <span class="shareico" aria-hidden="true">
+        <svg width="13" height="15" viewBox="0 0 24 26" aria-hidden="true"><path d="M12 1l5 5m-5-5L7 6m5-5v16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11H3v13h18V11h-2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      at the bottom of Safari, then <strong>Add to Home Screen</strong>.
+      Safari never shows an install button by itself.
+    </span>
+    <button class="x" id="iosHintX" aria-label="Dismiss">×</button>
+  </div>
 
   <div class="card">
     <div class="card-h">
@@ -1064,6 +1095,22 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
+var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+                   navigator.standalone === true;
+(function iosHint(){
+  var dismissed = false;
+  try{ dismissed = localStorage.getItem('billing-tool.ioshint') === 'off'; }catch(e){}
+  if(isIOS && !isStandalone && !dismissed){
+    $('iosHint').hidden = false;
+    $('iosHintX').addEventListener('click', function(){
+      $('iosHint').hidden = true;
+      try{ localStorage.setItem('billing-tool.ioshint','off'); }catch(e){}
+    });
+  }
+})();
+
 var deferredPrompt = null;
 window.addEventListener('beforeinstallprompt', function(e){
   e.preventDefault(); deferredPrompt = e;
