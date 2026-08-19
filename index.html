@@ -227,6 +227,7 @@ td.ph{color:var(--ink-soft);text-align:center;padding:26px 12px;border-bottom:no
 .menu .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);padding:8px 11px 3px}
 
 footer{color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0 0;line-height:1.7}
+footer .ver{font-size:11.5px;opacity:.75;margin-top:2px}
 .toast{
   position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:100;
   background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;
@@ -315,23 +316,17 @@ footer{color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0 0;
           <div class="lbl">Settings</div>
           <button data-act="currency">💱 Currency symbol …</button>
           <hr>
+          <button data-act="update">🔄 Check for update</button>
           <button data-act="clear" class="danger">🗑 Clear everything</button>
         </div>
       </div>
     </div>
   </header>
 
-  <div class="iosbar" id="iosHint" hidden>
+  <div class="iosbar" id="installHelp" hidden>
     <span class="ico" aria-hidden="true">📲</span>
-    <span class="txt">
-      <strong>Install on this iPhone:</strong> tap the <strong>Share</strong> button
-      <span class="shareico" aria-hidden="true">
-        <svg width="13" height="15" viewBox="0 0 24 26" aria-hidden="true"><path d="M12 1l5 5m-5-5L7 6m5-5v16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11H3v13h18V11h-2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-      at the bottom of Safari, then <strong>Add to Home Screen</strong>.
-      Safari never shows an install button by itself.
-    </span>
-    <button class="x" id="iosHintX" aria-label="Dismiss">×</button>
+    <span class="txt" id="installHelpTxt"></span>
+    <button class="x" id="installHelpX" aria-label="Dismiss">×</button>
   </div>
 
   <div class="card">
@@ -379,6 +374,7 @@ footer{color:var(--ink-soft);font-size:12.5px;text-align:center;padding:8px 0 0;
   <footer>
     <div>Billing Tool — web version of the Excel/VBA tool “Billing Tool v11, © Andreas Deckert 2023”.</div>
     <div class="noprint">All data stays on this device. Nothing is uploaded anywhere.</div>
+    <div class="noprint ver">Version <strong id="verNo">–</strong> · <span id="verMode">–</span></div>
   </footer>
 </div>
 
@@ -1035,6 +1031,15 @@ function initMenu(){
       var c = prompt('Currency symbol:', state.currency);
       if(c!=null && c.trim()){ state.currency = c.trim().slice(0,4); renderAll(); save(); }
     }
+    else if(act==='update'){
+      toast('Looking for a newer version…');
+      var done = function(){ setTimeout(function(){ location.reload(); }, 600); };
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.getRegistrations().then(function(rs){
+          return Promise.all(rs.map(function(r){ return r.update().catch(function(){}); }));
+        }).then(done, done);
+      } else { done(); }
+    }
     else if(act==='clear'){
       if(confirm('Delete all people and expenses? This cannot be undone.')){
         state = emptyState(); renderAll(); save(); toast('Cleared.');
@@ -1095,31 +1100,79 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
+var APP_VERSION = '1.3.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                    navigator.standalone === true;
-(function iosHint(){
-  var dismissed = false;
-  try{ dismissed = localStorage.getItem('billing-tool.ioshint') === 'off'; }catch(e){}
-  if(isIOS && !isStandalone && !dismissed){
-    $('iosHint').hidden = false;
-    $('iosHintX').addEventListener('click', function(){
-      $('iosHint').hidden = true;
-      try{ localStorage.setItem('billing-tool.ioshint','off'); }catch(e){}
-    });
+var isAndroid = /Android/.test(navigator.userAgent);
+var SHARE_ICON = '<span class="shareico" aria-hidden="true"><svg width="13" height="15" viewBox="0 0 24 26">' +
+  '<path d="M12 1l5 5m-5-5L7 6m5-5v16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
+  '<path d="M5 11H3v13h18V11h-2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+
+function installHelpHtml(){
+  if(isIOS){
+    return '<strong>On iPhone / iPad:</strong> tap the <strong>Share</strong> button ' + SHARE_ICON +
+           ' at the bottom of Safari, then <strong>Add to Home Screen</strong>. ' +
+           'Safari never offers an install button by itself — this is the only way on iOS.';
   }
-})();
+  if(isAndroid){
+    return '<strong>On Android:</strong> open the browser menu (<strong>⋮</strong>, top right) and choose ' +
+           '<strong>Install app</strong> — or <strong>Add to Home screen</strong> if that is what your browser calls it. ' +
+           'If neither appears, the app is most likely already installed: check your home screen and app drawer.';
+  }
+  return '<strong>On a computer:</strong> in Chrome or Edge, click the install icon at the right-hand end of the ' +
+         'address bar, or open the browser menu and choose <strong>Install Billing Tool</strong>. Firefox and Safari ' +
+         'on desktop cannot install web apps.';
+}
 
 var deferredPrompt = null;
+var helpBar = $('installHelp');
+
+function showHelp(on){
+  if(on) $('installHelpTxt').innerHTML = installHelpHtml();
+  helpBar.hidden = !on;
+}
+
+/* The button is shown whenever the app is not already running installed.
+   If the browser offers a native install prompt we use it; otherwise we
+   explain the manual route rather than hiding the button. */
+if(!isStandalone){
+  $('installBtn').hidden = false;
+  $('installBtn').addEventListener('click', function(){
+    if(deferredPrompt){
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(choice){
+        deferredPrompt = null;
+        if(choice && choice.outcome === 'accepted'){ $('installBtn').hidden = true; showHelp(false); }
+      });
+      return;
+    }
+    showHelp(helpBar.hidden);
+  });
+  $('installHelpX').addEventListener('click', function(){
+    showHelp(false);
+    try{ localStorage.setItem('billing-tool.ioshint','off'); }catch(e){}
+  });
+  /* iOS gets the hint unprompted once, because there the button cannot do anything itself */
+  var seen = false;
+  try{ seen = localStorage.getItem('billing-tool.ioshint') === 'off'; }catch(e){}
+  if(isIOS && !seen) showHelp(true);
+}
+
+/* Version line in the footer — so it is always obvious which build is running */
+$('verNo').textContent = APP_VERSION;
+$('verMode').textContent = isStandalone ? 'running as an installed app' : 'running in the browser';
+
 window.addEventListener('beforeinstallprompt', function(e){
-  e.preventDefault(); deferredPrompt = e;
-  var b = $('installBtn'); b.hidden = false;
-  b.onclick = function(){
-    b.hidden = true;
-    deferredPrompt.prompt();
-    deferredPrompt.userChoice.then(function(){ deferredPrompt = null; });
-  };
+  e.preventDefault();
+  deferredPrompt = e;
+  $('installBtn').hidden = false;
+});
+window.addEventListener('appinstalled', function(){
+  deferredPrompt = null;
+  $('installBtn').hidden = true;
+  showHelp(false);
 });
 if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
   window.addEventListener('load', function(){

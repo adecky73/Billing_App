@@ -1,7 +1,7 @@
 /* Billing Tool — offline service worker.
    Bump CACHE when you change any file, otherwise installed copies
    keep serving the old version. */
-const CACHE = 'billing-tool-v2';
+const CACHE = 'billing-tool-1.3.0';
 const ASSETS = [
   './',
   './index.html',
@@ -32,8 +32,12 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
 
   if (req.mode === 'navigate') {
+    /* cache: 'reload' bypasses the browser's own HTTP cache. Without it, a host
+       that sends Cache-Control: max-age (GitHub Pages sends 600s) can keep
+       handing back a stale index.html long after a redeploy. */
+    const fresh = new Request(req.url, { cache: 'reload', credentials: 'same-origin' });
     e.respondWith(
-      fetch(req)
+      fetch(fresh)
         .then((res) => {
           const copy = res.clone();
           caches.open(CACHE).then((c) => c.put('./index.html', copy));

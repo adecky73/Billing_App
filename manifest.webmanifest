@@ -2,6 +2,7 @@
   "name": "Billing Tool",
   "short_name": "Billing",
   "description": "Split shared expenses and settle up with the fewest transfers.",
+  "id": "./",
   "start_url": ".",
   "scope": ".",
   "display": "standalone",
