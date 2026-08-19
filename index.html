@@ -1213,6 +1213,19 @@ function initMenu(){
       if(c!=null && c.trim()){ state.currency = c.trim().slice(0,4); renderAll(); save(); }
     }
     else if(act==='update'){
+      /* In a packaged Android app the files live inside the APK. Nothing here can
+         replace them — a newer version means installing a newer APK. Saying so is
+         better than reloading and pretending something happened. */
+      if(isNativeShell){
+        alert('This is the installed Android app, version ' + APP_VERSION + '.\n\n' +
+              'Its files are packaged inside the app itself, so it cannot update ' +
+              'itself from the web. To move to a newer version, install the newer ' +
+              'APK over this one.\n\n' +
+              'Export your sheets first (Menu → Save to file) if the new APK is ' +
+              'signed with a different key — Android then requires the old app to ' +
+              'be uninstalled, which deletes its data.');
+        return;
+      }
       toast('Looking for a newer version…');
       var done = function(){ setTimeout(function(){ location.reload(); }, 600); };
       if('serviceWorker' in navigator){
@@ -1281,7 +1294,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.7.0';
+var APP_VERSION = '1.7.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -1394,6 +1407,10 @@ if(!isNativeShell && 'serviceWorker' in navigator &&
 
 /* go */
 initMenu();
+if(isNativeShell){
+  var updBtn = document.querySelector('#menu [data-act="update"]');
+  if(updBtn) updBtn.textContent = 'ℹ️ About updating this app';
+}
 state = load();
 renderAll();
 if(!state.people.length && !state.expenses.length){
