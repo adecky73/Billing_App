@@ -1250,11 +1250,11 @@ $('addRow').addEventListener('click', function(){
     var np0 = $('newPerson'); if(np0) np0.focus();
     return;
   }
-  var shares = {};
+  /* A new expense starts with nobody selected — who shares a cost is the one
+     thing that genuinely differs from row to row, so guessing it is more likely
+     to be wrong than right, and a wrong tick is easy to miss. */
   var last = state.expenses[state.expenses.length-1];
-  if(last && Object.keys(last.shares).length){ for(var k in last.shares) shares[k] = last.shares[k]; }
-  else state.people.forEach(function(p){ shares[p.id] = 1; });
-  state.expenses.push({id:uid(), payerId:(last && last.payerId) || (state.people[0]&&state.people[0].id) || null, desc:'', cents:0, shares:shares});
+  state.expenses.push({id:uid(), payerId:(last && last.payerId) || null, desc:'', cents:0, shares:{}});
   renderTable(); renderResults(); save();
   var rows = $('tbody').querySelectorAll('tr');
   var lastRow = rows[rows.length-1];
@@ -1281,7 +1281,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.6.1';
+var APP_VERSION = '1.7.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
