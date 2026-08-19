@@ -91,6 +91,29 @@ jobs:
           echo "--- versions ---"
           node -v; java -version 2>&1 | head -1; npx cap --version
 
+      # ------------------------------------------------------------------
+      # Stamp the app's own version onto the package, so Android's app info
+      # screen and the APK filename tell you which build you are holding.
+      # versionCode must be an integer that only ever grows: 1.7.1 -> 10701.
+      # ------------------------------------------------------------------
+      - name: Take the version from the app
+        id: ver
+        run: |
+          set -euo pipefail
+          VER="$(grep -o "APP_VERSION *= *'[0-9.]*'" www/index.html | head -1 | grep -o "[0-9][0-9.]*" || true)"
+          if [ -z "$VER" ]; then
+            echo "::warning::No APP_VERSION found in index.html — falling back to 0.0.0"
+            VER=0.0.0
+          fi
+          MA=${VER%%.*}; REST=${VER#*.}; MI=${REST%%.*}; PA=${REST#*.}; PA=${PA%%.*}
+          CODE=$((MA*10000 + MI*100 + PA))
+          echo "version=$VER"      >> "$GITHUB_OUTPUT"
+          echo "code=$CODE"        >> "$GITHUB_OUTPUT"
+          sed -i "s/versionCode .*/versionCode $CODE/; s/versionName .*/versionName \"$VER\"/" \
+            android/app/build.gradle
+          echo "stamped versionName=$VER versionCode=$CODE"
+          grep -E "versionCode|versionName" android/app/build.gradle
+
       - name: Use the app icon for the launcher
         run: |
           set -euo pipefail
@@ -151,7 +174,8 @@ jobs:
             --ks-pass "pass:$KEYSTORE_PASSWORD" \
             --ks-key-alias "$KEY_ALIAS" \
             --key-pass "pass:$KEY_PASSWORD" \
-            --out billing-tool.apk /tmp/aligned.apk
+            --out "billing-tool-${{ steps.ver.outputs.version }}.apk" /tmp/aligned.apk
+          cp "billing-tool-${{ steps.ver.outputs.version }}.apk" billing-tool.apk
           "$BT/apksigner" verify --print-certs billing-tool.apk
           rm -f /tmp/release.jks
 
@@ -163,17 +187,18 @@ jobs:
           ./gradlew --no-daemon assembleDebug
           cd ..
           cp android/app/build/outputs/apk/debug/app-debug.apk billing-tool.apk
+          cp billing-tool.apk "billing-tool-${{ steps.ver.outputs.version }}-debug.apk"
           echo "::warning::Built a DEBUG APK. It installs fine, but each build is signed with a new key - you must uninstall the previous version before installing a newer one. See ANDROID-APP.md to set up proper signing."
 
       - name: Show what was built
         run: |
-          ls -lh billing-tool.apk
+          ls -lh billing-tool*.apk
           "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2" dump badging billing-tool.apk | head -5 || true
 
       - name: Upload the APK
         uses: actions/upload-artifact@v7
         with:
-          name: billing-tool-apk
-          path: billing-tool.apk
+          name: billing-tool-${{ steps.ver.outputs.version }}
+          path: billing-tool*.apk
           if-no-files-found: error
           retention-days: 90
