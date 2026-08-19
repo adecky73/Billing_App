@@ -1101,10 +1101,15 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.4.0';
+var APP_VERSION = '1.5.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
+/* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
+   service worker either: the files are already local, so an extra cache layer
+   would only risk serving something stale inside the packaged app. */
+var isNativeShell = !!(window.Capacitor || window.cordova);
+var isStandalone = isNativeShell ||
+                   (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                    navigator.standalone === true;
 var isAndroid = /Android/.test(navigator.userAgent);
 var SHARE_ICON = '<span class="shareico" aria-hidden="true"><svg width="13" height="15" viewBox="0 0 24 26">' +
@@ -1187,7 +1192,8 @@ if(!isStandalone){
 
 /* Version line in the footer — so it is always obvious which build is running */
 $('verNo').textContent = APP_VERSION;
-$('verMode').textContent = isStandalone ? 'running as an installed app' : 'running in the browser';
+$('verMode').textContent = isNativeShell ? 'native Android app'
+  : (isStandalone ? 'running as an installed app' : 'running in the browser');
 
 window.addEventListener('beforeinstallprompt', function(e){
   e.preventDefault();
@@ -1199,7 +1205,8 @@ window.addEventListener('appinstalled', function(){
   $('installBtn').hidden = true;
   showHelp(false);
 });
-if('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+if(!isNativeShell && 'serviceWorker' in navigator &&
+   (location.protocol === 'https:' || location.hostname === 'localhost')){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('sw.js').catch(function(){});
   });
