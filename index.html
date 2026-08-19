@@ -374,6 +374,7 @@ footer .ver{font-size:11.5px;opacity:.75;margin-top:2px}
   <footer>
     <div>Billing Tool — web version of the Excel/VBA tool “Billing Tool v11, © Andreas Deckert 2023”.</div>
     <div class="noprint">All data stays on this device. Nothing is uploaded anywhere.</div>
+    <div class="noprint">Each browser keeps its own copy — use <strong>Menu → Save to file</strong> to move a sheet between browsers or devices.</div>
     <div class="noprint ver">Version <strong id="verNo">–</strong> · <span id="verMode">–</span></div>
   </footer>
 </div>
@@ -1100,7 +1101,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.3.0';
+var APP_VERSION = '1.4.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
@@ -1110,16 +1111,34 @@ var SHARE_ICON = '<span class="shareico" aria-hidden="true"><svg width="13" heig
   '<path d="M12 1l5 5m-5-5L7 6m5-5v16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>' +
   '<path d="M5 11H3v13h18V11h-2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
 
+var isFirefox = /Firefox|FxiOS/i.test(navigator.userAgent);
+var isDDG = /DuckDuckGo/i.test(navigator.userAgent);
+
 function installHelpHtml(){
   if(isIOS){
     return '<strong>On iPhone / iPad:</strong> tap the <strong>Share</strong> button ' + SHARE_ICON +
            ' at the bottom of Safari, then <strong>Add to Home Screen</strong>. ' +
            'Safari never offers an install button by itself — this is the only way on iOS.';
   }
+  if(isAndroid && isFirefox){
+    return '<strong>Firefox on Android:</strong> open the menu (<strong>⋮</strong>, bottom or top right) and choose ' +
+           '<strong>Add to Home screen</strong> (older versions) or <strong>Install</strong>. ' +
+           'Firefox cannot show an in-page install button — that is a Chrome-only feature — so this menu entry is the way in.';
+  }
+  if(isAndroid && isDDG){
+    return '<strong>DuckDuckGo on Android:</strong> open the menu (<strong>⋮</strong>) and look for ' +
+           '<strong>Add to Home Screen</strong>. Note that DuckDuckGo\'s <strong>Fire Button</strong> deletes website ' +
+           'data — that would wipe your saved sheets. Add this site to <strong>Fireproof Sites</strong>, or export via ' +
+           '<strong>Menu → Save to file</strong> before using the Fire Button.';
+  }
   if(isAndroid){
     return '<strong>On Android:</strong> open the browser menu (<strong>⋮</strong>, top right) and choose ' +
            '<strong>Install app</strong> — or <strong>Add to Home screen</strong> if that is what your browser calls it. ' +
            'If neither appears, the app is most likely already installed: check your home screen and app drawer.';
+  }
+  if(isFirefox){
+    return '<strong>Firefox on the desktop</strong> cannot install web apps. Use Chrome or Edge — install icon at the ' +
+           'right-hand end of the address bar — or simply keep this page bookmarked; everything works the same in a tab.';
   }
   return '<strong>On a computer:</strong> in Chrome or Edge, click the install icon at the right-hand end of the ' +
          'address bar, or open the browser menu and choose <strong>Install Billing Tool</strong>. Firefox and Safari ' +
@@ -1154,10 +1173,16 @@ if(!isStandalone){
     showHelp(false);
     try{ localStorage.setItem('billing-tool.ioshint','off'); }catch(e){}
   });
-  /* iOS gets the hint unprompted once, because there the button cannot do anything itself */
+  /* Browsers outside Chromium never fire beforeinstallprompt, so the button alone
+     would look broken there. If no prompt has shown up shortly after load, we
+     surface the manual route by ourselves — once, until dismissed. */
   var seen = false;
   try{ seen = localStorage.getItem('billing-tool.ioshint') === 'off'; }catch(e){}
-  if(isIOS && !seen) showHelp(true);
+  if(!seen){
+    setTimeout(function(){
+      if(!deferredPrompt && !isStandalone && helpBar.hidden) showHelp(true);
+    }, 1500);
+  }
 }
 
 /* Version line in the footer — so it is always obvious which build is running */
