@@ -30,21 +30,21 @@ jobs:
 
     steps:
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Set up the Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       # ------------------------------------------------------------------
       # Collect the web app. Everything that is part of the site goes into
@@ -122,7 +122,22 @@ jobs:
         if: env.KEYSTORE_B64 != ''
         run: |
           set -euo pipefail
-          echo "$KEYSTORE_B64" | base64 -d > /tmp/release.jks
+          # Strip line breaks and a UTF-8 BOM: Windows PowerShell writes both,
+          # and either one makes a naive `base64 -d` fail.
+          printf '%s' "$KEYSTORE_B64" \
+            | tr -d '[:space:]' \
+            | sed 's/^\xef\xbb\xbf//' \
+            | base64 -d > /tmp/release.jks
+          if [ ! -s /tmp/release.jks ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 could not be decoded. The secret must contain the base64 TEXT of the .jks file, not the command that produces it."
+            exit 1
+          fi
+          # fail early and clearly if the password or alias is wrong
+          keytool -list -keystore /tmp/release.jks -storepass "$KEYSTORE_PASSWORD" -alias "$KEY_ALIAS" >/dev/null || {
+            echo "::error::The keystore decoded, but the alias '$KEY_ALIAS' or the store password does not match. Check ANDROID_KEY_ALIAS and ANDROID_KEYSTORE_PASSWORD."
+            exit 1
+          }
+          echo "keystore OK ($(stat -c%s /tmp/release.jks) bytes, alias '$KEY_ALIAS')"
           cd android
           ./gradlew --no-daemon assembleRelease
           cd ..
@@ -156,7 +171,7 @@ jobs:
           "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2" dump badging billing-tool.apk | head -5 || true
 
       - name: Upload the APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: billing-tool-apk
           path: billing-tool.apk
