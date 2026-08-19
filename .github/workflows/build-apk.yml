@@ -1,0 +1,164 @@
+name: Build Android APK
+
+# Runs on demand (Actions tab -> "Build Android APK" -> "Run workflow")
+# and automatically whenever you push a tag like v1.5.0.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+env:
+  # Change these two if you like. APP_ID must stay a valid Java package name:
+  # lowercase letters, digits and dots, each part starting with a letter.
+  # Changing APP_ID later makes Android treat it as a different app.
+  APP_ID: app.billingtool
+  APP_NAME: Billing Tool
+  # Optional release signing. Leave the secrets unset to get a debug APK.
+  KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+  KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+  KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+  KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ------------------------------------------------------------------
+      # Collect the web app. Everything that is part of the site goes into
+      # www/; repository scaffolding does not.
+      # ------------------------------------------------------------------
+      - name: Collect web assets into www/
+        run: |
+          set -euo pipefail
+          mkdir -p www
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='www' \
+            --exclude='android' \
+            --exclude='node_modules' \
+            --exclude='package.json' \
+            --exclude='package-lock.json' \
+            --exclude='capacitor.config.json' \
+            --exclude='README.md' \
+            --exclude='start-server.cmd' \
+            --exclude='*.zip' \
+            --exclude='.nojekyll' \
+            ./ www/
+          echo "--- www/ contains: ---"
+          ls -la www
+          test -f www/index.html || { echo "::error::index.html not found at the repository root"; exit 1; }
+
+      # ------------------------------------------------------------------
+      # Capacitor wraps www/ into a native Android project. The files are
+      # bundled into the APK, so the finished app needs no web server and
+      # no network at all.
+      # ------------------------------------------------------------------
+      - name: Create the Capacitor project
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund \
+            @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7
+          npx cap init "$APP_NAME" "$APP_ID" --web-dir www
+          npx cap add android
+          npx cap sync android
+          # the exec bit can be lost when the template is copied out of node_modules
+          chmod +x android/gradlew
+          echo "--- versions ---"
+          node -v; java -version 2>&1 | head -1; npx cap --version
+
+      - name: Use the app icon for the launcher
+        run: |
+          set -euo pipefail
+          if [ -f www/icon-512.png ]; then
+            for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+              dir="android/app/src/main/res/mipmap-${d%%:*}"
+              size="${d##*:}"
+              mkdir -p "$dir"
+              cp www/icon-512.png "$dir/ic_launcher.png"
+              cp www/icon-512.png "$dir/ic_launcher_round.png"
+              if [ -f www/icon-maskable-512.png ]; then
+                cp www/icon-maskable-512.png "$dir/ic_launcher_foreground.png"
+              fi
+              echo "icon placed in $dir (nominal ${size}px)"
+            done
+            # remove adaptive-icon XMLs so the PNGs above are used directly
+            rm -f android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml \
+                  android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml
+          else
+            echo "no icon-512.png found - keeping the Capacitor default icon"
+          fi
+
+      # ------------------------------------------------------------------
+      # Build. With signing secrets present we produce a signed release APK;
+      # without them a debug APK, which is installable but is re-signed with
+      # a fresh throwaway key on every run (see README).
+      # ------------------------------------------------------------------
+      - name: Build release APK (signed)
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          set -euo pipefail
+          echo "$KEYSTORE_B64" | base64 -d > /tmp/release.jks
+          cd android
+          ./gradlew --no-daemon assembleRelease
+          cd ..
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          echo "using build-tools: $BT"
+          UNSIGNED="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          test -f "$UNSIGNED" || UNSIGNED="android/app/build/outputs/apk/release/app-release.apk"
+          "$BT/zipalign" -p -f 4 "$UNSIGNED" /tmp/aligned.apk
+          "$BT/apksigner" sign \
+            --ks /tmp/release.jks \
+            --ks-pass "pass:$KEYSTORE_PASSWORD" \
+            --ks-key-alias "$KEY_ALIAS" \
+            --key-pass "pass:$KEY_PASSWORD" \
+            --out billing-tool.apk /tmp/aligned.apk
+          "$BT/apksigner" verify --print-certs billing-tool.apk
+          rm -f /tmp/release.jks
+
+      - name: Build debug APK (unsigned release not configured)
+        if: env.KEYSTORE_B64 == ''
+        run: |
+          set -euo pipefail
+          cd android
+          ./gradlew --no-daemon assembleDebug
+          cd ..
+          cp android/app/build/outputs/apk/debug/app-debug.apk billing-tool.apk
+          echo "::warning::Built a DEBUG APK. It installs fine, but each build is signed with a new key - you must uninstall the previous version before installing a newer one. See ANDROID-APP.md to set up proper signing."
+
+      - name: Show what was built
+        run: |
+          ls -lh billing-tool.apk
+          "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2" dump badging billing-tool.apk | head -5 || true
+
+      - name: Upload the APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: billing-tool-apk
+          path: billing-tool.apk
+          if-no-files-found: error
+          retention-days: 90
