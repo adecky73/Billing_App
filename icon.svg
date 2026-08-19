@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f46e5"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+
+    <!-- one figure, in a 100 x 140 box: head plus a bell-shaped body -->
+    <symbol id="pawn" viewBox="0 0 100 140">
+      <circle cx="50" cy="30" r="27"/>
+      <path d="M50 60c18 0 30 18 34 41l4 21c2 10-4 16-13 16H25c-9 0-15-6-13-16l4-21c4-23 16-41 34-41z"/>
+    </symbol>
+
+    <g id="mark" transform="translate(0,40)">
+      <g fill="#ffffff">
+        <use href="#pawn" x="206" y="30"  width="100" height="140"/>
+        <use href="#pawn" x="76"  y="261" width="100" height="140"/>
+        <use href="#pawn" x="336" y="261" width="100" height="140"/>
+      </g>
+      <text x="256" y="256" fill="#ffffff"
+            font-family="Roboto, 'Segoe UI', 'DejaVu Sans', Arial, sans-serif"
+            font-size="164" font-weight="700"
+            text-anchor="middle" dominant-baseline="central">€</text>
+    </g>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <use href="#mark"/>
+</svg>

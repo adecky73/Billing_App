@@ -18,6 +18,7 @@ of the device you enter it on, and can be exported to a `.json` file at any time
 | `manifest.webmanifest` | Makes it installable as an app (name, icons, standalone display). |
 | `sw.js` | Service worker — caches the app so it works with no network. |
 | `icon-192.png`, `icon-512.png`, `icon-maskable-512.png` | App icons. |
+| `icon.svg` | The icon artwork as vector — the source the PNGs are rendered from. |
 | `start-server.cmd` | Windows convenience: double-click to serve this folder on `localhost:8000`. Not needed for the app itself. |
 
 ## Running it
@@ -129,6 +130,22 @@ After the first visit the app is cached and opens offline.
 Everything recalculates as you type and is saved in the browser automatically.
 `Menu` has JSON save/open (for backups and moving between devices), CSV export for Excel,
 a plain-text summary to paste into a chat, and print / save-as-PDF.
+
+## Look and feel
+
+The interface follows Android's current design language (Material 3): tonal surfaces
+instead of drop shadows, pill-shaped buttons, 16/28px corner radii, Roboto, and 48dp
+touch targets. Light and dark follow the phone's setting automatically; the ◐ button
+overrides it.
+
+Where the browser exposes the operating system's own accent colour — Firefox does, via the
+CSS `AccentColor` keyword — the app adopts it, so it matches the rest of the phone. The
+accent is only ever used as a *tint*: filled surfaces mix 16% of it into the background and
+their text mixes 30% into the foreground colour. That is deliberate. Handing an arbitrary
+system accent straight to a button as its fill can drop the label to 2.4:1 contrast on a
+yellow accent; the tonal pair measures at least 6.2:1 for any accent, including pure white
+and pure black. Verified by rendering the actual pixels under eight simulated accents in
+both light and dark.
 
 ## What changed against the Excel version
 
