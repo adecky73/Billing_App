@@ -8,8 +8,9 @@
 <title>Billing Tool</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Billing Tool">
 <style>
@@ -199,6 +200,7 @@ header.top{
 .btn.ghost{background:transparent}
 .btn.ghost:hover{background:var(--surface-2)}
 .btn.icon{width:40px;padding:0;border-radius:var(--r-full)}
+#langBtn{min-width:44px;padding:0 10px;font-weight:650;letter-spacing:.03em}
 .btn.sm{min-height:36px;padding:0 14px;font-size:14px}
 
 /* ---------- cards ---------- */
@@ -549,28 +551,29 @@ footer .ver{font-size:11.5px;opacity:.8}
   <rect width="100%" height="100%" rx="112" fill="url(#lg-bg)"/>
   <g transform="translate(256,256) scale(1.16) translate(-256,-256)"><use href="#lg-mark"/></g>
 </svg></div>
-      <input id="tripTitle" value="" placeholder="Name this sheet…" aria-label="Title of this billing sheet" spellcheck="false">
+      <input id="tripTitle" value="" data-i18n-ph="title.ph" data-i18n-aria="title.aria" spellcheck="false">
     </div>
     <div class="top-actions">
-      <button class="btn" id="installBtn" hidden>⬇︎ Install app</button>
-      <button class="btn ghost" id="themeBtn" title="Switch light / dark" aria-label="Switch light or dark theme"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg></button>
+      <button class="btn" id="installBtn" data-i18n="btn.install" hidden>⬇︎ Install app</button>
+      <button class="btn ghost" id="langBtn" data-i18n-title="btn.lang" data-i18n-aria="btn.lang"><span id="langLbl">DE</span></button>
+      <button class="btn ghost" id="themeBtn" data-i18n-title="btn.theme" data-i18n-aria="btn.theme"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg></button>
       <div class="menu-anchor">
-        <button class="btn" id="menuBtn" aria-haspopup="true" aria-expanded="false">Menu ▾</button>
+        <button class="btn" id="menuBtn" data-i18n="btn.menu" aria-haspopup="true" aria-expanded="false">Menu ▾</button>
         <div class="menu" id="menu" role="menu">
-          <div class="lbl">Save &amp; share</div>
-          <button data-act="save">💾 Save to file (.json)</button>
-          <button data-act="load">📂 Open file (.json)</button>
-          <button data-act="csv">📊 Export for Excel (.csv)</button>
-          <button data-act="copy">📋 Copy summary as text</button>
-          <button data-act="raw">📄 Show data as text (backup)</button>
-          <button data-act="print">🖨 Print / save as PDF</button>
+          <div class="lbl" data-i18n="menu.group.save">Save &amp; share</div>
+          <button data-act="save" data-i18n="menu.save">…</button>
+          <button data-act="load" data-i18n="menu.load">…</button>
+          <button data-act="csv" data-i18n="menu.csv">…</button>
+          <button data-act="copy" data-i18n="menu.copy">…</button>
+          <button data-act="raw" data-i18n="menu.raw">…</button>
+          <button data-act="print" data-i18n="menu.print">…</button>
           <hr>
-          <div class="lbl">Settings</div>
-          <button data-act="currency">💱 Currency symbol …</button>
+          <div class="lbl" data-i18n="menu.group.settings">Settings</div>
+          <button data-act="currency" data-i18n="menu.currency">…</button>
           <hr>
-          <button data-act="update">🔄 Check for update</button>
-          <button data-act="new">🆕 New sheet</button>
-          <button data-act="clear" class="danger">🗑 Clear everything</button>
+          <button data-act="update" data-i18n="menu.update">…</button>
+          <button data-act="new" data-i18n="menu.new">…</button>
+          <button data-act="clear" class="danger" data-i18n="menu.clear">…</button>
         </div>
       </div>
     </div>
@@ -583,22 +586,22 @@ footer .ver{font-size:11.5px;opacity:.8}
         The name is also the filename when you save.</span>
     </div>
     <div class="gate-act">
-      <button class="btn" id="gateOpen">📂 Open a saved file</button>
-      <button class="btn" id="gateKeep" hidden>Keep these entries</button>
-      <button class="btn primary" id="gateNew" hidden>Start empty</button>
-      <button class="btn primary" id="gateName">Name it</button>
+      <button class="btn" id="gateOpen" data-i18n="gate.open">…</button>
+      <button class="btn" id="gateKeep" data-i18n="gate.keep" hidden>…</button>
+      <button class="btn primary" id="gateNew" data-i18n="gate.new" hidden>…</button>
+      <button class="btn primary" id="gateName" data-i18n="gate.namebtn">…</button>
     </div>
   </div>
 
   <div class="iosbar" id="installHelp" hidden>
     <span class="ico" aria-hidden="true">📲</span>
     <span class="txt" id="installHelpTxt"></span>
-    <button class="x" id="installHelpX" aria-label="Dismiss">×</button>
+    <button class="x" id="installHelpX" data-i18n-aria="install.dismiss">×</button>
   </div>
 
   <div class="card gated">
     <div class="card-h">
-      <h2>People</h2>
+      <h2 data-i18n="card.people">People</h2>
       <span class="spacer"></span>
       <span class="hint" id="peopleHint"></span>
     </div>
@@ -609,10 +612,10 @@ footer .ver{font-size:11.5px;opacity:.8}
 
   <div class="card gated">
     <div class="card-h">
-      <h2>Expenses</h2>
+      <h2 data-i18n="card.expenses">Expenses</h2>
       <span class="spacer"></span>
-      <span class="hint">Tap a cell to include someone · tap again for a double share</span>
-      <button class="btn sm primary" id="addRow">+ Add expense</button>
+      <span class="hint" data-i18n="expenses.hint">…</span>
+      <button class="btn sm primary" id="addRow" data-i18n="expenses.add">…</button>
     </div>
     <div class="tablewrap">
       <table id="tbl">
@@ -625,12 +628,12 @@ footer .ver{font-size:11.5px;opacity:.8}
 
   <div class="grid2 gated">
     <div class="card">
-      <div class="card-h"><h2>Balance</h2></div>
+      <div class="card-h"><h2 data-i18n="card.balance">Balance</h2></div>
       <div class="card-b" id="balances"></div>
     </div>
     <div class="card">
       <div class="card-h">
-        <h2>Settlement</h2>
+        <h2 data-i18n="card.settlement">Settlement</h2>
         <span class="spacer"></span>
         <span class="hint" id="trCount"></span>
       </div>
@@ -639,10 +642,10 @@ footer .ver{font-size:11.5px;opacity:.8}
   </div>
 
   <footer>
-    <div>Billing Tool for easy group transfers, © Andreas Deckert</div>
-    <div class="noprint">All data stays on this device. Nothing is uploaded anywhere.</div>
-    <div class="noprint" id="browserNote">Each browser keeps its own copy — use <strong>Menu → Save to file</strong> to move a sheet between browsers or devices.</div>
-    <div class="noprint ver">Version <strong id="verNo">–</strong> · <span id="verMode">–</span></div>
+    <div data-i18n="foot.credit">…</div>
+    <div class="noprint" data-i18n="foot.privacy">…</div>
+    <div class="noprint" id="browserNote" data-i18n="foot.browser" data-i18n-html>…</div>
+    <div class="noprint ver"><span data-i18n="foot.version">Version</span> <strong id="verNo">–</strong> · <span id="verMode">–</span></div>
   </footer>
 </div>
 
@@ -652,19 +655,375 @@ footer .ver{font-size:11.5px;opacity:.8}
   <div class="dlg-box">
     <div class="dlg-h">
       <strong id="rawName">data.json</strong>
-      <button class="x" id="rawClose" aria-label="Close">×</button>
+      <button class="x" id="rawClose" data-i18n-aria="raw.close">×</button>
     </div>
-    <p class="dlg-p">Your complete sheet. Copy this text and keep it somewhere safe —
-      pasting it into a <code>.json</code> file restores everything via <em>Open file</em>.</p>
+    <p class="dlg-p" data-i18n="raw.intro">…</p>
     <textarea id="rawText" readonly spellcheck="false"></textarea>
     <div class="dlg-f">
-      <button class="btn" id="rawSelect">Select all</button>
-      <button class="btn primary" id="rawCopy">Copy</button>
+      <button class="btn" id="rawSelect" data-i18n="raw.selectall">…</button>
+      <button class="btn primary" id="rawCopy" data-i18n="raw.copy">…</button>
     </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
 
+<script>
+/* ============================================================
+   Billing Tool — user interface strings.
+
+   English is the reference: any key missing from another language
+   falls back to it, so a half-finished translation degrades to
+   English rather than showing raw keys.
+   Placeholders are {0}, {1} … and are substituted positionally.
+   ============================================================ */
+var I18N = {
+en: {
+  /* header + menu */
+  'title.ph': 'Name this sheet…',
+  'title.aria': 'Title of this billing sheet',
+  'btn.install': '⬇︎ Install app',
+  'btn.theme': 'Switch light / dark',
+  'btn.menu': 'Menu ▾',
+  'btn.lang': 'Auf Deutsch umschalten',
+  'menu.group.save': 'Save & share',
+  'menu.save': '💾 Save to file (.json)',
+  'menu.load': '📂 Open file (.json)',
+  'menu.csv': '📊 Export for Excel (.csv)',
+  'menu.copy': '📋 Copy summary as text',
+  'menu.raw': '📄 Show data as text (backup)',
+  'menu.print': '🖨 Print / save as PDF',
+  'menu.group.settings': 'Settings',
+  'menu.currency': '💱 Currency symbol …',
+  'menu.update': '🔄 Check for update',
+  'menu.update.native': 'ℹ️ About updating this app',
+  'menu.new': '🆕 New sheet',
+  'menu.clear': '🗑 Clear everything',
+
+  /* the naming gate */
+  'gate.name.head': 'Name this sheet to start',
+  'gate.name.sub': 'Give it a name — “Skitrip 2026”, “Flat share March” — and everything below unlocks. The name is also the filename when you save.',
+  'gate.carry.head.named': 'Start a new sheet, or keep what is here?',
+  'gate.carry.head.unnamed': 'There are entries from an earlier sheet',
+  'gate.carry.sub': '{0} and {1} are still here. “Start empty” clears them and keeps the name you typed. “Keep these entries” carries them over. Save first if you have not — Menu → Save to file.',
+  'gate.open': '📂 Open a saved file',
+  'gate.keep': 'Keep these entries',
+  'gate.new': 'Start empty',
+  'gate.namebtn': 'Name it',
+  'gate.kept': 'Entries kept under the new name.',
+  'gate.started': 'Started an empty sheet.',
+
+  /* cards */
+  'card.people': 'People',
+  'card.expenses': 'Expenses',
+  'card.balance': 'Balance',
+  'card.settlement': 'Settlement',
+  'people.hint.empty': 'type a name and press Enter',
+  'people.count': '{0} {1}',
+  'word.person': 'person',
+  'word.people': 'people',
+  'word.expense': 'expense',
+  'word.expenses': 'expenses',
+  'people.add': '+ add person',
+  'people.add.aria': 'Add a person',
+  'people.name.aria': 'Name',
+  'people.remove': 'Remove {0}',
+  'expenses.hint': 'Tap a cell to include someone · tap again for a double share',
+  'expenses.add': '+ Add expense',
+
+  /* table */
+  'th.payer': 'Paid by',
+  'th.desc': 'Expenditure',
+  'th.amount': 'Amount',
+  'th.pershare': 'Per share',
+  'th.total': 'Total',
+  'th.share.title': 'Click to include/exclude {0} in every expense',
+  'row.payer.empty': '— who paid? —',
+  'row.desc.ph': 'what was it for?',
+  'row.desc.aria': 'Description',
+  'row.amount.aria': 'Amount',
+  'row.delete': 'Delete this row',
+  'row.share.aria': '{0} share for {1}',
+  'row.share.0': 'not involved — click to include (shift-click for more shares)',
+  'row.share.1': 'one share — click for a double share',
+  'row.share.n': '{0} shares — click to remove',
+  'ph.noexpenses': 'No expenses yet — hit “+ Add expense”.',
+  'ph.nopeople': 'Add the people first, then start entering expenses.',
+  'expenses.needpeople': 'Add at least one person first.',
+
+  /* results */
+  'bal.empty': 'Add some people first.',
+  'bal.sub': 'paid {0} · share {1}',
+  'bal.warn.payer': '{0} {1} no payer',
+  'bal.warn.shared': '{0} {1} not shared by anyone',
+  'bal.warn.has': 'has',
+  'bal.warn.have': 'have',
+  'bal.warn.is': 'is',
+  'bal.warn.are': 'are',
+  'bal.warn.tail': '⚠ {0} — the result below ignores those.',
+  'set.none': 'Nothing to settle yet.',
+  'set.done': '✓ All settled — nobody owes anything.',
+  'set.pays': 'pays',
+  'set.to': 'to',
+  'set.count': '{0} {1} (fewest possible for {2} people)',
+  'word.transfer': 'transfer',
+  'word.transfers': 'transfers',
+  'set.error': 'Could not compute transfers: {0}',
+
+  /* saving and loading */
+  'save.result': '{0} {1}, {2} {3}, {4} KB — {5}.',
+  'save.cancelled': 'Not saved — you closed the dialog.',
+  'save.csv': 'CSV for Excel — {0}.',
+  'how.share': 'sent to the share sheet',
+  'how.download': 'saved to Downloads',
+  'how.screen': 'shown on screen',
+  'how.screen.reason': 'shown on screen — Android refused: {0}',
+  'load.ok': 'Loaded {0} {1} and {2} {3}.',
+  'load.unreadable': 'Android would not let the app read “{0}”.\n\nTry copying the file into the phone\'s Downloads folder first, then pick it from there rather than from a cloud folder or a recent-files shortcut.',
+  'load.empty': '“{0}” is empty (0 characters were read).',
+  'load.badjson': 'That file is not readable JSON.\n\n{0}\n\nIt starts with: {1}',
+  'load.notsheet': 'That JSON file is not a billing sheet — it has no "people" and "expenses" lists.',
+
+  /* dialogs */
+  'raw.intro': 'Your complete sheet. Copy this text and keep it somewhere safe — pasting it into a .json file restores everything via Open file.',
+  'raw.selectall': 'Select all',
+  'raw.copy': 'Copy',
+  'raw.close': 'Close',
+  'raw.copied': 'Copied to the clipboard.',
+  'raw.copyfail': 'Copy failed — select the text and copy it by hand.',
+  'copy.done': 'Summary copied to clipboard.',
+  'copy.prompt': 'Copy the summary:',
+  'currency.prompt': 'Currency symbol:',
+  'confirm.removeperson': '“{0}” is used in the expense list. Remove anyway? Their entries will be unassigned.',
+  'confirm.clear': 'Delete all people and expenses? This cannot be undone.',
+  'confirm.new': 'Start a new sheet?\n\nThe current {0} entries are removed from the app. Save them first if you need them.',
+  'new.done': 'New sheet — give it a name.',
+  'cleared': 'Cleared.',
+  'update.looking': 'Looking for a newer version…',
+  'update.native': 'This is the installed Android app, version {0}.\n\nIts files are packaged inside the app itself, so it cannot update itself from the web. To move to a newer version, install the newer APK over this one.\n\nExport your sheets first (Menu → Save to file) if the new APK is signed with a different key — Android then requires the old app to be uninstalled, which deletes its data.',
+  'nostorage': 'Auto-save unavailable here — use Menu → Save to file.',
+
+  /* install help */
+  'install.ios': '<strong>On iPhone / iPad:</strong> tap the <strong>Share</strong> button {0} at the bottom of Safari, then <strong>Add to Home Screen</strong>. Safari never offers an install button by itself — this is the only way on iOS.',
+  'install.firefox': '<strong>Firefox on Android:</strong> open the menu (<strong>⋮</strong>, bottom or top right) and choose <strong>Add to Home screen</strong> (older versions) or <strong>Install</strong>. Firefox cannot show an in-page install button — that is a Chrome-only feature — so this menu entry is the way in.',
+  'install.ddg': '<strong>DuckDuckGo cannot install web apps.</strong> It is not one of the browsers that create a real app entry — no menu item here will do it, whatever it is called. Open this same address in <strong>Firefox</strong> (menu ⋮ → <strong>Add to Home screen</strong>) or in Chrome, Edge, Brave or Samsung Internet. Also worth knowing: DuckDuckGo\'s <strong>Fire Button</strong> deletes website data, which would wipe the sheets stored here. Keep this site in <strong>Fireproof Sites</strong>, and export regularly via <strong>Menu → Save to file</strong>.',
+  'install.android': '<strong>On Android:</strong> open the browser menu (<strong>⋮</strong>, top right) and choose <strong>Install app</strong> — or <strong>Add to Home screen</strong> if that is what your browser calls it. If neither appears, the app is most likely already installed: check your home screen and app drawer.',
+  'install.ffdesktop': '<strong>Firefox on the desktop</strong> cannot install web apps. Use Chrome or Edge — install icon at the right-hand end of the address bar — or simply keep this page bookmarked; everything works the same in a tab.',
+  'install.desktop': '<strong>On a computer:</strong> in Chrome or Edge, click the install icon at the right-hand end of the address bar, or open the browser menu and choose <strong>Install Billing Tool</strong>. Firefox and Safari on desktop cannot install web apps.',
+  'install.dismiss': 'Dismiss',
+
+  /* footer */
+  'foot.credit': 'Billing Tool for easy group transfers, © Andreas Deckert',
+  'foot.privacy': 'All data stays on this device. Nothing is uploaded anywhere.',
+  'foot.browser': 'Each browser keeps its own copy — use <strong>Menu → Save to file</strong> to move a sheet between browsers or devices.',
+  'foot.version': 'Version',
+  'mode.native': 'native Android app',
+  'mode.installed': 'running as an installed app',
+  'mode.browser': 'running in the browser',
+
+  /* text summary */
+  'sum.total': 'Total: {0}  ({1} expenses, {2} people)',
+  'sum.balance': 'Balance',
+  'sum.settlement': 'Settlement',
+  'sum.nothing': '  nothing to transfer',
+  'sum.paidshare': '(paid {0}, share {1})',
+  'csv.name': 'Name',
+  'csv.paid': 'Paid',
+  'csv.share': 'Share',
+  'csv.balance': 'Balance',
+  'csv.pays': 'pays',
+  'csv.to': 'to',
+},
+
+de: {
+  'title.ph': 'Abrechnung benennen…',
+  'title.aria': 'Name dieser Abrechnung',
+  'btn.install': '⬇︎ App installieren',
+  'btn.theme': 'Hell / dunkel umschalten',
+  'btn.menu': 'Menü ▾',
+  'btn.lang': 'Switch to English',
+  'menu.group.save': 'Sichern & teilen',
+  'menu.save': '💾 In Datei sichern (.json)',
+  'menu.load': '📂 Datei öffnen (.json)',
+  'menu.csv': '📊 Export für Excel (.csv)',
+  'menu.copy': '📋 Übersicht als Text kopieren',
+  'menu.raw': '📄 Daten als Text anzeigen (Sicherung)',
+  'menu.print': '🖨 Drucken / als PDF sichern',
+  'menu.group.settings': 'Einstellungen',
+  'menu.currency': '💱 Währungszeichen …',
+  'menu.update': '🔄 Nach Aktualisierung suchen',
+  'menu.update.native': 'ℹ️ Zur Aktualisierung dieser App',
+  'menu.new': '🆕 Neue Abrechnung',
+  'menu.clear': '🗑 Alles löschen',
+
+  'gate.name.head': 'Zum Start einen Namen vergeben',
+  'gate.name.sub': 'Gib der Abrechnung einen Namen — „Skitour 2026", „WG März" — dann wird alles darunter freigeschaltet. Der Name ist zugleich der Dateiname beim Sichern.',
+  'gate.carry.head.named': 'Neu anfangen oder das Vorhandene behalten?',
+  'gate.carry.head.unnamed': 'Es sind noch Einträge einer früheren Abrechnung da',
+  'gate.carry.sub': '{0} und {1} sind noch vorhanden. „Leer starten" löscht sie und behält den eingegebenen Namen. „Einträge behalten" übernimmt sie. Sichere sie vorher, falls noch nicht geschehen — Menü → In Datei sichern.',
+  'gate.open': '📂 Gesicherte Datei öffnen',
+  'gate.keep': 'Einträge behalten',
+  'gate.new': 'Leer starten',
+  'gate.namebtn': 'Benennen',
+  'gate.kept': 'Einträge unter dem neuen Namen behalten.',
+  'gate.started': 'Leere Abrechnung begonnen.',
+
+  'card.people': 'Personen',
+  'card.expenses': 'Ausgaben',
+  'card.balance': 'Saldo',
+  'card.settlement': 'Ausgleich',
+  'people.hint.empty': 'Namen eintippen und Eingabetaste drücken',
+  'people.count': '{0} {1}',
+  'word.person': 'Person',
+  'word.people': 'Personen',
+  'word.expense': 'Ausgabe',
+  'word.expenses': 'Ausgaben',
+  'people.add': '+ Person hinzufügen',
+  'people.add.aria': 'Person hinzufügen',
+  'people.name.aria': 'Name',
+  'people.remove': '{0} entfernen',
+  'expenses.hint': 'Feld antippen, um jemanden einzubeziehen · nochmals antippen für doppelten Anteil',
+  'expenses.add': '+ Ausgabe hinzufügen',
+
+  'th.payer': 'Bezahlt von',
+  'th.desc': 'Ausgabe',
+  'th.amount': 'Betrag',
+  'th.pershare': 'Je Anteil',
+  'th.total': 'Summe',
+  'th.share.title': 'Anklicken, um {0} bei allen Ausgaben ein- oder auszuschließen',
+  'row.payer.empty': '— wer hat bezahlt? —',
+  'row.desc.ph': 'wofür war das?',
+  'row.desc.aria': 'Beschreibung',
+  'row.amount.aria': 'Betrag',
+  'row.delete': 'Diese Zeile löschen',
+  'row.share.aria': 'Anteil von {0} für {1}',
+  'row.share.0': 'nicht beteiligt — anklicken zum Einbeziehen (Umschalt-Klick für mehr Anteile)',
+  'row.share.1': 'ein Anteil — anklicken für doppelten Anteil',
+  'row.share.n': '{0} Anteile — anklicken zum Entfernen',
+  'ph.noexpenses': 'Noch keine Ausgaben — auf „+ Ausgabe hinzufügen" tippen.',
+  'ph.nopeople': 'Zuerst die Personen anlegen, dann die Ausgaben eintragen.',
+  'expenses.needpeople': 'Zuerst mindestens eine Person anlegen.',
+
+  'bal.empty': 'Zuerst Personen anlegen.',
+  'bal.sub': 'gezahlt {0} · Anteil {1}',
+  'bal.warn.payer': 'bei {0} {1} fehlt der Zahler',
+  'bal.warn.shared': '{0} {1} niemandem zugeordnet',
+  'bal.warn.has': '',
+  'bal.warn.have': '',
+  'bal.warn.is': 'ist',
+  'bal.warn.are': 'sind',
+  'bal.warn.tail': '⚠ {0} — das Ergebnis unten lässt diese außen vor.',
+  'set.none': 'Noch nichts auszugleichen.',
+  'set.done': '✓ Alles ausgeglichen — niemand schuldet etwas.',
+  'set.pays': 'zahlt',
+  'set.to': 'an',
+  'set.count': '{0} {1} (kleinstmögliche Zahl für {2} Personen)',
+  'word.transfer': 'Überweisung',
+  'word.transfers': 'Überweisungen',
+  'set.error': 'Überweisungen nicht berechenbar: {0}',
+
+  'save.result': '{0} {1}, {2} {3}, {4} KB — {5}.',
+  'save.cancelled': 'Nicht gesichert — du hast den Dialog geschlossen.',
+  'save.csv': 'CSV für Excel — {0}.',
+  'how.share': 'an das Teilen-Menü übergeben',
+  'how.download': 'in Downloads gesichert',
+  'how.screen': 'am Bildschirm angezeigt',
+  'how.screen.reason': 'am Bildschirm angezeigt — Android hat abgelehnt: {0}',
+  'load.ok': '{0} {1} und {2} {3} geladen.',
+  'load.unreadable': 'Android hat der App das Lesen von „{0}" verweigert.\n\nKopiere die Datei zuerst in den Ordner „Downloads" und wähle sie von dort aus — nicht aus einem Cloud-Ordner oder über „Zuletzt verwendet".',
+  'load.empty': '„{0}" ist leer (0 Zeichen gelesen).',
+  'load.badjson': 'Diese Datei ist kein lesbares JSON.\n\n{0}\n\nSie beginnt mit: {1}',
+  'load.notsheet': 'Diese JSON-Datei ist keine Abrechnung — es fehlen die Listen „people" und „expenses".',
+
+  'raw.intro': 'Deine vollständige Abrechnung. Kopiere diesen Text und bewahre ihn sicher auf — in eine .json-Datei eingefügt, stellt er über „Datei öffnen" alles wieder her.',
+  'raw.selectall': 'Alles markieren',
+  'raw.copy': 'Kopieren',
+  'raw.close': 'Schließen',
+  'raw.copied': 'In die Zwischenablage kopiert.',
+  'raw.copyfail': 'Kopieren fehlgeschlagen — Text markieren und von Hand kopieren.',
+  'copy.done': 'Übersicht in die Zwischenablage kopiert.',
+  'copy.prompt': 'Übersicht kopieren:',
+  'currency.prompt': 'Währungszeichen:',
+  'confirm.removeperson': '„{0}" kommt in der Ausgabenliste vor. Trotzdem entfernen? Die betreffenden Einträge bleiben dann ohne Zuordnung.',
+  'confirm.clear': 'Alle Personen und Ausgaben löschen? Das lässt sich nicht rückgängig machen.',
+  'confirm.new': 'Neue Abrechnung beginnen?\n\nDie vorhandenen {0} Einträge werden aus der App entfernt. Sichere sie vorher, falls du sie noch brauchst.',
+  'new.done': 'Neue Abrechnung — bitte benennen.',
+  'cleared': 'Gelöscht.',
+  'update.looking': 'Suche nach einer neueren Fassung…',
+  'update.native': 'Dies ist die installierte Android-App, Version {0}.\n\nIhre Dateien stecken im Installationspaket, sie kann sich also nicht selbst über das Netz aktualisieren. Für eine neuere Fassung installierst du die neuere APK über diese.\n\nSichere deine Abrechnungen vorher (Menü → In Datei sichern), falls die neue APK mit einem anderen Schlüssel signiert ist — Android verlangt dann die Deinstallation der alten App, wobei deren Daten gelöscht werden.',
+  'nostorage': 'Automatisches Sichern hier nicht möglich — nutze Menü → In Datei sichern.',
+
+  'install.ios': '<strong>Auf iPhone / iPad:</strong> unten in Safari auf <strong>Teilen</strong> {0} tippen, dann <strong>Zum Home-Bildschirm</strong>. Safari bietet von sich aus nie eine Installationsschaltfläche — auf iOS ist das der einzige Weg.',
+  'install.firefox': '<strong>Firefox unter Android:</strong> Menü (<strong>⋮</strong>, unten oder oben rechts) öffnen und <strong>Zum Startbildschirm hinzufügen</strong> bzw. <strong>Installieren</strong> wählen. Firefox kann keine Schaltfläche in der Seite anbieten — das ist eine reine Chrome-Fähigkeit —, deshalb führt der Weg über dieses Menü.',
+  'install.ddg': '<strong>DuckDuckGo kann keine Web-Apps installieren.</strong> Es gehört nicht zu den Browsern, die einen echten App-Eintrag anlegen — kein Menüpunkt leistet das, wie er auch heißen mag. Öffne dieselbe Adresse in <strong>Firefox</strong> (Menü ⋮ → <strong>Zum Startbildschirm hinzufügen</strong>) oder in Chrome, Edge, Brave oder Samsung Internet. Außerdem wissenswert: DuckDuckGos <strong>Fire Button</strong> löscht Website-Daten und damit die hier gespeicherten Abrechnungen. Nimm die Seite in <strong>Fireproof Sites</strong> auf und sichere regelmäßig über <strong>Menü → In Datei sichern</strong>.',
+  'install.android': '<strong>Unter Android:</strong> das Browsermenü (<strong>⋮</strong>, oben rechts) öffnen und <strong>App installieren</strong> wählen — oder <strong>Zum Startbildschirm hinzufügen</strong>, je nach Bezeichnung. Erscheint beides nicht, ist die App höchstwahrscheinlich schon installiert: sieh auf dem Startbildschirm und in der App-Liste nach.',
+  'install.ffdesktop': '<strong>Firefox am Rechner</strong> kann keine Web-Apps installieren. Nutze Chrome oder Edge — Installationssymbol rechts in der Adressleiste — oder setze einfach ein Lesezeichen; im Tab funktioniert alles gleich.',
+  'install.desktop': '<strong>Am Rechner:</strong> in Chrome oder Edge auf das Installationssymbol rechts in der Adressleiste klicken oder im Browsermenü <strong>Billing Tool installieren</strong> wählen. Firefox und Safari am Rechner können keine Web-Apps installieren.',
+  'install.dismiss': 'Schließen',
+
+  'foot.credit': 'Billing Tool for easy group transfers, © Andreas Deckert',
+  'foot.privacy': 'Alle Daten bleiben auf diesem Gerät. Nichts wird irgendwohin übertragen.',
+  'foot.browser': 'Jeder Browser hat seine eigene Kopie — mit <strong>Menü → In Datei sichern</strong> überträgst du eine Abrechnung zwischen Browsern oder Geräten.',
+  'foot.version': 'Version',
+  'mode.native': 'native Android-App',
+  'mode.installed': 'als installierte App',
+  'mode.browser': 'im Browser',
+
+  'sum.total': 'Summe: {0}  ({1} Ausgaben, {2} Personen)',
+  'sum.balance': 'Saldo',
+  'sum.settlement': 'Ausgleich',
+  'sum.nothing': '  nichts zu überweisen',
+  'sum.paidshare': '(gezahlt {0}, Anteil {1})',
+  'csv.name': 'Name',
+  'csv.paid': 'Gezahlt',
+  'csv.share': 'Anteil',
+  'csv.balance': 'Saldo',
+  'csv.pays': 'zahlt',
+  'csv.to': 'an',
+}
+};
+
+var lang = 'en';
+
+function t(key){
+  var table = I18N[lang] || I18N.en;
+  var s = table[key];
+  if(s === undefined || s === '') s = I18N.en[key];
+  if(s === undefined) return key;
+  for(var i = 1; i < arguments.length; i++){
+    s = s.split('{' + (i-1) + '}').join(String(arguments[i]));
+  }
+  return s;
+}
+
+/* plural helpers used all over the interface */
+function nPeople(n){ return n + ' ' + (n === 1 ? t('word.person') : t('word.people')); }
+function nExpenses(n){ return n + ' ' + (n === 1 ? t('word.expense') : t('word.expenses')); }
+
+function pickLang(){
+  var saved = null;
+  try{ saved = localStorage.getItem('billing-tool.lang'); }catch(e){}
+  if(saved === 'de' || saved === 'en') return saved;
+  var nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+  return nav.indexOf('de') === 0 ? 'de' : 'en';
+}
+
+function applyStaticI18n(){
+  document.documentElement.lang = lang;
+  var nodes = document.querySelectorAll('[data-i18n]');
+  for(var i=0;i<nodes.length;i++){
+    var k = nodes[i].getAttribute('data-i18n');
+    if(nodes[i].hasAttribute('data-i18n-html')) nodes[i].innerHTML = t(k);
+    else nodes[i].textContent = t(k);
+  }
+  var ph = document.querySelectorAll('[data-i18n-ph]');
+  for(var j=0;j<ph.length;j++) ph[j].placeholder = t(ph[j].getAttribute('data-i18n-ph'));
+  var ti = document.querySelectorAll('[data-i18n-title]');
+  for(var k2=0;k2<ti.length;k2++) ti[k2].title = t(ti[k2].getAttribute('data-i18n-title'));
+  var ar = document.querySelectorAll('[data-i18n-aria]');
+  for(var m=0;m<ar.length;m++) ar[m].setAttribute('aria-label', t(ar[m].getAttribute('data-i18n-aria')));
+}
+
+</script>
 <script>
 /* ============================================================
    BILLING TOOL — calculation core
@@ -940,8 +1299,8 @@ function el(tag, cls, txt){
 function $(id){ return document.getElementById(id); }
 var toastTimer;
 function toast(msg){
-  var t = $('toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  var box = $('toast'); box.textContent = msg; box.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(function(){ box.classList.remove('show'); }, 2200);
 }
 function personName(id){
   for(var i=0;i<state.people.length;i++) if(state.people[i].id===id) return state.people[i].name;
@@ -955,7 +1314,7 @@ function renderPeople(){
     var chip = el('div','chip');
     var inp = document.createElement('input');
     inp.value = p.name; inp.size = Math.max(4, p.name.length);
-    inp.setAttribute('aria-label','Name');
+    inp.setAttribute('aria-label', t('people.name.aria'));
     inp.addEventListener('input', function(){
       p.name = inp.value.toUpperCase();
       inp.value = p.name;
@@ -963,10 +1322,10 @@ function renderPeople(){
       updateHeaderNames(); renderResults(); save();
     });
     var x = el('button','x','×');
-    x.title = 'Remove ' + p.name;
+    x.title = t('people.remove', p.name);
     x.addEventListener('click', function(){
       var used = state.expenses.some(function(e){ return e.payerId===p.id || (e.shares[p.id]||0)>0; });
-      if(used && !confirm('“'+p.name+'” is used in the expense list. Remove anyway? Their entries will be unassigned.')) return;
+      if(used && !confirm(t('confirm.removeperson', p.name))) return;
       state.people = state.people.filter(function(q){ return q.id!==p.id; });
       state.expenses.forEach(function(e){ if(e.payerId===p.id) e.payerId=null; delete e.shares[p.id]; });
       renderAll(); save();
@@ -976,7 +1335,7 @@ function renderPeople(){
   });
 
   var add = document.createElement('input');
-  add.id = 'newPerson'; add.placeholder = '+ add person'; add.setAttribute('aria-label','Add a person');
+  add.id = 'newPerson'; add.placeholder = t('people.add'); add.setAttribute('aria-label', t('people.add.aria'));
   add.addEventListener('keydown', function(ev){
     if(ev.key === 'Enter'){
       var nm = add.value.trim().toUpperCase();
@@ -988,9 +1347,8 @@ function renderPeople(){
     }
   });
   box.appendChild(add);
-  $('peopleHint').textContent = state.people.length
-    ? state.people.length + ' ' + (state.people.length===1?'person':'people')
-    : 'type a name and press Enter';
+  $('peopleHint').textContent = state.people.length ? nPeople(state.people.length)
+                                                    : t('people.hint.empty');
 }
 
 function updateHeaderNames(){
@@ -1012,14 +1370,14 @@ function updateHeaderNames(){
 
 function renderTable(){
   var head = $('thead'); head.innerHTML = '';
-  head.appendChild(el('th', null, 'Paid by'));
-  head.appendChild(el('th', null, 'Expenditure'));
-  var thA = el('th','num','Amount'); head.appendChild(thA);
+  head.appendChild(el('th', null, t('th.payer')));
+  head.appendChild(el('th', null, t('th.desc')));
+  var thA = el('th','num',t('th.amount')); head.appendChild(thA);
   state.people.forEach(function(p, i){
     var th = el('th','share');
     var span = el('span','pname', p.name);
     th.appendChild(span);
-    th.title = 'Click to include/exclude ' + p.name + ' in every expense';
+    th.title = t('th.share.title', p.name);
     th.addEventListener('click', function(){
       var allIn = state.expenses.every(function(e){ return (e.shares[p.id]||0) > 0; });
       state.expenses.forEach(function(e){ if(allIn) delete e.shares[p.id]; else if(!e.shares[p.id]) e.shares[p.id]=1; });
@@ -1027,7 +1385,7 @@ function renderTable(){
     });
     head.appendChild(th);
   });
-  head.appendChild(el('th','num','Per share'));
+  head.appendChild(el('th','num',t('th.pershare')));
   head.appendChild(el('th', null, ''));
 
   var body = $('tbody'); body.innerHTML = '';
@@ -1040,7 +1398,7 @@ function renderTable(){
     // payer
     var tdP = el('td','payer');
     var sel = document.createElement('select');
-    var o0 = document.createElement('option'); o0.value=''; o0.textContent='— who paid? —'; sel.appendChild(o0);
+    var o0 = document.createElement('option'); o0.value=''; o0.textContent=t('row.payer.empty'); sel.appendChild(o0);
     state.people.forEach(function(p){
       var o = document.createElement('option'); o.value=p.id; o.textContent=p.name; sel.appendChild(o);
     });
@@ -1056,14 +1414,14 @@ function renderTable(){
     // description
     var tdD = el('td','desc');
     var inD = document.createElement('input');
-    inD.value = ex.desc; inD.placeholder = 'what was it for?'; inD.setAttribute('aria-label','Description');
+    inD.value = ex.desc; inD.placeholder = t('row.desc.ph'); inD.setAttribute('aria-label', t('row.desc.aria'));
     inD.addEventListener('input', function(){ ex.desc = inD.value; save(); });
     tdD.appendChild(inD); tr.appendChild(tdD);
 
     // amount
     var tdA = el('td','amt');
     var inA = document.createElement('input');
-    inA.inputMode = 'decimal'; inA.setAttribute('aria-label','Amount');
+    inA.inputMode = 'decimal'; inA.setAttribute('aria-label', t('row.amount.aria'));
     inA.value = ex.cents ? formatCents(ex.cents) : '';
     inA.placeholder = '0.00';
     inA.addEventListener('input', function(){
@@ -1081,7 +1439,7 @@ function renderTable(){
       var b = el('button','sharebtn');
       var n = ex.shares[p.id] || 0;
       paintShare(b, n);
-      b.setAttribute('aria-label', p.name + ' share for ' + (ex.desc||'this expense'));
+      b.setAttribute('aria-label', t('row.share.aria', p.name, ex.desc || t('card.expenses')));
       b.addEventListener('click', function(ev){
         var cur = ex.shares[p.id] || 0;
         var next;
@@ -1096,14 +1454,14 @@ function renderTable(){
 
     // per share
     var tdS = el('td','num pershare');
-    tdS.appendChild(el('span','mlabel','per share '));
+    tdS.appendChild(el('span','mlabel', t('th.pershare') + ' '));
     tdS.appendChild(el('span','v',''));
     tr.appendChild(tdS);
 
     // delete
     var tdX = el('td');
     var del = el('button','rowdel','×');
-    del.title = 'Delete this row';
+    del.title = t('row.delete');
     del.addEventListener('click', function(){
       state.expenses = state.expenses.filter(function(e){ return e.id !== ex.id; });
       renderTable(); renderResults(); save();
@@ -1116,9 +1474,7 @@ function renderTable(){
   if(!state.expenses.length){
     var etr = document.createElement('tr');
     etr.className = 'placeholder';
-    var etd = el('td','ph', state.people.length
-      ? 'No expenses yet — hit “+ Add expense”.'
-      : 'Add the people first, then start entering expenses.');
+    var etd = el('td','ph', state.people.length ? t('ph.noexpenses') : t('ph.nopeople'));
     etd.colSpan = state.people.length + 5;
     etr.appendChild(etd);
     body.appendChild(etr);
@@ -1127,7 +1483,7 @@ function renderTable(){
   var foot = $('tfoot'); foot.innerHTML = '';
   if(state.expenses.length){
     var ftr = document.createElement('tr');
-    var fc = el('td', null, 'Total'); fc.colSpan = 2; ftr.appendChild(fc);
+    var fc = el('td', null, t('th.total')); fc.colSpan = 2; ftr.appendChild(fc);
     var ft = el('td','num total', ''); ftr.appendChild(ft);
     var fill = el('td'); fill.colSpan = state.people.length + 2; ftr.appendChild(fill);
     foot.appendChild(ftr);
@@ -1140,8 +1496,7 @@ function paintShare(btn, n){
   btn.dataset.n = n;
   btn.className = 'sharebtn' + (n > 2 ? ' multi' : '');
   btn.textContent = n === 0 ? '·' : (n === 1 ? '✓' : n + '×');
-  btn.title = n === 0 ? 'not involved — click to include (shift-click for more shares)'
-                      : (n === 1 ? 'one share — click for a double share' : n + ' shares — click to remove');
+  btn.title = n === 0 ? t('row.share.0') : (n === 1 ? t('row.share.1') : t('row.share.n', n));
 }
 
 function updatePerShare(){
@@ -1167,16 +1522,16 @@ function renderResults(){
   var noPayer = state.expenses.filter(function(e){ return !e.payerId && e.cents; }).length;
   if(unassigned || noPayer){
     var msgs = [];
-    if(noPayer) msgs.push(noPayer + ' expense' + (noPayer>1?'s have':' has') + ' no payer');
-    if(unassigned) msgs.push(unassigned + ' expense' + (unassigned>1?'s are':' is') + ' not shared by anyone');
-    bb.appendChild(el('div','note', '⚠ ' + msgs.join(' · ') + ' — the result below ignores those.'));
+    if(noPayer) msgs.push(t('bal.warn.payer', nExpenses(noPayer), noPayer>1?t('bal.warn.have'):t('bal.warn.has')).trim());
+    if(unassigned) msgs.push(t('bal.warn.shared', nExpenses(unassigned), unassigned>1?t('bal.warn.are'):t('bal.warn.is')).trim());
+    bb.appendChild(el('div','note', t('bal.warn.tail', msgs.join(' · '))));
   }
-  if(!rows.length){ bb.appendChild(el('div','empty-note','Add some people first.')); }
+  if(!rows.length){ bb.appendChild(el('div','empty-note', t('bal.empty'))); }
   rows.forEach(function(r){
     var row = el('div','balrow');
     var left = el('div');
     left.appendChild(el('div','nm', r.name));
-    left.appendChild(el('div','sub', 'paid ' + money(r.paid) + ' · share ' + money(r.owed)));
+    left.appendChild(el('div','sub', t('bal.sub', money(r.paid), money(r.owed))));
     row.appendChild(left);
     var v = el('div','val ' + (r.balance>0?'pos':(r.balance<0?'neg':'zero')),
       (r.balance>0?'+':'') + money(r.balance));
@@ -1187,25 +1542,25 @@ function renderResults(){
   var tb = $('transfers'); tb.innerHTML = '';
   var transfers = [];
   try{ transfers = settle(res.rows); }
-  catch(e){ tb.appendChild(el('div','note','Could not compute transfers: ' + e.message)); }
+  catch(e){ tb.appendChild(el('div','note', t('set.error', e.message))); }
 
   if(!transfers.length){
-    tb.appendChild(el('div','empty-note', res.total ? '✓ All settled — nobody owes anything.' : 'Nothing to settle yet.'));
+    tb.appendChild(el('div','empty-note', res.total ? t('set.done') : t('set.none')));
     $('trCount').textContent = '';
   }else{
-    transfers.forEach(function(t){
+    transfers.forEach(function(x){
       var d = el('div','tr');
-      d.appendChild(el('span','from', t.fromName));
+      d.appendChild(el('span','from', x.fromName));
       d.appendChild(el('span','arrow','→'));
-      d.appendChild(el('span',null,'pays'));
-      d.appendChild(el('span','amt', money(t.cents)));
-      d.appendChild(el('span',null,'to'));
-      d.appendChild(el('span','to', t.toName));
+      d.appendChild(el('span',null,t('set.pays')));
+      d.appendChild(el('span','amt', money(x.cents)));
+      d.appendChild(el('span',null,t('set.to')));
+      d.appendChild(el('span','to', x.toName));
       tb.appendChild(d);
     });
     var n = res.rows.filter(function(r){return r.balance!==0;}).length;
-    $('trCount').textContent = transfers.length + ' transfer' + (transfers.length>1?'s':'') +
-      ' (fewest possible for ' + n + ' people)';
+    $('trCount').textContent = t('set.count', transfers.length,
+      transfers.length===1 ? t('word.transfer') : t('word.transfers'), n);
   }
 }
 
@@ -1219,21 +1574,21 @@ function renderAll(){
 /* ============================ export / import ============================ */
 function summaryText(){
   var res = computeBalances(state.people, state.expenses);
-  var t = sheetTitle();
-  var lines = [t, ''.padEnd(t.length, '='), ''];
-  lines.push('Total: ' + money(res.total) + '  (' + state.expenses.length + ' expenses, ' + state.people.length + ' people)');
+  var head = sheetTitle();
+  var lines = [head, ''.padEnd(head.length, '='), ''];
+  lines.push(t('sum.total', money(res.total), state.expenses.length, state.people.length));
   lines.push('');
-  lines.push('Balance');
+  lines.push(t('sum.balance'));
   res.rows.slice().sort(function(a,b){return b.balance-a.balance;}).forEach(function(r){
     lines.push('  ' + r.name + ': ' + (r.balance>0?'+':'') + money(r.balance) +
-               '   (paid ' + money(r.paid) + ', share ' + money(r.owed) + ')');
+               '   ' + t('sum.paidshare', money(r.paid), money(r.owed)));
   });
   lines.push('');
-  lines.push('Settlement');
-  var t = [];
-  try{ t = settle(res.rows); }catch(e){}
-  if(!t.length) lines.push('  nothing to transfer');
-  t.forEach(function(x){ lines.push('  ' + x.fromName + ' → ' + money(x.cents) + ' → ' + x.toName); });
+  lines.push(t('sum.settlement'));
+  var tr = [];
+  try{ tr = settle(res.rows); }catch(e){}
+  if(!tr.length) lines.push(t('sum.nothing'));
+  tr.forEach(function(x){ lines.push('  ' + x.fromName + ' → ' + money(x.cents) + ' → ' + x.toName); });
   return lines.join('\n');
 }
 
@@ -1257,7 +1612,7 @@ function saveViaCapacitor(name, mime, text, done){
     .then(function(){ done('sent to the share sheet'); })
     .catch(function(e){
       showRaw(name, text);
-      done('shown on screen — Android refused: ' + ((e && e.message) || e));
+      done(t('how.screen.reason', (e && e.message) || e));
     });
   return true;
 }
@@ -1271,7 +1626,7 @@ function saveFile(name, mime, text, done){
   if(isNativeShell){
     if(saveViaCapacitor(name, mime, text, done)) return;
     showRaw(name, text);
-    done('shown on screen');
+    done(t('how.screen'));
     return;
   }
 
@@ -1284,14 +1639,14 @@ function saveFile(name, mime, text, done){
       a.href = url;
     }catch(e){
       try{ a.href = 'data:' + mime + ';charset=utf-8,' + encodeURIComponent(text); }
-      catch(e2){ showRaw(name, text); return done('shown on screen'); }
+      catch(e2){ showRaw(name, text); return done(t('how.screen')); }
     }
     document.body.appendChild(a);
     try{ a.click(); }
-    catch(e){ a.remove(); showRaw(name, text); return done('shown on screen'); }
+    catch(e){ a.remove(); showRaw(name, text); return done(t('how.screen')); }
     a.remove();
     if(url) setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
-    done('saved to Downloads');
+    done(t('how.download'));
   }
 
   var file = null;
@@ -1302,7 +1657,7 @@ function saveFile(name, mime, text, done){
     try{ ok = navigator.canShare({files:[file]}); }catch(e){ ok = false; }
     if(ok){
       navigator.share({files:[file], title:name})
-        .then(function(){ done('sent to the share sheet'); })
+        .then(function(){ done(t('how.share')); })
         .catch(function(err){
           /* the user closing the sheet is not a failure */
           if(err && err.name === 'AbortError'){ done('cancelled'); return; }
@@ -1331,7 +1686,7 @@ function exportCsv(){
   var out = [];
   out.push([sheetTitle()].map(q).join(sep));
   out.push('');
-  out.push(['Paid by','Expenditure','Amount'].concat(state.people.map(function(p){return p.name;})).concat(['Per share']).map(q).join(sep));
+  out.push([t('th.payer'),t('th.desc'),t('th.amount')].concat(state.people.map(function(p){return p.name;})).concat([t('th.pershare')]).map(q).join(sep));
   state.expenses.forEach(function(ex, i){
     var pe = res.perExpense[i];
     var row = [personName(ex.payerId), ex.desc, (ex.cents/100).toFixed(2).replace('.',',')];
@@ -1339,23 +1694,23 @@ function exportCsv(){
     row.push(pe.totalShares ? (pe.perShare/100).toFixed(2).replace('.',',') : '');
     out.push(row.map(q).join(sep));
   });
-  out.push(['','Total',(res.total/100).toFixed(2).replace('.',',')].map(q).join(sep));
+  out.push(['',t('th.total'),(res.total/100).toFixed(2).replace('.',',')].map(q).join(sep));
   out.push('');
-  out.push(['Name','Paid','Share','Balance'].map(q).join(sep));
+  out.push([t('csv.name'),t('csv.paid'),t('csv.share'),t('csv.balance')].map(q).join(sep));
   res.rows.slice().sort(function(a,b){return b.balance-a.balance;}).forEach(function(r){
     out.push([r.name,(r.paid/100).toFixed(2).replace('.',','),(r.owed/100).toFixed(2).replace('.',','),(r.balance/100).toFixed(2).replace('.',',')].map(q).join(sep));
   });
   out.push('');
-  out.push(['Settlement'].map(q).join(sep));
+  out.push([t('sum.settlement')].map(q).join(sep));
   try{
-    settle(res.rows).forEach(function(t){
-      out.push([t.fromName,'pays',(t.cents/100).toFixed(2).replace('.',','),'to',t.toName].map(q).join(sep));
+    settle(res.rows).forEach(function(x){
+      out.push([x.fromName,t('csv.pays'),(x.cents/100).toFixed(2).replace('.',','),t('csv.to'),x.toName].map(q).join(sep));
     });
   }catch(e){}
   saveFile(slug(sheetTitle())+'.csv', 'text/csv;charset=utf-8', '﻿'+out.join('\r\n'),
     function(how){
-      if(how === 'cancelled'){ toast('Not saved — you closed the dialog.'); return; }
-      toast('CSV for Excel — ' + how + '.');
+      if(how === 'cancelled'){ toast(t('save.cancelled')); return; }
+      toast(t('save.csv', how));
     });
 }
 
@@ -1372,16 +1727,17 @@ function initMenu(){
   document.addEventListener('click', close);
   menu.addEventListener('click', function(e){ e.stopPropagation(); });
   menu.addEventListener('click', function(e){
-    var t = e.target.closest('button[data-act]');
-    if(!t) return;
+    var item = e.target.closest('button[data-act]');
+    if(!item) return;
     close();
-    var act = t.dataset.act;
+    var act = item.dataset.act;
     if(act==='save'){
       var payload = JSON.stringify(state, null, 2);
       saveFile(slug(sheetTitle())+'.json', 'application/json', payload, function(how){
-        if(how === 'cancelled'){ toast('Not saved — you closed the dialog.'); return; }
-        toast(state.people.length + ' people, ' + state.expenses.length + ' expenses, ' +
-              Math.max(1, Math.round(payload.length/1024)) + ' KB — ' + how + '.');
+        if(how === 'cancelled'){ toast(t('save.cancelled')); return; }
+        toast(t('save.result', state.people.length, state.people.length===1?t('word.person'):t('word.people'),
+                state.expenses.length, state.expenses.length===1?t('word.expense'):t('word.expenses'),
+                Math.max(1, Math.round(payload.length/1024)), how));
       });
     }
     else if(act==='load'){ $('fileInput').click(); }
@@ -1391,14 +1747,14 @@ function initMenu(){
       if(navigator.share && /Mobi|Android|iPhone|iPad/.test(navigator.userAgent)){
         navigator.share({title:sheetTitle(), text:txt}).catch(function(){});
       }else if(navigator.clipboard){
-        navigator.clipboard.writeText(txt).then(function(){ toast('Summary copied to clipboard.'); },
-          function(){ prompt('Copy the summary:', txt); });
-      }else{ prompt('Copy the summary:', txt); }
+        navigator.clipboard.writeText(txt).then(function(){ toast(t('copy.done')); },
+          function(){ prompt(t('copy.prompt'), txt); });
+      }else{ prompt(t('copy.prompt'), txt); }
     }
     else if(act==='raw'){ showRaw(slug(sheetTitle())+'.json', JSON.stringify(state, null, 2)); }
     else if(act==='print'){ window.print(); }
     else if(act==='currency'){
-      var c = prompt('Currency symbol:', state.currency);
+      var c = prompt(t('currency.prompt'), state.currency);
       if(c!=null && c.trim()){ state.currency = c.trim().slice(0,4); renderAll(); save(); }
     }
     else if(act==='update'){
@@ -1406,16 +1762,10 @@ function initMenu(){
          replace them — a newer version means installing a newer APK. Saying so is
          better than reloading and pretending something happened. */
       if(isNativeShell){
-        alert('This is the installed Android app, version ' + APP_VERSION + '.\n\n' +
-              'Its files are packaged inside the app itself, so it cannot update ' +
-              'itself from the web. To move to a newer version, install the newer ' +
-              'APK over this one.\n\n' +
-              'Export your sheets first (Menu → Save to file) if the new APK is ' +
-              'signed with a different key — Android then requires the old app to ' +
-              'be uninstalled, which deletes its data.');
+        alert(t('update.native', APP_VERSION));
         return;
       }
-      toast('Looking for a newer version…');
+      toast(t('update.looking'));
       var done = function(){ setTimeout(function(){ location.reload(); }, 600); };
       if('serviceWorker' in navigator){
         navigator.serviceWorker.getRegistrations().then(function(rs){
@@ -1424,14 +1774,13 @@ function initMenu(){
       } else { done(); }
     }
     else if(act==='new'){
-      if(countData() && !confirm('Start a new sheet?\n\nThe current ' + countData() +
-         ' entries are removed from the app. Save them first if you need them.')) return;
+      if(countData() && !confirm(t('confirm.new', countData()))) return;
       startEmptySheet(false);
-      toast('New sheet — give it a name.');
+      toast(t('new.done'));
     }
     else if(act==='clear'){
-      if(confirm('Delete all people and expenses? This cannot be undone.')){
-        state = emptyState(); renderAll(); save(); toast('Cleared.');
+      if(confirm(t('confirm.clear'))){
+        state = emptyState(); renderAll(); save(); toast(t('cleared'));
       }
     }
   });
@@ -1448,37 +1797,33 @@ $('fileInput').addEventListener('change', function(){
      read. Never fail quietly on the one action that restores someone's data. */
   fr.onerror = function(){
     input.value = '';
-    alert('Android would not let the app read “' + (f.name || 'that file') + '”.\n\n' +
-          'Try copying the file into the phone\'s Downloads folder first, then pick it ' +
-          'from there rather than from a cloud folder or a recent-files shortcut.');
+    alert(t('load.unreadable', f.name || '?'));
   };
 
   fr.onload = function(){
     input.value = '';
     var text = String(fr.result == null ? '' : fr.result);
     if(!text.trim()){
-      alert('“' + (f.name || 'That file') + '” is empty (0 characters were read).');
+      alert(t('load.empty', f.name || '?'));
       return;
     }
     var st;
     try{
       st = JSON.parse(text);
     }catch(e){
-      alert('That file is not readable JSON.\n\n' + e.message +
-            '\n\nIt starts with: ' + text.slice(0, 60));
+      alert(t('load.badjson', e.message, text.slice(0, 60)));
       return;
     }
     if(!st || !Array.isArray(st.people) || !Array.isArray(st.expenses)){
-      alert('That JSON file is not a billing sheet — it has no "people" and "expenses" lists.');
+      alert(t('load.notsheet'));
       return;
     }
     state = normalize(st);
     carryChoice = 'keep';
     renderAll();
     save();
-    toast('Loaded ' + state.people.length + ' ' + (state.people.length===1?'person':'people') +
-          ' and ' + state.expenses.length + ' ' +
-          (state.expenses.length===1?'expense':'expenses') + '.');
+    toast(t('load.ok', state.people.length, state.people.length===1?t('word.person'):t('word.people'),
+            state.expenses.length, state.expenses.length===1?t('word.expense'):t('word.expenses')));
   };
 
   fr.readAsText(f);
@@ -1497,20 +1842,20 @@ $('fileInput').addEventListener('change', function(){
     ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
     var ok = false;
     try{ ok = document.execCommand('copy'); }catch(e){}
-    if(ok){ toast('Copied to the clipboard.'); return; }
+    if(ok){ toast(t('raw.copied')); return; }
     if(navigator.clipboard){
       navigator.clipboard.writeText(ta.value).then(
-        function(){ toast('Copied to the clipboard.'); },
-        function(){ toast('Copy failed — select the text and copy it by hand.'); });
+        function(){ toast(t('raw.copied')); },
+        function(){ toast(t('raw.copyfail')); });
     } else {
-      toast('Copy failed — select the text and copy it by hand.');
+      toast(t('raw.copyfail'));
     }
   });
 })();
 
 $('addRow').addEventListener('click', function(){
   if(!state.people.length){
-    toast('Add at least one person first.');
+    toast(t('expenses.needpeople'));
     var np0 = $('newPerson'); if(np0) np0.focus();
     return;
   }
@@ -1553,7 +1898,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.13.0';
+var APP_VERSION = '1.15.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -1572,16 +1917,8 @@ var isFirefox = /Firefox|FxiOS/i.test(navigator.userAgent);
 var isDDG = /DuckDuckGo/i.test(navigator.userAgent);
 
 function installHelpHtml(){
-  if(isIOS){
-    return '<strong>On iPhone / iPad:</strong> tap the <strong>Share</strong> button ' + SHARE_ICON +
-           ' at the bottom of Safari, then <strong>Add to Home Screen</strong>. ' +
-           'Safari never offers an install button by itself — this is the only way on iOS.';
-  }
-  if(isAndroid && isFirefox){
-    return '<strong>Firefox on Android:</strong> open the menu (<strong>⋮</strong>, bottom or top right) and choose ' +
-           '<strong>Add to Home screen</strong> (older versions) or <strong>Install</strong>. ' +
-           'Firefox cannot show an in-page install button — that is a Chrome-only feature — so this menu entry is the way in.';
-  }
+  if(isIOS) return t('install.ios', SHARE_ICON);
+  if(isAndroid && isFirefox) return t('install.firefox');
   if(isAndroid && isDDG){
     return '<strong>DuckDuckGo cannot install web apps.</strong> It is not one of the browsers that ' +
            'create a real app entry — no menu item here will do it, whatever it is called. ' +
@@ -1591,18 +1928,9 @@ function installHelpHtml(){
            'wipe the sheets stored here. Keep this site in <strong>Fireproof Sites</strong>, and export ' +
            'regularly via <strong>Menu → Save to file</strong>.';
   }
-  if(isAndroid){
-    return '<strong>On Android:</strong> open the browser menu (<strong>⋮</strong>, top right) and choose ' +
-           '<strong>Install app</strong> — or <strong>Add to Home screen</strong> if that is what your browser calls it. ' +
-           'If neither appears, the app is most likely already installed: check your home screen and app drawer.';
-  }
-  if(isFirefox){
-    return '<strong>Firefox on the desktop</strong> cannot install web apps. Use Chrome or Edge — install icon at the ' +
-           'right-hand end of the address bar — or simply keep this page bookmarked; everything works the same in a tab.';
-  }
-  return '<strong>On a computer:</strong> in Chrome or Edge, click the install icon at the right-hand end of the ' +
-         'address bar, or open the browser menu and choose <strong>Install Billing Tool</strong>. Firefox and Safari ' +
-         'on desktop cannot install web apps.';
+  if(isAndroid) return t('install.android');
+  if(isFirefox) return t('install.ffdesktop');
+  return t('install.desktop');
 }
 
 var deferredPrompt = null;
@@ -1647,8 +1975,8 @@ if(!isStandalone){
 
 /* Version line in the footer — so it is always obvious which build is running */
 $('verNo').textContent = APP_VERSION;
-$('verMode').textContent = isNativeShell ? 'native Android app'
-  : (isStandalone ? 'running as an installed app' : 'running in the browser');
+$('verMode').textContent = t(isNativeShell ? 'mode.native'
+  : (isStandalone ? 'mode.installed' : 'mode.browser'));
 
 window.addEventListener('beforeinstallprompt', function(e){
   e.preventDefault();
@@ -1691,17 +2019,12 @@ function applyGate(){
   $('gateName').hidden = undecided;
 
   if(undecided){
-    $('gateHead').textContent = named ? 'Start a new sheet, or keep what is here?'
-                                      : 'There are entries from an earlier sheet';
-    $('gateSub').textContent =
-      state.people.length + ' ' + (state.people.length===1?'person':'people') + ' and ' +
-      state.expenses.length + ' ' + (state.expenses.length===1?'expense':'expenses') +
-      ' are still here. “Start empty” clears them and keeps the name you typed. ' +
-      '“Keep these entries” carries them over. Save first if you have not — Menu → Save to file.';
+    $('gateHead').textContent = t(named ? 'gate.carry.head.named' : 'gate.carry.head.unnamed');
+    $('gateSub').textContent = t('gate.carry.sub', nPeople(state.people.length),
+                                 nExpenses(state.expenses.length));
   } else if(locked){
-    $('gateHead').textContent = 'Name this sheet to start';
-    $('gateSub').textContent = 'Give it a name — “Skitrip 2026”, “Flat share March” — and everything '
-      + 'below unlocks. The name is also the filename when you save.';
+    $('gateHead').textContent = t('gate.name.head');
+    $('gateSub').textContent = t('gate.name.sub');
   }
 
   var cards = document.querySelectorAll('.gated');
@@ -1711,9 +2034,9 @@ function applyGate(){
 }
 
 function startEmptySheet(keepTitle){
-  var t = keepTitle ? state.title : '';
+  var keep = keepTitle ? state.title : '';
   state = emptyState();
-  state.title = t;
+  state.title = keep;
   carryChoice = 'keep';
   renderAll(); save();
   if(!(state.title||'').trim()) $('tripTitle').focus();
@@ -1724,11 +2047,36 @@ $('gateName').addEventListener('click', function(){ $('tripTitle').focus(); });
 $('gateOpen').addEventListener('click', function(){ $('fileInput').click(); });
 $('gateKeep').addEventListener('click', function(){
   carryChoice = 'keep'; applyGate();
-  toast('Entries kept under the new name.');
+  toast(t('gate.kept'));
 });
 $('gateNew').addEventListener('click', function(){
   startEmptySheet(true);
-  toast('Started an empty sheet.');
+  toast(t('gate.started'));
+});
+
+/* ---------------- language ---------------- */
+function setLang(next, announce){
+  lang = next;
+  try{ localStorage.setItem('billing-tool.lang', lang); }catch(e){}
+  $('langLbl').textContent = lang === 'de' ? 'EN' : 'DE';
+  applyStaticI18n();
+  /* the menu entry and the install hint are written by script, so they only
+     follow the language if we redraw them here */
+  if(isNativeShell){
+    var ub = document.querySelector('#menu [data-act="update"]');
+    if(ub) ub.textContent = t('menu.update.native');
+  }
+  if(!$('installHelp').hidden) $('installHelpTxt').innerHTML = installHelpHtml();
+  $('verMode').textContent = t(isNativeShell ? 'mode.native'
+    : (isStandalone ? 'mode.installed' : 'mode.browser'));
+  renderAll();
+  if(announce) toast(lang === 'de' ? 'Sprache: Deutsch' : 'Language: English');
+}
+
+lang = pickLang();
+
+$('langBtn').addEventListener('click', function(){
+  setLang(lang === 'de' ? 'en' : 'de', true);
 });
 
 /* go */
@@ -1759,14 +2107,16 @@ state = load();
 /* a stored sheet that has entries but lost its name is exactly the ambiguous
    case — ask rather than silently adopt it under whatever name is typed next */
 if(!(state.title || '').trim() && countData() > 0) carryChoice = null;
-renderAll();
+/* setLang paints the static labels and then renders, so it replaces the
+   first renderAll() — it must run after the state exists, not before */
+setLang(lang, false);
 /* focus follows what the sheet still needs */
 if(!(state.title || '').trim()){ $('tripTitle').focus(); }
 else if(!state.people.length && !state.expenses.length){
   var np1 = $('newPerson'); if(np1) np1.focus();
 }
 if(memoryOnly){
-  setTimeout(function(){ toast('Auto-save unavailable here — use Menu → Save to file.'); }, 800);
+  setTimeout(function(){ toast(t('nostorage')); }, 800);
 }
 })();
 </script>

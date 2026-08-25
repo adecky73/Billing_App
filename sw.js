@@ -1,14 +1,15 @@
 /* Billing Tool — offline service worker.
    Bump CACHE when you change any file, otherwise installed copies
    keep serving the old version. */
-const CACHE = 'billing-tool-1.13.0';
+const CACHE = 'billing-tool-1.15.0';
 const ASSETS = [
   './',
   './index.html',
   './manifest.webmanifest',
   './icon-192.png',
   './icon-512.png',
-  './icon-maskable-512.png'
+  './icon-maskable-512.png',
+  './apple-touch-icon.png'
 ];
 
 self.addEventListener('install', (e) => {
