@@ -1,7 +1,7 @@
 /* Billing Tool — offline service worker.
    Bump CACHE when you change any file, otherwise installed copies
    keep serving the old version. */
-const CACHE = 'billing-tool-1.17.0';
+const CACHE = 'billing-tool-1.18.0';
 const ASSETS = [
   './',
   './index.html',
@@ -31,6 +31,13 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
+
+  /* Anything not from this origin is none of our business — above all the
+     GitHub API, whose answers must never be served from a cache and whose
+     requests must not be re-issued by this worker. */
+  let sameOrigin = false;
+  try { sameOrigin = new URL(req.url).origin === self.location.origin; } catch (err) { sameOrigin = false; }
+  if (!sameOrigin) return;
 
   if (req.mode === 'navigate') {
     /* cache: 'reload' bypasses the browser's own HTTP cache. Without it, a host

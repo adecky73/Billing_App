@@ -588,6 +588,42 @@ footer .ver{font-size:11.5px;opacity:.8}
   tbody tr{background:#fff!important}
 }
 
+/* ---------- shared editing ---------- */
+.btn.sync{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:0 10px}
+.btn.sync .dot{width:8px;height:8px;border-radius:50%;background:var(--outline);flex:0 0 auto}
+.btn.sync[data-s="ok"] .dot{background:var(--success)}
+.btn.sync[data-s="busy"] .dot{background:var(--warn)}
+.btn.sync[data-s="offline"] .dot{background:var(--outline)}
+.btn.sync[data-s="denied"] .dot,.btn.sync[data-s="badkey"] .dot{background:var(--error)}
+/* the box already carries the padding; this only needs to scroll */
+.dlg-b{display:flex;flex-direction:column;gap:12px;overflow:auto;min-height:0}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld-l{font-size:12px;font-weight:500;color:var(--on-surface-var);
+  text-transform:uppercase;letter-spacing:.06em}
+.fld input,.fld textarea{
+  width:100%;padding:11px 12px;border:1px solid var(--outline-var);
+  border-radius:var(--r-s);background:var(--surface);color:var(--on-surface);
+  font:inherit;font-size:15px;
+}
+.fld textarea{min-height:88px;resize:vertical;line-height:1.45}
+.fld .mono{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:13px;word-break:break-all}
+.fld input:focus,.fld textarea:focus{outline:2px solid var(--focus);outline-offset:1px}
+/* the one paragraph that must not be skimmed past */
+.dlg-p.warnp{
+  background:var(--warn-c);color:var(--on-warn-c);
+  padding:10px 12px;border-radius:var(--r-s);margin:0;
+}
+.sheetlist{display:flex;flex-direction:column;gap:6px}
+.sheetitem{
+  display:flex;flex-direction:column;gap:2px;text-align:left;cursor:pointer;
+  padding:10px 12px;border:1px solid var(--outline-var);border-radius:var(--r-s);
+  background:var(--surface);color:var(--on-surface);font:inherit;
+}
+.sheetitem:hover{background:var(--surface-2)}
+.sheetitem .nm{font-weight:500}
+.sheetitem .sub{font-size:12px;color:var(--on-surface-var);
+  font-family:ui-monospace,Menlo,Consolas,monospace}
+
 </style>
 </head>
 <body>
@@ -633,6 +669,7 @@ footer .ver{font-size:11.5px;opacity:.8}
     </div>
     <div class="top-actions">
       <button class="btn" id="installBtn" data-i18n="btn.install" hidden>⬇︎ Install app</button>
+      <button class="btn ghost sync" id="syncBtn" hidden><span class="dot"></span><span id="syncLbl">–</span></button>
       <button class="btn ghost" id="langBtn" data-i18n-title="btn.lang" data-i18n-aria="btn.lang"><span id="langLbl">DE</span></button>
       <button class="btn ghost" id="themeBtn" data-i18n-title="btn.theme" data-i18n-aria="btn.theme"><svg width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/></svg></button>
       <div class="menu-anchor">
@@ -645,6 +682,13 @@ footer .ver{font-size:11.5px;opacity:.8}
           <button data-act="copy" data-i18n="menu.copy">…</button>
           <button data-act="raw" data-i18n="menu.raw">…</button>
           <button data-act="print" data-i18n="menu.print">…</button>
+          <hr>
+          <div class="lbl" data-i18n="menu.group.shared">Shared</div>
+          <button data-act="share" data-i18n="menu.share">…</button>
+          <button data-act="openshared" data-i18n="menu.openshared">…</button>
+          <button data-act="synccode" data-i18n="menu.synccode" hidden>…</button>
+          <button data-act="syncnow" data-i18n="menu.syncnow" hidden>…</button>
+          <button data-act="unshare" data-i18n="menu.unshare" hidden>…</button>
           <hr>
           <div class="lbl" data-i18n="menu.group.settings">Settings</div>
           <button data-act="currency" data-i18n="menu.currency">…</button>
@@ -743,6 +787,16 @@ footer .ver{font-size:11.5px;opacity:.8}
     </div>
   </div>
 </div>
+<div class="dlg" id="shareDlg" hidden role="dialog" aria-modal="true" aria-labelledby="shareTitle">
+  <div class="dlg-box">
+    <div class="dlg-h">
+      <strong id="shareTitle">…</strong>
+      <button class="x" id="shareClose" data-i18n-aria="raw.close">×</button>
+    </div>
+    <div class="dlg-b" id="shareBody"></div>
+    <div class="dlg-f" id="shareFoot"></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -832,6 +886,58 @@ en: {
   'exact.short': '{0} is left over and nobody shares it',
   'exact.noamount': 'Enter the expense amount first — then you can set exact amounts.',
   'exact.nothingleft': '— nothing left',
+  'menu.group.shared': 'Shared editing',
+  'menu.share': 'Share this sheet…',
+  'menu.openshared': 'Open a shared sheet…',
+  'menu.synccode': 'Show invitation code',
+  'menu.syncnow': 'Sync now',
+  'menu.unshare': 'Stop sharing on this device',
+  'btn.cancel': 'Cancel',
+  'btn.close': 'Close',
+  'sync.state.busy': 'syncing…',
+  'sync.state.ok': 'in sync',
+  'sync.state.offline': 'no connection',
+  'sync.state.denied': 'no access',
+  'sync.state.badkey': 'wrong key',
+  'where.save.title': 'Where should this sheet live?',
+  'where.save.intro': 'A local file stays on this device. A shared sheet lives encrypted in your GitHub repository and everyone with the invitation code edits the same one.',
+  'where.open.title': 'What would you like to open?',
+  'where.open.intro': 'A file from this device, or a shared sheet you have an invitation code for.',
+  'where.local': 'Local file',
+  'where.shared': 'Shared',
+  'share.needname': 'Name the sheet first — the name travels with it.',
+  'share.setup.title': 'Share this sheet',
+  'share.setup.intro': 'One private repository holds the encrypted sheets. Enter it as owner/name, together with the fine-grained token that may write to it.',
+  'share.setup.warn': 'The token reaches everyone you send the code to. Use a repository that holds nothing else.',
+  'share.setup.go': 'Create and share',
+  'share.field.repo': 'Repository (owner/name)',
+  'share.field.token': 'Access token',
+  'share.badrepo': 'Enter the repository as owner/name.',
+  'share.badtoken': 'The access token is missing.',
+  'share.err.head': 'The sheet could not be created.',
+  'share.err.404': 'Repository not found, or the token may not see it. Check owner/name, and that the token lists exactly this repository.',
+  'share.err.auth': 'The token was refused. It may be expired, revoked, or lack Contents: Read and write.',
+  'code.title': 'Invitation code',
+  'code.title.new': 'Shared. Here is the invitation code',
+  'code.intro': 'Everyone who enters this code edits this sheet with you. It opens this one sheet only — no other sheet in the repository can be read with it.',
+  'code.warn': 'The code contains the access token and the key. Anyone who has it is in. Delete the message once everyone is set up.',
+  'code.field': 'Invitation code',
+  'code.copy': 'Copy',
+  'code.share': 'Send…',
+  'code.selected': 'Selected — copy it now.',
+  'open.title': 'Open a shared sheet',
+  'open.known': 'Shared sheets known on this device:',
+  'open.paste': 'Or paste an invitation code you were sent:',
+  'open.field': 'Invitation code',
+  'open.untitled': '(unnamed)',
+  'open.go': 'Open',
+  'open.ok': 'Opened — {0}, {1}.',
+  'open.badcode': 'That does not look like an invitation code.',
+  'open.err.head': 'The sheet could not be opened.',
+  'open.err.gone': 'There is no such sheet in the repository any more.',
+  'open.err.key': 'The code does not fit this sheet — the file cannot be decrypted.',
+  'confirm.unshare': 'Stop syncing this sheet on this device? The data stays here and stays in the repository — only the automatic exchange stops.',
+  'unshared': 'Sharing stopped on this device.',
   'warn.over': '{0} {1} more fixed than the expense',
   'warn.short': 'in {0} {1} a remainder nobody shares',
   'row.share.aria': '{0} share for {1}',
@@ -999,6 +1105,58 @@ de: {
   'exact.short': '{0} bleiben übrig und sind niemandem zugeordnet',
   'exact.noamount': 'Zuerst den Betrag der Ausgabe eintragen — dann sind feste Beträge möglich.',
   'exact.nothingleft': '— kein Rest übrig',
+  'menu.group.shared': 'Gemeinsam bearbeiten',
+  'menu.share': 'Diese Abrechnung teilen…',
+  'menu.openshared': 'Geteilte Abrechnung öffnen…',
+  'menu.synccode': 'Einladungscode anzeigen',
+  'menu.syncnow': 'Jetzt abgleichen',
+  'menu.unshare': 'Teilen auf diesem Gerät beenden',
+  'btn.cancel': 'Abbrechen',
+  'btn.close': 'Schließen',
+  'sync.state.busy': 'gleicht ab…',
+  'sync.state.ok': 'abgeglichen',
+  'sync.state.offline': 'keine Verbindung',
+  'sync.state.denied': 'kein Zugriff',
+  'sync.state.badkey': 'falscher Schlüssel',
+  'where.save.title': 'Wo soll diese Abrechnung liegen?',
+  'where.save.intro': 'Eine lokale Datei bleibt auf diesem Gerät. Eine geteilte Abrechnung liegt verschlüsselt in deinem GitHub-Repository, und alle mit dem Einladungscode bearbeiten dieselbe.',
+  'where.open.title': 'Was möchtest du öffnen?',
+  'where.open.intro': 'Eine Datei von diesem Gerät — oder eine geteilte Abrechnung, für die du einen Einladungscode hast.',
+  'where.local': 'Lokale Datei',
+  'where.shared': 'Geteilt',
+  'share.needname': 'Zuerst der Abrechnung einen Namen geben — er reist mit.',
+  'share.setup.title': 'Diese Abrechnung teilen',
+  'share.setup.intro': 'Ein privates Repository nimmt die verschlüsselten Abrechnungen auf. Trag es als Besitzer/Name ein, dazu das fine-grained Token, das darin schreiben darf.',
+  'share.setup.warn': 'Das Token erreicht jeden, dem du den Code schickst. Nimm ein Repository, in dem sonst nichts liegt.',
+  'share.setup.go': 'Anlegen und teilen',
+  'share.field.repo': 'Repository (Besitzer/Name)',
+  'share.field.token': 'Zugriffstoken',
+  'share.badrepo': 'Das Repository bitte als Besitzer/Name eintragen.',
+  'share.badtoken': 'Das Zugriffstoken fehlt.',
+  'share.err.head': 'Die Abrechnung konnte nicht angelegt werden.',
+  'share.err.404': 'Repository nicht gefunden, oder das Token sieht es nicht. Prüfe Besitzer/Name — und dass im Token genau dieses Repository ausgewählt ist.',
+  'share.err.auth': 'Das Token wurde abgelehnt. Möglicherweise abgelaufen, widerrufen, oder ohne Contents: Read and write.',
+  'code.title': 'Einladungscode',
+  'code.title.new': 'Geteilt. Hier ist der Einladungscode',
+  'code.intro': 'Wer diesen Code einträgt, bearbeitet diese Abrechnung mit. Er öffnet ausschließlich diese eine — keine andere Abrechnung im Repository lässt sich damit lesen.',
+  'code.warn': 'Der Code enthält Zugriffstoken und Schlüssel. Wer ihn hat, ist dabei. Lösch die Nachricht, sobald alle eingerichtet sind.',
+  'code.field': 'Einladungscode',
+  'code.copy': 'Kopieren',
+  'code.share': 'Senden…',
+  'code.selected': 'Markiert — jetzt kopieren.',
+  'open.title': 'Geteilte Abrechnung öffnen',
+  'open.known': 'Auf diesem Gerät bekannte geteilte Abrechnungen:',
+  'open.paste': 'Oder einen erhaltenen Einladungscode einfügen:',
+  'open.field': 'Einladungscode',
+  'open.untitled': '(ohne Namen)',
+  'open.go': 'Öffnen',
+  'open.ok': 'Geöffnet — {0}, {1}.',
+  'open.badcode': 'Das sieht nicht nach einem Einladungscode aus.',
+  'open.err.head': 'Die Abrechnung konnte nicht geöffnet werden.',
+  'open.err.gone': 'Diese Abrechnung liegt nicht mehr im Repository.',
+  'open.err.key': 'Der Code passt nicht zu dieser Abrechnung — die Datei lässt sich nicht entschlüsseln.',
+  'confirm.unshare': 'Abgleich für diese Abrechnung auf diesem Gerät beenden? Die Daten bleiben hier und bleiben im Repository — nur der automatische Austausch hört auf.',
+  'unshared': 'Teilen auf diesem Gerät beendet.',
   'warn.over': 'bei {0} {1} mehr festgelegt als die Ausgabe',
   'warn.short': 'bei {0} {1} ein Rest ohne Zuordnung',
   'row.share.aria': 'Anteil von {0} für {1}',
@@ -1385,6 +1543,248 @@ function settle(rows) {
 }
 </script>
 <script>
+/* ============================================================
+   BILLING TOOL — shared editing over GitHub
+
+   Three separate jobs live here, deliberately kept apart from
+   the UI so they can be tested without a browser:
+
+     1. crypto   — AES-GCM 256. One key PER SHEET, never one key
+                   per repository: the token that reaches every
+                   participant can read every file, so the key is
+                   the only thing that actually separates one
+                   sheet from another.
+     2. transport— the GitHub contents API. Optimistic locking
+                   via the blob sha; a lost race is reported, not
+                   silently overwritten.
+     3. merge    — last-writer-wins per record, with tombstones.
+                   Two people editing DIFFERENT rows both keep
+                   their edit; two people editing the SAME row,
+                   the later write wins. That is the honest
+                   description — it is not a full CRDT.
+   ============================================================ */
+
+(function (root, factory) {
+  var api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.Sync = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var SUBTLE = (typeof crypto !== 'undefined' && crypto.subtle) ? crypto.subtle : null;
+
+  /* ---------- base64 helpers (browser and node, no Buffer) ---------- */
+  function bytesToB64(bytes) {
+    var s = '';
+    for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s);
+  }
+  function b64ToBytes(b64) {
+    var s = atob(b64);
+    var out = new Uint8Array(s.length);
+    for (var i = 0; i < s.length; i++) out[i] = s.charCodeAt(i);
+    return out;
+  }
+  function b64url(b64) { return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
+  function unb64url(s) {
+    s = String(s).replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    return s;
+  }
+  function utf8(str) { return new TextEncoder().encode(str); }
+  function unutf8(bytes) { return new TextDecoder().decode(bytes); }
+
+  /* ---------- keys ---------- */
+  function newKey() {
+    return SUBTLE.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  }
+  function exportKey(key) {
+    return SUBTLE.exportKey('raw', key).then(function (raw) {
+      return b64url(bytesToB64(new Uint8Array(raw)));
+    });
+  }
+  function importKey(str) {
+    return SUBTLE.importKey('raw', b64ToBytes(unb64url(str)), { name: 'AES-GCM' }, true,
+      ['encrypt', 'decrypt']);
+  }
+  function randomId(n) {
+    var b = new Uint8Array(n || 12);
+    crypto.getRandomValues(b);
+    var s = '';
+    for (var i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2);
+    return s;
+  }
+
+  /* ---------- envelope ---------- */
+  /* What lands in the repository. Only iv and ciphertext are readable; the
+     sheet's name is inside the ciphertext, not in the filename, so the file
+     listing gives nothing away either. */
+  function encrypt(key, obj) {
+    var iv = new Uint8Array(12);
+    crypto.getRandomValues(iv);
+    return SUBTLE.encrypt({ name: 'AES-GCM', iv: iv }, key, utf8(JSON.stringify(obj)))
+      .then(function (ct) {
+        return JSON.stringify({
+          v: 1,
+          iv: bytesToB64(iv),
+          ct: bytesToB64(new Uint8Array(ct)),
+        });
+      });
+  }
+  function decrypt(key, text) {
+    var env;
+    try { env = JSON.parse(text); } catch (e) { return Promise.reject(new Error('not-an-envelope')); }
+    if (!env || !env.iv || !env.ct) return Promise.reject(new Error('not-an-envelope'));
+    return SUBTLE.decrypt({ name: 'AES-GCM', iv: b64ToBytes(env.iv) }, key, b64ToBytes(env.ct))
+      .then(function (buf) { return JSON.parse(unutf8(new Uint8Array(buf))); },
+            function () { return Promise.reject(new Error('wrong-key')); });
+  }
+
+  /* ---------- invitation code ---------- */
+  /* owner + repo + path + token + the key of THIS sheet. Everything a second
+     device needs and nothing more. The code is the secret, not the token. */
+  var CODE_PREFIX = 'BT1.';
+  function makeCode(cfg) {
+    var payload = { v: 1, o: cfg.owner, r: cfg.repo, p: cfg.path, t: cfg.token, k: cfg.key };
+    return CODE_PREFIX + b64url(bytesToB64(utf8(JSON.stringify(payload))));
+  }
+  function parseCode(code) {
+    var s = String(code || '').trim().replace(/\s+/g, '');
+    if (s.indexOf(CODE_PREFIX) !== 0) throw new Error('bad-prefix');
+    var obj;
+    try { obj = JSON.parse(unutf8(b64ToBytes(unb64url(s.slice(CODE_PREFIX.length))))); }
+    catch (e) { throw new Error('bad-code'); }
+    if (!obj || !obj.o || !obj.r || !obj.p || !obj.t || !obj.k) throw new Error('bad-code');
+    return { owner: obj.o, repo: obj.r, path: obj.p, token: obj.t, key: obj.k };
+  }
+
+  /* ---------- GitHub contents API ---------- */
+  var API = 'https://api.github.com';
+  function headers(token) {
+    return {
+      'Authorization': 'Bearer ' + token,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+  }
+  function url(cfg) {
+    return API + '/repos/' + encodeURIComponent(cfg.owner) + '/' + encodeURIComponent(cfg.repo) +
+           '/contents/' + cfg.path.split('/').map(encodeURIComponent).join('/');
+  }
+
+  /* Returns {text, sha} — or {missing:true} when the file is not there yet,
+     which is the normal state the first time a sheet is shared. */
+  function ghGet(cfg) {
+    return fetch(url(cfg) + '?ref=main&t=' + Date.now(), { headers: headers(cfg.token), cache: 'no-store' })
+      .then(function (res) {
+        if (res.status === 404) return { missing: true };
+        if (res.status === 401 || res.status === 403) return res.json().then(function (j) {
+          throw errWith(res.status, j);
+        }, function () { throw errWith(res.status, null); });
+        if (!res.ok) throw errWith(res.status, null);
+        return res.json().then(function (j) {
+          /* content comes back base64 with newlines in it */
+          var raw = String(j.content || '').replace(/\s+/g, '');
+          return { text: unutf8(b64ToBytes(raw)), sha: j.sha };
+        });
+      });
+  }
+
+  function errWith(status, body) {
+    var e = new Error((body && body.message) || ('HTTP ' + status));
+    e.status = status;
+    return e;
+  }
+
+  /* sha === null means "create". A 409/422 means somebody else wrote in the
+     meantime — reported as {conflict:true} so the caller can re-merge instead
+     of blindly overwriting their work. */
+  function ghPut(cfg, text, sha, message) {
+    var body = {
+      message: message || 'billing-tool',
+      content: bytesToB64(utf8(text)),
+      branch: 'main',
+    };
+    if (sha) body.sha = sha;
+    return fetch(url(cfg), { method: 'PUT', headers: headers(cfg.token), body: JSON.stringify(body) })
+      .then(function (res) {
+        if (res.status === 409 || res.status === 422) return { conflict: true };
+        if (!res.ok) return res.json().then(function (j) { throw errWith(res.status, j); },
+                                            function () { throw errWith(res.status, null); });
+        return res.json().then(function (j) { return { sha: j.content && j.content.sha }; });
+      });
+  }
+
+  /* ---------- merge ---------- */
+  function byId(list) {
+    var m = {};
+    for (var i = 0; i < (list || []).length; i++) m[list[i].id] = list[i];
+    return m;
+  }
+  /* later mtime wins; a tie falls to the local side so a sync is idempotent */
+  function pick(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    return (Number(b.m) || 0) > (Number(a.m) || 0) ? b : a;
+  }
+  function mergeList(local, remote) {
+    var la = byId(local), rb = byId(remote), out = [], seen = {};
+    function add(rec) {
+      if (!rec || seen[rec.id]) return;
+      seen[rec.id] = 1;
+      out.push(pick(la[rec.id], rb[rec.id]));
+    }
+    (local || []).forEach(add);
+    (remote || []).forEach(add);
+    return out;
+  }
+  function alive(list) { return list.filter(function (r) { return !r.x; }); }
+
+  /**
+   * Merge two sheet states. Neither side is authoritative: every record is
+   * resolved on its own, so two people working on different rows both keep
+   * what they did.
+   */
+  function mergeState(local, remote) {
+    if (!remote) return local;
+    var out = {
+      title: (Number(remote.tm) || 0) > (Number(local.tm) || 0) ? remote.title : local.title,
+      tm: Math.max(Number(local.tm) || 0, Number(remote.tm) || 0),
+      currency: (Number(remote.cm) || 0) > (Number(local.cm) || 0) ? remote.currency : local.currency,
+      cm: Math.max(Number(local.cm) || 0, Number(remote.cm) || 0),
+      people: mergeList(local.people, remote.people),
+      expenses: mergeList(local.expenses, remote.expenses),
+    };
+    /* newest expense first, the same order a single device produces */
+    out.expenses.sort(function (a, b) { return (Number(b.c) || 0) - (Number(a.c) || 0); });
+    return out;
+  }
+
+  /* Cheap comparison to decide whether a push is needed at all — every
+     needless PUT is a commit in someone's history and an API call. */
+  function fingerprint(st) {
+    if (!st) return '';
+    return JSON.stringify([
+      st.title, st.tm, st.currency, st.cm,
+      (st.people || []).map(function (p) { return [p.id, p.m, p.x ? 1 : 0, p.name]; }),
+      (st.expenses || []).map(function (e) {
+        return [e.id, e.m, e.x ? 1 : 0, e.payerId, e.desc, e.cents, e.shares, e.fixed, e.c];
+      }),
+    ]);
+  }
+
+  return {
+    newKey: newKey, exportKey: exportKey, importKey: importKey, randomId: randomId,
+    encrypt: encrypt, decrypt: decrypt,
+    makeCode: makeCode, parseCode: parseCode, CODE_PREFIX: CODE_PREFIX,
+    ghGet: ghGet, ghPut: ghPut,
+    mergeState: mergeState, mergeList: mergeList, alive: alive, fingerprint: fingerprint,
+    _b64: { bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, b64url: b64url, unb64url: unb64url },
+  };
+});
+
+</script>
+<script>
 (function(){
 'use strict';
 
@@ -1397,7 +1797,10 @@ function uid(){ return 'p' + Math.random().toString(36).slice(2,9); }
 
 /* The app ships without any data: no people, no expenses, no example. */
 function emptyState(){
-  return { title:'', currency:'€', people:[], expenses:[] };
+  /* tm/cm are the edit times of the two scalar fields, `gone` holds the
+     tombstones of deleted records. Both only matter for shared sheets, but
+     they are always kept so a local sheet can become a shared one later. */
+  return { title:'', currency:'\u20ac', people:[], expenses:[], tm:0, cm:0, gone:{p:{},e:{}} };
 }
 
 function load(){
@@ -1410,16 +1813,63 @@ function load(){
   }catch(e){ memoryOnly = true; }
   return emptyState();
 }
+/* Every record carries the time it was last edited — that is what decides a
+   conflict when two people work on the same sheet. Stamping it centrally here,
+   by comparing against the previous snapshot, means no edit handler can forget
+   to do it; there are around thirty of them. */
+var lastSnap = null;
+function recFp(r){ return JSON.stringify(r, function(k, v){ return k === 'm' ? undefined : v; }); }
+function snapshot(st){
+  var s = { title: st.title, currency: st.currency, p: {}, e: {} };
+  st.people.forEach(function(x){ s.p[x.id] = recFp(x); });
+  st.expenses.forEach(function(x){ s.e[x.id] = recFp(x); });
+  return s;
+}
+function stampChanges(){
+  var now = Date.now();
+  var prev = lastSnap;
+  if(!prev){ lastSnap = snapshot(state); return; }
+  if(state.title !== prev.title) state.tm = now;
+  if(state.currency !== prev.currency) state.cm = now;
+  ['people','expenses'].forEach(function(kind){
+    var key = kind === 'people' ? 'p' : 'e';
+    var seen = {};
+    state[kind].forEach(function(r){
+      seen[r.id] = 1;
+      if(prev[key][r.id] !== recFp(r)) r.m = now;
+      /* a record that comes back after a delete must outlive its tombstone */
+      if(state.gone[key][r.id]){ delete state.gone[key][r.id]; r.m = now; }
+    });
+    for(var id in prev[key]) if(!seen[id]) state.gone[key][id] = now;
+  });
+  lastSnap = snapshot(state);
+}
+
+/* Replacing the whole sheet is not an edit: the baseline moves with it, or the
+   next save would stamp every record as "just changed" and a loaded file would
+   wrongly outrank everything on the server. */
+var saveTargetChosen = false;
+function adopt(st){ state = st; lastSnap = snapshot(state); saveTargetChosen = false; return state; }
+
 function save(){
+  stampChanges();
+  syncSoon();
   if(memoryOnly) return;
   try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
   catch(e){ memoryOnly = true; }
 }
 function normalize(st){
-  st.currency = st.currency || '€';
+  st.currency = st.currency || '\u20ac';
   st.title = String(st.title == null ? '' : st.title);
-  st.people = (st.people||[]).map(function(p){ return {id:p.id||uid(), name:String(p.name||'').toUpperCase()}; });
-  st.expenses = (st.expenses||[]).map(function(e){
+  st.tm = Number(st.tm) || 0;
+  st.cm = Number(st.cm) || 0;
+  var g = st.gone && typeof st.gone === 'object' ? st.gone : {};
+  st.gone = { p: g.p || {}, e: g.e || {} };
+  st.people = (st.people||[]).map(function(p){
+    return {id:p.id||uid(), name:String(p.name||'').toUpperCase(), m:Number(p.m)||0};
+  });
+  var n = (st.expenses||[]).length;
+  st.expenses = (st.expenses||[]).map(function(e, i){
     var sh={};
     for(var k in (e.shares||{})){ var n=Math.max(0,Math.floor(Number(e.shares[k])||0)); if(n) sh[k]=n; }
     var fx={}, any=false;
@@ -1428,7 +1878,12 @@ function normalize(st){
       if(c){ fx[k2]=c; any=true; }
     }
     var out = {id:e.id||uid(), payerId:e.payerId||null, desc:String(e.desc||''),
-               cents:Math.round(Number(e.cents)||0), shares:sh};
+               cents:Math.round(Number(e.cents)||0), shares:sh,
+               m:Number(e.m)||0,
+               /* c orders the list. A sheet written before shared editing has
+                  none, so it is derived from the position — the list already
+                  runs newest first, so index 0 must end up with the largest c. */
+               c:Number(e.c) || (n - i)};
     if(any) out.fixed = fx;
     return out;
   });
@@ -2069,6 +2524,16 @@ function exportCsv(){
     });
 }
 
+function saveLocalFile(){
+  var payload = JSON.stringify(state, null, 2);
+  saveFile(slug(sheetTitle())+'.json', 'application/json', payload, function(how){
+    if(how === 'cancelled'){ toast(t('save.cancelled')); return; }
+    toast(t('save.result', state.people.length, state.people.length===1?t('word.person'):t('word.people'),
+            state.expenses.length, state.expenses.length===1?t('word.expense'):t('word.expenses'),
+            Math.max(1, Math.round(payload.length/1024)), how));
+  });
+}
+
 /* ============================ wiring ============================ */
 function initMenu(){
   var menu = $('menu'), btn = $('menuBtn');
@@ -2087,15 +2552,25 @@ function initMenu(){
     close();
     var act = item.dataset.act;
     if(act==='save'){
-      var payload = JSON.stringify(state, null, 2);
-      saveFile(slug(sheetTitle())+'.json', 'application/json', payload, function(how){
-        if(how === 'cancelled'){ toast(t('save.cancelled')); return; }
-        toast(t('save.result', state.people.length, state.people.length===1?t('word.person'):t('word.people'),
-                state.expenses.length, state.expenses.length===1?t('word.expense'):t('word.expenses'),
-                Math.max(1, Math.round(payload.length/1024)), how));
-      });
+      /* First save of a sheet: local file or shared on GitHub. Once the choice
+         is made it is not asked again — a shared sheet syncs by itself, and
+         "save" then simply exports a local copy as well. */
+      if(!syncCfg && !saveTargetChosen){ askSaveTarget(function(){ saveTargetChosen = true; saveLocalFile(); }); }
+      else saveLocalFile();
     }
-    else if(act==='load'){ $('fileInput').click(); }
+    else if(act==='load'){ askOpenTarget(); }
+    else if(act==='share'){ shareSetup(); }
+    else if(act==='openshared'){ openShared(); }
+    else if(act==='synccode'){ showCode(false); }
+    else if(act==='syncnow'){ toast(t('sync.state.busy')); syncNow(); }
+    else if(act==='unshare'){
+      if(confirm(t('confirm.unshare'))){
+        var gonePath = syncCfg && syncCfg.path;
+        stopSync();
+        if(gonePath) forgetShared(gonePath);
+        toast(t('unshared'));
+      }
+    }
     else if(act==='csv'){ exportCsv(); }
     else if(act==='copy'){
       var txt = summaryText();
@@ -2135,7 +2610,7 @@ function initMenu(){
     }
     else if(act==='clear'){
       if(confirm(t('confirm.clear'))){
-        state = emptyState(); renderAll(); save(); toast(t('cleared'));
+        adopt(emptyState()); renderAll(); save(); toast(t('cleared'));
       }
     }
   });
@@ -2173,7 +2648,7 @@ $('fileInput').addEventListener('change', function(){
       alert(t('load.notsheet'));
       return;
     }
-    state = normalize(st);
+    adopt(normalize(st));
     carryChoice = 'keep';
     renderAll();
     save();
@@ -2253,7 +2728,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.17.0';
+var APP_VERSION = '1.18.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -2390,7 +2865,7 @@ function applyGate(){
 
 function startEmptySheet(keepTitle){
   var keep = keepTitle ? state.title : '';
-  state = emptyState();
+  adopt(emptyState());
   state.title = keep;
   carryChoice = 'keep';
   renderAll(); save();
@@ -2399,7 +2874,7 @@ function startEmptySheet(keepTitle){
 }
 
 $('gateName').addEventListener('click', function(){ $('tripTitle').focus(); });
-$('gateOpen').addEventListener('click', function(){ $('fileInput').click(); });
+$('gateOpen').addEventListener('click', function(){ askOpenTarget(); });
 $('gateKeep').addEventListener('click', function(){
   carryChoice = 'keep'; applyGate();
   toast(t('gate.kept'));
@@ -2408,6 +2883,385 @@ $('gateNew').addEventListener('click', function(){
   startEmptySheet(true);
   toast(t('gate.started'));
 });
+
+/* ======================= shared editing (GitHub) =======================
+   The sheet lives in a private repository as one encrypted file. Every
+   participant holds the same invitation code, which carries the repository,
+   the access token and the key OF THIS SHEET — nothing else in that
+   repository can be read with it.
+
+   What this is not: it is not a server. There is no locking and no
+   authority. Two people editing different rows both keep their edit; two
+   people editing the same row, the later write wins. Both devices' clocks
+   decide what "later" means, so a badly wrong clock decides wrongly.
+======================================================================== */
+var SYNC_KEY  = 'billing-tool.sync';    /* the sheet open right now */
+var KNOWN_KEY = 'billing-tool.shared';  /* codes kept on this device */
+var syncCfg = null, syncKeyObj = null, syncSha = null;
+var syncTimer = null, syncBusy = false, syncAgain = false, syncPoll = null;
+
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(k); }catch(e){} }
+
+function knownShared(){
+  try{ var a = JSON.parse(lsGet(KNOWN_KEY) || '[]'); return Array.isArray(a) ? a : []; }
+  catch(e){ return []; }
+}
+function rememberShared(cfg, title){
+  var list = knownShared().filter(function(x){ return x.path !== cfg.path; });
+  list.unshift({ path: cfg.path, title: title || '', code: Sync.makeCode(cfg) });
+  lsSet(KNOWN_KEY, JSON.stringify(list.slice(0, 20)));
+}
+function forgetShared(path){
+  lsSet(KNOWN_KEY, JSON.stringify(knownShared().filter(function(x){ return x.path !== path; })));
+}
+
+/* ---------- wire format ---------- */
+/* Deleted records must travel too, or a delete on one phone would simply be
+   undone by the next sync from another. They travel as tombstones: id, time,
+   and nothing else. */
+function toWire(st){
+  var w = { title: st.title, tm: st.tm||0, currency: st.currency, cm: st.cm||0,
+            people: [], expenses: [] };
+  st.people.forEach(function(p){ w.people.push({id:p.id, name:p.name, m:p.m||0}); });
+  st.expenses.forEach(function(e){
+    var o = {id:e.id, payerId:e.payerId, desc:e.desc, cents:e.cents, shares:e.shares,
+             m:e.m||0, c:e.c||0};
+    if(e.fixed) o.fixed = e.fixed;
+    w.expenses.push(o);
+  });
+  for(var a in st.gone.p) w.people.push({id:a, x:1, m:st.gone.p[a]});
+  for(var b in st.gone.e) w.expenses.push({id:b, x:1, m:st.gone.e[b]});
+  return w;
+}
+function fromWire(w){
+  var st = emptyState();
+  st.title = String(w.title || ''); st.tm = Number(w.tm)||0;
+  st.currency = w.currency || st.currency; st.cm = Number(w.cm)||0;
+  (w.people||[]).forEach(function(p){
+    if(p.x) st.gone.p[p.id] = Number(p.m)||0; else st.people.push(p);
+  });
+  (w.expenses||[]).forEach(function(e){
+    if(e.x) st.gone.e[e.id] = Number(e.m)||0; else st.expenses.push(e);
+  });
+  return normalize(st);
+}
+
+/* ---------- status ---------- */
+function setSyncStatus(kind, detail){
+  var btn = $('syncBtn');
+  btn.hidden = !syncCfg;
+  if(!syncCfg) return;
+  btn.dataset.s = kind;
+  $('syncLbl').textContent = t('sync.state.' + kind);
+  btn.title = detail || t('sync.state.' + kind);
+}
+function syncMenuItems(){
+  ['synccode','syncnow','unshare'].forEach(function(a){
+    var b = document.querySelector('#menu [data-act="' + a + '"]');
+    if(b) b.hidden = !syncCfg;
+  });
+  var sh = document.querySelector('#menu [data-act="share"]');
+  if(sh) sh.hidden = !!syncCfg;
+}
+
+/* ---------- the sync cycle ---------- */
+function syncSoon(){
+  if(!syncCfg) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(function(){ syncNow(); }, 1500);
+}
+
+function typingNow(){
+  var a = document.activeElement;
+  return !!(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT'));
+}
+
+function syncNow(){
+  if(!syncCfg || !syncKeyObj) return Promise.resolve();
+  if(syncBusy){ syncAgain = true; return Promise.resolve(); }
+  syncBusy = true;
+  setSyncStatus('busy');
+
+  return Sync.ghGet(syncCfg)
+    .then(function(r){
+      if(r.missing){ syncSha = null; return null; }
+      syncSha = r.sha;
+      return Sync.decrypt(syncKeyObj, r.text);
+    })
+    .then(function(remote){
+      var mine = toWire(state);
+      var merged = remote ? Sync.mergeState(mine, remote) : mine;
+      var fpMerged = Sync.fingerprint(merged);
+
+      /* take what the others changed — but never yank the field the user is
+         typing in out from under them; the next round picks it up */
+      if(remote && fpMerged !== Sync.fingerprint(mine) && !typingNow()){
+        adopt(fromWire(merged));
+        renderAll();
+        lsSet(STORE_KEY, JSON.stringify(state));
+      }
+      if(remote && fpMerged === Sync.fingerprint(remote)) return { sha: syncSha };
+
+      return Sync.encrypt(syncKeyObj, merged).then(function(text){
+        return Sync.ghPut(syncCfg, text, syncSha, 'billing-tool: ' + Sync.randomId(4));
+      });
+    })
+    .then(function(res){
+      if(res && res.conflict){
+        /* somebody wrote between our read and our write — go round again */
+        syncBusy = false;
+        return syncNow();
+      }
+      if(res && res.sha) syncSha = res.sha;
+      setSyncStatus('ok');
+      syncBusy = false;
+      if(syncAgain){ syncAgain = false; syncSoon(); }
+    })
+    .catch(function(e){
+      syncBusy = false;
+      var kind = (e && (e.status === 401 || e.status === 403)) ? 'denied'
+               : (e && e.message === 'wrong-key') ? 'badkey' : 'offline';
+      setSyncStatus(kind, (e && e.message) || '');
+    });
+}
+
+function startSync(cfg){
+  syncCfg = cfg; syncSha = null;
+  lsSet(SYNC_KEY, JSON.stringify(cfg));
+  syncMenuItems();
+  setSyncStatus('busy');
+  clearInterval(syncPoll);
+  /* a poll rather than a push channel: 20 s costs about 180 of the 5000
+     hourly API calls and needs no server of any kind */
+  syncPoll = setInterval(function(){
+    if(document.visibilityState === 'visible' && !typingNow()) syncNow();
+  }, 20000);
+  return Sync.importKey(cfg.key).then(function(k){
+    syncKeyObj = k;
+    return syncNow();
+  });
+}
+function stopSync(){
+  clearInterval(syncPoll); clearTimeout(syncTimer);
+  syncCfg = null; syncKeyObj = null; syncSha = null;
+  lsDel(SYNC_KEY);
+  syncMenuItems();
+  $('syncBtn').hidden = true;
+}
+
+/* ---------- dialog plumbing ---------- */
+function dlgOpen(title, buildBody, buttons){
+  $('shareTitle').textContent = title;
+  var body = $('shareBody'); body.innerHTML = '';
+  buildBody(body);
+  var foot = $('shareFoot'); foot.innerHTML = '';
+  buttons.forEach(function(b){
+    var btn = el('button', 'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : ''), b.label);
+    if(b.act) btn.dataset.b = b.act;
+    btn.addEventListener('click', b.onClick);
+    foot.appendChild(btn);
+  });
+  $('shareDlg').hidden = false;
+  /* focus the first field the user is meant to fill in — focusing a read-only
+     one scrolls a long code to its end and hides the start of it */
+  var first = body.querySelector('input:not([readonly]),textarea:not([readonly]),button');
+  if(first) first.focus();
+}
+/* Emptying the dialog on close matters: a hidden button with a live handler
+   from the previous dialog is still in the document, still findable, and still
+   clickable by anything that does not check visibility. */
+function dlgClose(){
+  $('shareDlg').hidden = true;
+  $('shareBody').innerHTML = '';
+  $('shareFoot').innerHTML = '';
+}
+function field(parent, labelText, opts){
+  var wrap = el('label','fld');
+  wrap.appendChild(el('span','fld-l', labelText));
+  var inp = document.createElement(opts && opts.area ? 'textarea' : 'input');
+  if(opts && opts.ph) inp.placeholder = opts.ph;
+  if(opts && opts.value) inp.value = opts.value;
+  if(opts && opts.mono) inp.className = 'mono';
+  if(opts && opts.ro) inp.readOnly = true;
+  wrap.appendChild(inp);
+  parent.appendChild(wrap);
+  return inp;
+}
+function note(parent, text, cls){ parent.appendChild(el('p','dlg-p' + (cls?' '+cls:''), text)); }
+
+/* ---------- start sharing ---------- */
+function shareSetup(){
+  if(!(state.title||'').trim()){ toast(t('share.needname')); return; }
+  var last = {};
+  try{ last = JSON.parse(lsGet('billing-tool.repo') || '{}'); }catch(e){}
+  var repoIn, tokIn;
+  dlgOpen(t('share.setup.title'), function(b){
+    note(b, t('share.setup.intro'));
+    repoIn = field(b, t('share.field.repo'), {ph:'user/billing-tool-data', value:last.repo||'', mono:true});
+    tokIn  = field(b, t('share.field.token'), {ph:'github_pat_…', value:'', mono:true});
+    note(b, t('share.setup.warn'), 'warnp');
+  }, [
+    { label: t('btn.cancel'), act:'cancel', onClick: dlgClose },
+    { label: t('share.setup.go'), act:'go', primary: true, onClick: function(){
+        var parts = String(repoIn.value||'').trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').split('/');
+        var token = String(tokIn.value||'').trim();
+        if(parts.length !== 2 || !parts[0] || !parts[1]){ toast(t('share.badrepo')); repoIn.focus(); return; }
+        if(!token){ toast(t('share.badtoken')); tokIn.focus(); return; }
+        lsSet('billing-tool.repo', JSON.stringify({repo: parts.join('/')}));
+        var cfg = { owner: parts[0], repo: parts[1],
+                    path: 'sheets/' + Sync.randomId(10) + '.json', token: token, key: '' };
+        dlgClose();
+        toast(t('sync.state.busy'));
+        Sync.newKey().then(function(k){
+          syncKeyObj = k;
+          return Sync.exportKey(k);
+        }).then(function(raw){
+          cfg.key = raw;
+          return Sync.encrypt(syncKeyObj, toWire(state));
+        }).then(function(text){
+          return Sync.ghPut(cfg, text, null, 'billing-tool: new sheet');
+        }).then(function(res){
+          if(res.conflict) throw new Error('conflict');
+          syncSha = res.sha;
+          rememberShared(cfg, sheetTitle());
+          return startSync(cfg);
+        }).then(function(){
+          showCode(true);
+        }).catch(function(e){
+          var msg = (e && e.status === 404) ? t('share.err.404')
+                  : (e && (e.status === 401 || e.status === 403)) ? t('share.err.auth')
+                  : ((e && e.message) || 'error');
+          alert(t('share.err.head') + '\n\n' + msg);
+        });
+      } },
+  ]);
+}
+
+/* ---------- the invitation code ---------- */
+function showCode(fresh){
+  if(!syncCfg) return;
+  var code = Sync.makeCode(syncCfg);
+  var ta;
+  dlgOpen(t(fresh ? 'code.title.new' : 'code.title'), function(b){
+    note(b, t('code.intro'));
+    ta = field(b, t('code.field'), {area:true, value:code, mono:true, ro:true});
+    note(b, t('code.warn'), 'warnp');
+  }, [
+    { label: t('btn.close'), act:'close', onClick: dlgClose },
+    { label: t('code.share'), act:'send', onClick: function(){
+        if(navigator.share){ navigator.share({title: sheetTitle(), text: code}).catch(function(){}); }
+        else { ta.focus(); ta.select(); toast(t('code.selected')); }
+      } },
+    { label: t('code.copy'), act:'copy', primary: true, onClick: function(){
+        ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+        var ok = false;
+        try{ ok = document.execCommand('copy'); }catch(e){}
+        if(ok){ toast(t('raw.copied')); return; }
+        if(navigator.clipboard) navigator.clipboard.writeText(code).then(
+          function(){ toast(t('raw.copied')); }, function(){ toast(t('raw.copyfail')); });
+        else toast(t('raw.copyfail'));
+      } },
+  ]);
+}
+
+/* ---------- open a shared sheet ---------- */
+function openShared(){
+  var codeIn;
+  dlgOpen(t('open.title'), function(b){
+    var list = knownShared();
+    if(list.length){
+      note(b, t('open.known'));
+      var box = el('div','sheetlist');
+      list.forEach(function(item){
+        var row = el('button','sheetitem');
+        row.appendChild(el('span','nm', item.title || t('open.untitled')));
+        row.appendChild(el('span','sub', item.path));
+        row.addEventListener('click', function(){ dlgClose(); adoptCode(item.code); });
+        box.appendChild(row);
+      });
+      b.appendChild(box);
+    }
+    note(b, t('open.paste'));
+    codeIn = field(b, t('open.field'), {area:true, ph:Sync.CODE_PREFIX + '…', mono:true});
+  }, [
+    { label: t('btn.cancel'), act:'cancel', onClick: dlgClose },
+    { label: t('open.go'), act:'go', primary: true, onClick: function(){
+        var v = String(codeIn.value||'').trim();
+        if(!v){ codeIn.focus(); return; }
+        dlgClose(); adoptCode(v);
+      } },
+  ]);
+}
+
+function adoptCode(code){
+  var cfg;
+  try{ cfg = Sync.parseCode(code); }
+  catch(e){ alert(t('open.badcode')); return; }
+  toast(t('sync.state.busy'));
+  var key;
+  Sync.importKey(cfg.key).then(function(k){
+    key = k;
+    return Sync.ghGet(cfg);
+  }).then(function(r){
+    if(r.missing) throw new Error('gone');
+    syncSha = r.sha;
+    return Sync.decrypt(key, r.text);
+  }).then(function(wire){
+    adopt(fromWire(wire));
+    carryChoice = 'keep';
+    syncKeyObj = key;
+    rememberShared(cfg, (wire && wire.title) || '');
+    renderAll();
+    lsSet(STORE_KEY, JSON.stringify(state));
+    return startSync(cfg);
+  }).then(function(){
+    toast(t('open.ok', nPeople(state.people.length), nExpenses(state.expenses.length)));
+  }).catch(function(e){
+    var msg = (e && e.message === 'gone') ? t('open.err.gone')
+            : (e && e.message === 'wrong-key') ? t('open.err.key')
+            : (e && (e.status === 401 || e.status === 403)) ? t('share.err.auth')
+            : (e && e.status === 404) ? t('share.err.404')
+            : ((e && e.message) || 'error');
+    alert(t('open.err.head') + '\n\n' + msg);
+  });
+}
+
+/* ---------- where to save / where to open ---------- */
+function askSaveTarget(saveLocal){
+  dlgOpen(t('where.save.title'), function(b){
+    note(b, t('where.save.intro'));
+  }, [
+    { label: t('btn.cancel'), act:'cancel', onClick: dlgClose },
+    { label: t('where.local'), act:'local', onClick: function(){ dlgClose(); saveLocal(); } },
+    { label: t('where.shared'), act:'shared', primary: true, onClick: function(){ dlgClose(); shareSetup(); } },
+  ]);
+}
+function askOpenTarget(){
+  dlgOpen(t('where.open.title'), function(b){
+    note(b, t('where.open.intro'));
+  }, [
+    { label: t('btn.cancel'), act:'cancel', onClick: dlgClose },
+    { label: t('where.local'), act:'local', onClick: function(){ dlgClose(); $('fileInput').click(); } },
+    { label: t('where.shared'), act:'shared', primary: true, onClick: function(){ dlgClose(); openShared(); } },
+  ]);
+}
+
+$('shareClose').addEventListener('click', dlgClose);
+$('shareDlg').addEventListener('click', function(e){ if(e.target === $('shareDlg')) dlgClose(); });
+$('syncBtn').addEventListener('click', function(){ syncNow(); });
+window.addEventListener('focus', function(){ if(syncCfg) syncNow(); });
+
+/* resume a shared sheet after a reload */
+(function resumeSync(){
+  var raw = lsGet(SYNC_KEY);
+  if(!raw) return;
+  var cfg;
+  try{ cfg = JSON.parse(raw); }catch(e){ return; }
+  if(!cfg || !cfg.key || !cfg.token) return;
+  startSync(cfg);
+})();
 
 /* ---------------- language ---------------- */
 function setLang(next, announce){
