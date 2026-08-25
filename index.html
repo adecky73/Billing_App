@@ -43,6 +43,7 @@
   --on-surface-var:#48464f;
   --outline:#79767f;
   --outline-var:#cac5d0;
+  --row-line:#948f9e;
 
   --success:#0f6b3c;
   --success-c:#9df6c1;
@@ -75,6 +76,7 @@
     --on-surface-var:#c9c5d0;
     --outline:#938f99;
     --outline-var:#48464f;
+    --row-line:#5f5c6b;
 
     --success:#83d9a4;
     --success-c:#00522a;
@@ -104,6 +106,7 @@
   --on-surface-var:#c9c5d0;
   --outline:#938f99;
   --outline-var:#48464f;
+  --row-line:#5f5c6b;
 
   --success:#83d9a4;
   --success-c:#00522a;
@@ -332,6 +335,7 @@ tr.exactrow:hover td{background:var(--surface-2)}
   font-variant-numeric:tabular-nums;padding:6px 2px;font-size:14px;
 }
 .exact-cell input:focus{outline:2px solid var(--focus);outline-offset:2px;border-radius:var(--r-xs)}
+.exact-cell input:disabled{opacity:.45;cursor:not-allowed}
 .exact-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .exact-note{flex:1;font-size:13px;color:var(--on-surface-var);font-variant-numeric:tabular-nums}
 .exact-note.bad{color:var(--error);font-weight:500}
@@ -504,8 +508,14 @@ footer .ver{font-size:11.5px;opacity:.8}
   thead{display:none}
   tbody tr{
     display:flex;flex-wrap:wrap;align-items:center;
-    border:none;border-radius:var(--r-l);margin:0 0 8px;padding:10px 10px 8px;
+    border:1px solid var(--row-line);border-radius:var(--r-l);
+    margin:0 0 10px;padding:10px 10px 8px;
     position:relative;background:var(--surface-2);
+  }
+  /* an expense and its open exact-amount strip read as one block */
+  tbody tr.hasexact{
+    border-bottom:none;margin-bottom:0;
+    border-bottom-left-radius:0;border-bottom-right-radius:0;
   }
   tbody tr:hover{background:var(--surface-2)}
   tbody tr.unassigned{background:var(--warn-c)}
@@ -537,8 +547,16 @@ footer .ver{font-size:11.5px;opacity:.8}
   /* the delete button floats in the corner — but the placeholder row has a
      single cell, which would otherwise be caught by :last-child too */
   tbody tr:not(.placeholder):not(.exactrow) td.amt{padding-right:4px}
-  tbody tr.exactrow{display:block;padding:0;margin:-4px 0 8px;background:var(--surface-2)}
-  tbody tr.exactrow td{display:block;padding:0}
+  tbody tr.exactrow{
+    display:block;padding:0;margin:0 0 10px;background:var(--surface-2);
+    border:1px solid var(--row-line);border-top:none;
+    border-radius:0 0 var(--r-l) var(--r-l);
+    overflow:hidden;
+  }
+  /* the desktop rule gives this cell its own background and bottom rule; both
+     paint over the rounded corners of the block, which is what squared off the
+     bottom edge in the Android WebView */
+  tbody tr.exactrow td{display:block;padding:0;background:transparent;border-bottom:none}
   .exact{padding:12px}
   .exact-grid{flex-direction:column}
   .exact-cell{width:100%}
@@ -801,6 +819,7 @@ en: {
   'exact.toomuch': 'Too much for {0} — at most {1} is available. Reset to zero.',
   'row.share.spent': 'Nothing left to divide — the fixed amounts already cover the whole expense.',
   'exact.short': '{0} is left over and nobody shares it',
+  'exact.noamount': 'Enter the expense amount first — then you can set exact amounts.',
   'warn.over': '{0} {1} more fixed than the expense',
   'warn.short': 'in {0} {1} a remainder nobody shares',
   'row.share.aria': '{0} share for {1}',
@@ -966,6 +985,7 @@ de: {
   'exact.toomuch': 'Zu viel für {0} — höchstens {1} verfügbar. Auf null zurückgesetzt.',
   'row.share.spent': 'Nichts mehr zu verteilen — die festen Beträge decken die Ausgabe bereits vollständig.',
   'exact.short': '{0} bleiben übrig und sind niemandem zugeordnet',
+  'exact.noamount': 'Zuerst den Betrag der Ausgabe eintragen — dann sind feste Beträge möglich.',
   'warn.over': 'bei {0} {1} mehr festgelegt als die Ausgabe',
   'warn.short': 'bei {0} {1} ein Rest ohne Zuordnung',
   'row.share.aria': 'Anteil von {0} für {1}',
@@ -1542,7 +1562,9 @@ function renderTable(){
     inA.placeholder = '0.00';
     inA.addEventListener('input', function(){
       ex.cents = parseAmount(inA.value);
-      updatePerShare(); renderResults(); save();
+      /* an exact-amount strip open below this row shows a note about the
+         expense — without this it kept the old warning until it was reopened */
+      updatePerShare(); renderResults(); refreshOpenExact(); save();
     });
     inA.addEventListener('blur', function(){ inA.value = ex.cents ? formatCents(ex.cents) : ''; });
     inA.addEventListener('focus', function(){ inA.select(); });
@@ -1635,11 +1657,14 @@ function closeExactRows(){
   for(var i=0;i<open.length;i++) open[i].remove();
   var on = document.querySelectorAll('#tbody .rowex.active');
   for(var j=0;j<on.length;j++) on[j].classList.remove('active');
+  var joined = document.querySelectorAll('#tbody tr.hasexact');
+  for(var k=0;k<joined.length;k++) joined[k].classList.remove('hasexact');
 }
 
 function openExactRow(afterTr, ex){
   var btn = afterTr.querySelector('.rowex');
   if(btn) btn.classList.add('active');
+  afterTr.classList.add('hasexact');
   var tr = document.createElement('tr');
   tr.className = 'exactrow';
   var td = document.createElement('td');
@@ -1648,6 +1673,7 @@ function openExactRow(afterTr, ex){
   box.appendChild(el('div','exact-h', t('exact.head')));
 
   var grid = el('div','exact-grid');
+  var inputs = [];
   state.people.forEach(function(p){
     var cell = el('label','exact-cell');
     cell.appendChild(el('span','exact-nm', p.name));
@@ -1668,6 +1694,20 @@ function openExactRow(afterTr, ex){
       for(var k in ex.fixed) if(k !== p.id) others += ex.fixed[k];
       var available = (ex.cents || 0) - others;
 
+      /* No expense amount yet: there is nothing to divide up, so a fixed
+         amount here could only ever be "more than the whole expense". Refuse
+         it the same way an over-large amount is refused instead of letting a
+         warning state build up that the user then has to clear by hand. */
+      if((ex.cents || 0) <= 0 && cents !== 0){
+        delete ex.fixed[p.id];
+        if(!Object.keys(ex.fixed).length) delete ex.fixed;
+        inp.value = '';
+        updatePerShare(); renderResults(); save();
+        refreshExactFoot(box, ex, t('exact.noamount'));
+        toast(t('exact.noamount'));
+        return;
+      }
+
       if((ex.cents || 0) > 0 && cents > available){
         delete ex.fixed[p.id];
         if(!Object.keys(ex.fixed).length) delete ex.fixed;
@@ -1684,6 +1724,7 @@ function openExactRow(afterTr, ex){
       updatePerShare(); renderResults(); save(); refreshExactFoot(box, ex);
     });
     cell.appendChild(inp);
+    inputs.push(inp);
     grid.appendChild(cell);
   });
   box.appendChild(grid);
@@ -1705,12 +1746,21 @@ function openExactRow(afterTr, ex){
   box.appendChild(foot);
   box._note = note;
   box._ex = ex;
+  box._inputs = inputs;
 
   td.appendChild(box);
   tr.appendChild(td);
   afterTr.parentNode.insertBefore(tr, afterTr.nextSibling);
   refreshExactFoot(box, ex);
-  var first = box.querySelector('input'); if(first) first.focus();
+  var first = box.querySelector('input');
+  if(first && !first.disabled) first.focus();
+}
+
+/* Refresh the strip that is currently open, if any. Called when the expense
+   amount changes underneath it. */
+function refreshOpenExact(){
+  var open = document.querySelector('#tbody tr.exactrow .exact');
+  if(open && open._ex) refreshExactFoot(open, open._ex);
 }
 
 function refreshExactFoot(box, ex, override){
@@ -1718,7 +1768,15 @@ function refreshExactFoot(box, ex, override){
   var pe = res.perExpense[0];
   var note = box._note;
   note.className = 'exact-note';
+
+  /* Nothing to divide up yet — the fields stay shut rather than inviting an
+     entry that would immediately be rejected. */
+  var noAmount = (ex.cents || 0) <= 0;
+  var ins = box._inputs || [];
+  for(var i=0;i<ins.length;i++) ins[i].disabled = noAmount;
+
   if(override){ note.textContent = override; note.classList.add('bad'); return; }
+  if(noAmount){ note.textContent = t('exact.noamount'); note.classList.add('bad'); return; }
   if(pe.overfixed){ note.textContent = t('exact.over', money(-pe.rest)); note.classList.add('bad'); }
   else if(pe.shortfixed){ note.textContent = t('exact.short', money(pe.rest)); note.classList.add('bad'); }
   else note.textContent = t('exact.rest', money(pe.rest));
@@ -1764,7 +1822,9 @@ function updatePerShare(){
       v.textContent = pe.totalShares > 0 ? formatCents(Math.round(pe.perShare)) + ' ' + state.currency : '—';
       v.style.color = pe.totalShares > 0 ? '' : 'var(--warn)';
     }
+    var joined = rows[i].classList.contains('hasexact');
     rows[i].className = (pe.unassigned || pe.overfixed || pe.shortfixed) ? 'unassigned' : '';
+    if(joined) rows[i].classList.add('hasexact');
 
     var spent = pe.hasFixed && pe.rest === 0 && (ex.cents||0) !== 0;
     var btns = rows[i].querySelectorAll('td.share .sharebtn');
@@ -2168,7 +2228,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.16.2';
+var APP_VERSION = '1.16.4';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
