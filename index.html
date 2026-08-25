@@ -307,6 +307,10 @@ td.rowtools{white-space:nowrap;text-align:right}
 .rowex:hover{background:var(--surface-2)}
 .rowex.on{color:var(--on-primary-c);background:var(--primary-c)}
 .rowex.active{border-color:var(--focus)}
+.sharebtn.spent{
+  opacity:.4;cursor:not-allowed;border-style:dashed;
+  background:transparent;color:var(--on-surface-var);
+}
 .sharebtn.fixed{
   width:auto;min-width:56px;padding:0 10px;font-size:12.5px;
   background:var(--primary-c);color:var(--on-primary-c);border-color:transparent;
@@ -795,6 +799,7 @@ en: {
   'exact.rest': 'Rest to split: {0}',
   'exact.over': 'The fixed amounts exceed the expense by {0}',
   'exact.toomuch': 'Too much for {0} — at most {1} is available. Reset to zero.',
+  'row.share.spent': 'Nothing left to divide — the fixed amounts already cover the whole expense.',
   'exact.short': '{0} is left over and nobody shares it',
   'warn.over': '{0} {1} more fixed than the expense',
   'warn.short': 'in {0} {1} a remainder nobody shares',
@@ -959,6 +964,7 @@ de: {
   'exact.rest': 'Zu teilender Rest: {0}',
   'exact.over': 'Die festen Beträge übersteigen die Ausgabe um {0}',
   'exact.toomuch': 'Zu viel für {0} — höchstens {1} verfügbar. Auf null zurückgesetzt.',
+  'row.share.spent': 'Nichts mehr zu verteilen — die festen Beträge decken die Ausgabe bereits vollständig.',
   'exact.short': '{0} bleiben übrig und sind niemandem zugeordnet',
   'warn.over': 'bei {0} {1} mehr festgelegt als die Ausgabe',
   'warn.short': 'bei {0} {1} ein Rest ohne Zuordnung',
@@ -1502,6 +1508,7 @@ function renderTable(){
 
   state.expenses.forEach(function(ex, ri){
     var tr = document.createElement('tr');
+    tr.dataset.eid = ex.id;
     if(res.perExpense[ri].unassigned) tr.className = 'unassigned';
 
     // payer
@@ -1547,9 +1554,12 @@ function renderTable(){
       td.appendChild(el('span','mlabel', p.name));
       var b = el('button','sharebtn');
       var n = ex.shares[p.id] || 0;
-      paintShare(b, n, ex.fixed && ex.fixed[p.id]);
+      var pe0 = res.perExpense[ri];
+      paintShare(b, n, ex.fixed && ex.fixed[p.id],
+                 pe0.hasFixed && pe0.rest === 0 && (ex.cents||0) !== 0);
       b.setAttribute('aria-label', t('row.share.aria', p.name, ex.desc || t('card.expenses')));
       b.addEventListener('click', function(ev){
+        if(b.disabled) return;
         if(ex.fixed && ex.fixed[p.id]){
           delete ex.fixed[p.id];
           if(!Object.keys(ex.fixed).length) delete ex.fixed;
@@ -1714,12 +1724,24 @@ function refreshExactFoot(box, ex, override){
   else note.textContent = t('exact.rest', money(pe.rest));
 }
 
-function paintShare(btn, n, fixedCents){
+function paintShare(btn, n, fixedCents, spent){
+  btn.disabled = false;
   if(fixedCents){
     btn.dataset.n = 'fix';
     btn.className = 'sharebtn fixed';
     btn.textContent = formatCents(fixedCents);
     btn.title = t('row.exact');
+    return;
+  }
+  /* The fixed amounts already account for the whole expense, so a share is
+     worth nothing. Leaving a tick here would claim a contribution that is not
+     happening — so the cell goes quiet and stops responding. */
+  if(spent){
+    btn.dataset.n = 'spent';
+    btn.className = 'sharebtn spent';
+    btn.textContent = '–';
+    btn.title = t('row.share.spent');
+    btn.disabled = true;
     return;
   }
   btn.dataset.n = n;
@@ -1730,13 +1752,28 @@ function paintShare(btn, n, fixedCents){
 
 function updatePerShare(){
   var res = computeBalances(state.people, state.expenses);
-  var cells = $('tbody').querySelectorAll('td.pershare .v');
-  for(var i=0;i<cells.length;i++){
+  /* Address the rows by their expense id. Indexing tbody's children broke as
+     soon as the exact-amount strip was inserted between them — the warning
+     colour then landed on the row below. */
+  var rows = $('tbody').querySelectorAll('tr[data-eid]');
+  for(var i=0;i<rows.length && i<res.perExpense.length;i++){
     var pe = res.perExpense[i];
-    cells[i].textContent = pe.totalShares > 0 ? formatCents(Math.round(pe.perShare)) + ' ' + state.currency : '—';
-    cells[i].style.color = pe.totalShares > 0 ? '' : 'var(--warn)';
-    var row = $('tbody').children[i];
-    if(row) row.className = (pe.unassigned || pe.overfixed || pe.shortfixed) ? 'unassigned' : '';
+    var ex = state.expenses[i];
+    var v = rows[i].querySelector('td.pershare .v');
+    if(v){
+      v.textContent = pe.totalShares > 0 ? formatCents(Math.round(pe.perShare)) + ' ' + state.currency : '—';
+      v.style.color = pe.totalShares > 0 ? '' : 'var(--warn)';
+    }
+    rows[i].className = (pe.unassigned || pe.overfixed || pe.shortfixed) ? 'unassigned' : '';
+
+    var spent = pe.hasFixed && pe.rest === 0 && (ex.cents||0) !== 0;
+    var btns = rows[i].querySelectorAll('td.share .sharebtn');
+    for(var j=0;j<btns.length && j<state.people.length;j++){
+      var pid = state.people[j].id;
+      paintShare(btns[j], ex.shares[pid] || 0, ex.fixed && ex.fixed[pid], spent);
+    }
+    var exb = rows[i].querySelector('.rowex');
+    if(exb) exb.classList.toggle('on', !!pe.hasFixed);
   }
   var tot = $('tfoot').querySelector('.total');
   if(tot) tot.textContent = money(res.total);
@@ -2131,7 +2168,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.16.1';
+var APP_VERSION = '1.16.2';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
