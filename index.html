@@ -621,8 +621,12 @@ footer .ver{font-size:11.5px;opacity:.8}
 }
 .sheetitem:hover{background:var(--surface-2)}
 .sheetitem .nm{font-weight:500}
-.sheetitem .sub{font-size:12px;color:var(--on-surface-var);
-  font-family:ui-monospace,Menlo,Consolas,monospace}
+/* the password is meant to be read off the screen and typed on another phone */
+.dlg-p.pwline{
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;
+  color:var(--on-surface);background:var(--surface-3);
+  padding:10px 12px;border-radius:var(--r-s);word-break:break-all;user-select:all;
+}
 
 </style>
 </head>
@@ -886,6 +890,26 @@ en: {
   'exact.short': '{0} is left over and nobody shares it',
   'exact.noamount': 'Enter the expense amount first — then you can set exact amounts.',
   'exact.nothingleft': '— nothing left',
+  'share.field.pw': 'Password for this sheet',
+  'share.pw.ph': 'at least 8 characters',
+  'share.pw.new': 'New password',
+  'share.pw.hint': 'This password encrypts the sheet. It is the only thing that separates it from the other sheets in the repository — and it cannot be recovered if it is lost.',
+  'share.badpw': 'The password needs at least 8 characters.',
+  'code.pw.label': 'Password:',
+  'code.warn': 'Send the code and the password in SEPARATE messages, ideally by different routes. The code alone cannot be opened, and that is the point.',
+  'open.pw': 'Password',
+  'open.pw.ph': 'the password for this sheet',
+  'open.needpw': 'The password is missing.',
+  'open.manual': 'No code?',
+  'open.err.pw': 'Wrong password for this sheet.',
+  'manual.title': 'Open without an invitation code',
+  'manual.intro': 'Enter where the sheets are kept and the password of the one you want. The app finds it by itself.',
+  'manual.tokenwhy': 'The access token cannot be left out: a private repository hands out nothing without it. On a device that has been in before, it is already filled in.',
+  'manual.go': 'Search',
+  'manual.none': 'No sheet there could be opened with this password.',
+  'manual.err.head': 'Nothing could be opened.',
+  'manual.pick': 'Which sheet?',
+  'manual.pick.intro': 'This password opens more than one:',
   'menu.group.shared': 'Shared editing',
   'menu.share': 'Share this sheet…',
   'menu.openshared': 'Open a shared sheet…',
@@ -908,7 +932,7 @@ en: {
   'share.needname': 'Name the sheet first — the name travels with it.',
   'share.setup.title': 'Share this sheet',
   'share.setup.intro': 'One private repository holds the encrypted sheets. Enter it as owner/name, together with the fine-grained token that may write to it.',
-  'share.setup.warn': 'The token reaches everyone you send the code to. Use a repository that holds nothing else.',
+  'share.setup.warn': 'The token reaches everyone you let in. Use a repository that holds nothing else.',
   'share.setup.go': 'Create and share',
   'share.field.repo': 'Repository (owner/name)',
   'share.field.token': 'Access token',
@@ -919,8 +943,8 @@ en: {
   'share.err.auth': 'The token was refused. It may be expired, revoked, or lack Contents: Read and write.',
   'code.title': 'Invitation code',
   'code.title.new': 'Shared. Here is the invitation code',
-  'code.intro': 'Everyone who enters this code edits this sheet with you. It opens this one sheet only — no other sheet in the repository can be read with it.',
-  'code.warn': 'The code contains the access token and the key. Anyone who has it is in. Delete the message once everyone is set up.',
+  'code.intro': 'Whoever enters this code — together with the password — edits this sheet with you. It opens this one sheet and no other.',
+
   'code.field': 'Invitation code',
   'code.copy': 'Copy',
   'code.share': 'Send…',
@@ -935,7 +959,7 @@ en: {
   'open.badcode': 'That does not look like an invitation code.',
   'open.err.head': 'The sheet could not be opened.',
   'open.err.gone': 'There is no such sheet in the repository any more.',
-  'open.err.key': 'The code does not fit this sheet — the file cannot be decrypted.',
+
   'confirm.unshare': 'Stop syncing this sheet on this device? The data stays here and stays in the repository — only the automatic exchange stops.',
   'unshared': 'Sharing stopped on this device.',
   'warn.over': '{0} {1} more fixed than the expense',
@@ -1105,6 +1129,26 @@ de: {
   'exact.short': '{0} bleiben übrig und sind niemandem zugeordnet',
   'exact.noamount': 'Zuerst den Betrag der Ausgabe eintragen — dann sind feste Beträge möglich.',
   'exact.nothingleft': '— kein Rest übrig',
+  'share.field.pw': 'Passwort für diese Abrechnung',
+  'share.pw.ph': 'mindestens 8 Zeichen',
+  'share.pw.new': 'Neues Passwort',
+  'share.pw.hint': 'Dieses Passwort verschlüsselt die Abrechnung. Es ist das Einzige, was sie von den anderen Abrechnungen im Repository trennt — und es lässt sich nicht wiederherstellen, wenn es verloren geht.',
+  'share.badpw': 'Das Passwort braucht mindestens 8 Zeichen.',
+  'code.pw.label': 'Passwort:',
+  'code.warn': 'Schick Code und Passwort in GETRENNTEN Nachrichten, am besten auf verschiedenen Wegen. Der Code allein lässt sich nicht öffnen — genau darum geht es.',
+  'open.pw': 'Passwort',
+  'open.pw.ph': 'das Passwort dieser Abrechnung',
+  'open.needpw': 'Das Passwort fehlt.',
+  'open.manual': 'Kein Code?',
+  'open.err.pw': 'Falsches Passwort für diese Abrechnung.',
+  'manual.title': 'Ohne Einladungscode öffnen',
+  'manual.intro': 'Trag ein, wo die Abrechnungen liegen, und das Passwort der gesuchten. Den Rest findet die App selbst.',
+  'manual.tokenwhy': 'Das Zugriffstoken lässt sich nicht weglassen: ein privates Repository gibt ohne Token nichts heraus. Auf einem Gerät, das schon einmal dabei war, steht es bereits da.',
+  'manual.go': 'Suchen',
+  'manual.none': 'Dort ließ sich keine Abrechnung mit diesem Passwort öffnen.',
+  'manual.err.head': 'Es konnte nichts geöffnet werden.',
+  'manual.pick': 'Welche Abrechnung?',
+  'manual.pick.intro': 'Dieses Passwort öffnet mehrere:',
   'menu.group.shared': 'Gemeinsam bearbeiten',
   'menu.share': 'Diese Abrechnung teilen…',
   'menu.openshared': 'Geteilte Abrechnung öffnen…',
@@ -1127,7 +1171,7 @@ de: {
   'share.needname': 'Zuerst der Abrechnung einen Namen geben — er reist mit.',
   'share.setup.title': 'Diese Abrechnung teilen',
   'share.setup.intro': 'Ein privates Repository nimmt die verschlüsselten Abrechnungen auf. Trag es als Besitzer/Name ein, dazu das fine-grained Token, das darin schreiben darf.',
-  'share.setup.warn': 'Das Token erreicht jeden, dem du den Code schickst. Nimm ein Repository, in dem sonst nichts liegt.',
+  'share.setup.warn': 'Das Token erreicht jeden, den du hereinlässt. Nimm ein Repository, in dem sonst nichts liegt.',
   'share.setup.go': 'Anlegen und teilen',
   'share.field.repo': 'Repository (Besitzer/Name)',
   'share.field.token': 'Zugriffstoken',
@@ -1138,8 +1182,8 @@ de: {
   'share.err.auth': 'Das Token wurde abgelehnt. Möglicherweise abgelaufen, widerrufen, oder ohne Contents: Read and write.',
   'code.title': 'Einladungscode',
   'code.title.new': 'Geteilt. Hier ist der Einladungscode',
-  'code.intro': 'Wer diesen Code einträgt, bearbeitet diese Abrechnung mit. Er öffnet ausschließlich diese eine — keine andere Abrechnung im Repository lässt sich damit lesen.',
-  'code.warn': 'Der Code enthält Zugriffstoken und Schlüssel. Wer ihn hat, ist dabei. Lösch die Nachricht, sobald alle eingerichtet sind.',
+  'code.intro': 'Wer diesen Code einträgt — zusammen mit dem Passwort — bearbeitet diese Abrechnung mit. Er öffnet ausschließlich diese eine.',
+
   'code.field': 'Einladungscode',
   'code.copy': 'Kopieren',
   'code.share': 'Senden…',
@@ -1154,7 +1198,7 @@ de: {
   'open.badcode': 'Das sieht nicht nach einem Einladungscode aus.',
   'open.err.head': 'Die Abrechnung konnte nicht geöffnet werden.',
   'open.err.gone': 'Diese Abrechnung liegt nicht mehr im Repository.',
-  'open.err.key': 'Der Code passt nicht zu dieser Abrechnung — die Datei lässt sich nicht entschlüsseln.',
+
   'confirm.unshare': 'Abgleich für diese Abrechnung auf diesem Gerät beenden? Die Daten bleiben hier und bleiben im Repository — nur der automatische Austausch hört auf.',
   'unshared': 'Teilen auf diesem Gerät beendet.',
   'warn.over': 'bei {0} {1} mehr festgelegt als die Ausgabe',
@@ -1549,10 +1593,11 @@ function settle(rows) {
    Three separate jobs live here, deliberately kept apart from
    the UI so they can be tested without a browser:
 
-     1. crypto   — AES-GCM 256. One key PER SHEET, never one key
-                   per repository: the token that reaches every
-                   participant can read every file, so the key is
-                   the only thing that actually separates one
+     1. crypto   — AES-GCM 256 under a password stretched with
+                   PBKDF2. One password PER SHEET, never one for
+                   the whole repository: the token that reaches
+                   every participant can read every file, so the
+                   password is the only thing that separates one
                    sheet from another.
      2. transport— the GitHub contents API. Optimistic locking
                    via the blob sha; a lost race is reported, not
@@ -1595,17 +1640,39 @@ function settle(rows) {
   function unutf8(bytes) { return new TextDecoder().decode(bytes); }
 
   /* ---------- keys ---------- */
-  function newKey() {
-    return SUBTLE.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  /* Everything hangs off a password now. There is no separate random key to
+     pass around: the key IS the password, stretched. That is what lets a
+     second device open a sheet with nothing but the location and the
+     password, and it is why the stretching has to be expensive — an
+     encrypted file in a repository can be attacked offline, as often and as
+     fast as the attacker likes. */
+  var PBKDF2_ROUNDS = 250000;
+
+  function newSalt() {
+    var b = new Uint8Array(16);
+    crypto.getRandomValues(b);
+    return bytesToB64(b);
   }
-  function exportKey(key) {
-    return SUBTLE.exportKey('raw', key).then(function (raw) {
-      return b64url(bytesToB64(new Uint8Array(raw)));
-    });
+  function deriveKey(password, saltB64) {
+    return SUBTLE.importKey('raw', utf8(String(password)), 'PBKDF2', false, ['deriveKey'])
+      .then(function (base) {
+        return SUBTLE.deriveKey(
+          { name: 'PBKDF2', salt: b64ToBytes(saltB64), iterations: PBKDF2_ROUNDS, hash: 'SHA-256' },
+          base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+      });
   }
-  function importKey(str) {
-    return SUBTLE.importKey('raw', b64ToBytes(unb64url(str)), { name: 'AES-GCM' }, true,
-      ['encrypt', 'decrypt']);
+  /* A password worth having, for people who would otherwise type "urlaub2026".
+     Digits and letters only — it gets read aloud and retyped on phones. */
+  var WORDCHARS = 'abcdefghijkmnopqrstuvwxyz23456789';
+  function suggestPassword() {
+    var b = new Uint8Array(20);
+    crypto.getRandomValues(b);
+    var out = '';
+    for (var i = 0; i < b.length; i++) {
+      out += WORDCHARS[b[i] % WORDCHARS.length];
+      if (i % 5 === 4 && i < b.length - 1) out += '-';
+    }
+    return out;
   }
   function randomId(n) {
     var b = new Uint8Array(n || 12);
@@ -1619,43 +1686,65 @@ function settle(rows) {
   /* What lands in the repository. Only iv and ciphertext are readable; the
      sheet's name is inside the ciphertext, not in the filename, so the file
      listing gives nothing away either. */
-  function encrypt(key, obj) {
+  function seal(key, salt, obj) {
     var iv = new Uint8Array(12);
     crypto.getRandomValues(iv);
     return SUBTLE.encrypt({ name: 'AES-GCM', iv: iv }, key, utf8(JSON.stringify(obj)))
       .then(function (ct) {
-        return JSON.stringify({
-          v: 1,
-          iv: bytesToB64(iv),
-          ct: bytesToB64(new Uint8Array(ct)),
-        });
+        return JSON.stringify({ v: 2, s: salt, iv: bytesToB64(iv), ct: bytesToB64(new Uint8Array(ct)) });
       });
   }
-  function decrypt(key, text) {
+  function envelopeOf(text) {
     var env;
-    try { env = JSON.parse(text); } catch (e) { return Promise.reject(new Error('not-an-envelope')); }
-    if (!env || !env.iv || !env.ct) return Promise.reject(new Error('not-an-envelope'));
+    try { env = JSON.parse(text); } catch (e) { throw new Error('not-an-envelope'); }
+    if (!env || !env.s || !env.iv || !env.ct) throw new Error('not-an-envelope');
+    return env;
+  }
+  function unseal(key, text) {
+    var env = envelopeOf(text);
     return SUBTLE.decrypt({ name: 'AES-GCM', iv: b64ToBytes(env.iv) }, key, b64ToBytes(env.ct))
       .then(function (buf) { return JSON.parse(unutf8(new Uint8Array(buf))); },
-            function () { return Promise.reject(new Error('wrong-key')); });
+            function () { return Promise.reject(new Error('wrong-password')); });
+  }
+  /* Opening costs one key derivation, so the caller keeps the key it gets back
+     and reuses it for every later read and write of the same sheet. */
+  function openSealed(password, text) {
+    var env;
+    try { env = envelopeOf(text); } catch (e) { return Promise.reject(e); }
+    var key;
+    return deriveKey(password, env.s)
+      .then(function (k) { key = k; return unseal(k, text); })
+      .then(function (obj) { return { data: obj, key: key, salt: env.s }; });
   }
 
   /* ---------- invitation code ---------- */
-  /* owner + repo + path + token + the key of THIS sheet. Everything a second
-     device needs and nothing more. The code is the secret, not the token. */
-  var CODE_PREFIX = 'BT1.';
-  function makeCode(cfg) {
-    var payload = { v: 1, o: cfg.owner, r: cfg.repo, p: cfg.path, t: cfg.token, k: cfg.key };
-    return CODE_PREFIX + b64url(bytesToB64(utf8(JSON.stringify(payload))));
+  var CODE_PREFIX = 'BT2.';
+  /* The code carries where the sheet is and the token that reaches it — both
+     encrypted under the same password that opens the sheet. On its own the
+     code is inert: intercepted in a chat it reveals neither the repository
+     nor the token. Password and code must therefore travel apart, or the
+     separation is theatre. */
+  function makeCode(cfg, password) {
+    var salt = newSalt();
+    return deriveKey(password, salt).then(function (k) {
+      return seal(k, salt, { o: cfg.owner, r: cfg.repo, p: cfg.path, t: cfg.token });
+    }).then(function (sealed) {
+      return CODE_PREFIX + b64url(bytesToB64(utf8(sealed)));
+    });
   }
-  function parseCode(code) {
+  function parseCode(code, password) {
     var s = String(code || '').trim().replace(/\s+/g, '');
-    if (s.indexOf(CODE_PREFIX) !== 0) throw new Error('bad-prefix');
-    var obj;
-    try { obj = JSON.parse(unutf8(b64ToBytes(unb64url(s.slice(CODE_PREFIX.length))))); }
-    catch (e) { throw new Error('bad-code'); }
-    if (!obj || !obj.o || !obj.r || !obj.p || !obj.t || !obj.k) throw new Error('bad-code');
-    return { owner: obj.o, repo: obj.r, path: obj.p, token: obj.t, key: obj.k };
+    if (s.indexOf(CODE_PREFIX) !== 0) return Promise.reject(new Error('bad-prefix'));
+    var inner;
+    try { inner = unutf8(b64ToBytes(unb64url(s.slice(CODE_PREFIX.length)))); }
+    catch (e) { return Promise.reject(new Error('bad-code')); }
+    return openSealed(password, inner).then(function (r) {
+      var o = r.data;
+      if (!o || !o.o || !o.r || !o.p || !o.t) throw new Error('bad-code');
+      return { owner: o.o, repo: o.r, path: o.p, token: o.t };
+    }, function (e) {
+      throw new Error(e && e.message === 'wrong-password' ? 'wrong-password' : 'bad-code');
+    });
   }
 
   /* ---------- GitHub contents API ---------- */
@@ -1694,6 +1783,21 @@ function settle(rows) {
     var e = new Error((body && body.message) || ('HTTP ' + status));
     e.status = status;
     return e;
+  }
+
+  /* The manual route has no code to tell it which file to open, so it asks the
+     repository what is there. Names give nothing away — they are random. */
+  function ghList(cfg, dir) {
+    var u = API + '/repos/' + encodeURIComponent(cfg.owner) + '/' + encodeURIComponent(cfg.repo) +
+            '/contents/' + encodeURIComponent(dir) + '?ref=main&t=' + Date.now();
+    return fetch(u, { headers: headers(cfg.token), cache: 'no-store' }).then(function (res) {
+      if (res.status === 404) return [];
+      if (!res.ok) throw errWith(res.status, null);
+      return res.json().then(function (j) {
+        return (Array.isArray(j) ? j : []).filter(function (x) { return x.type === 'file'; })
+          .map(function (x) { return x.path; });
+      });
+    });
   }
 
   /* sha === null means "create". A 409/422 means somebody else wrote in the
@@ -1774,10 +1878,10 @@ function settle(rows) {
   }
 
   return {
-    newKey: newKey, exportKey: exportKey, importKey: importKey, randomId: randomId,
-    encrypt: encrypt, decrypt: decrypt,
+    newSalt: newSalt, deriveKey: deriveKey, suggestPassword: suggestPassword, randomId: randomId,
+    seal: seal, unseal: unseal, openSealed: openSealed,
     makeCode: makeCode, parseCode: parseCode, CODE_PREFIX: CODE_PREFIX,
-    ghGet: ghGet, ghPut: ghPut,
+    ghGet: ghGet, ghPut: ghPut, ghList: ghList,
     mergeState: mergeState, mergeList: mergeList, alive: alive, fingerprint: fingerprint,
     _b64: { bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, b64url: b64url, unb64url: unb64url },
   };
@@ -2728,7 +2832,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.18.0';
+var APP_VERSION = '1.19.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -2897,7 +3001,7 @@ $('gateNew').addEventListener('click', function(){
 ======================================================================== */
 var SYNC_KEY  = 'billing-tool.sync';    /* the sheet open right now */
 var KNOWN_KEY = 'billing-tool.shared';  /* codes kept on this device */
-var syncCfg = null, syncKeyObj = null, syncSha = null;
+var syncCfg = null, syncKeyObj = null, syncSha = null, syncPw = null, syncSalt = null;
 var syncTimer = null, syncBusy = false, syncAgain = false, syncPoll = null;
 
 function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
@@ -2908,9 +3012,14 @@ function knownShared(){
   try{ var a = JSON.parse(lsGet(KNOWN_KEY) || '[]'); return Array.isArray(a) ? a : []; }
   catch(e){ return []; }
 }
-function rememberShared(cfg, title){
+/* What this device knows about a shared sheet is the whole configuration —
+   location, token and password. It never appears on screen: the list shows the
+   sheet's name and nothing else, and the code is rebuilt from it when asked
+   for. Anyone who can read this device's storage can read the sheet anyway. */
+function rememberShared(cfg, title, pw){
   var list = knownShared().filter(function(x){ return x.path !== cfg.path; });
-  list.unshift({ path: cfg.path, title: title || '', code: Sync.makeCode(cfg) });
+  list.unshift({ path: cfg.path, title: title || '', owner: cfg.owner, repo: cfg.repo,
+                 token: cfg.token, pw: pw });
   lsSet(KNOWN_KEY, JSON.stringify(list.slice(0, 20)));
 }
 function forgetShared(path){
@@ -2988,7 +3097,7 @@ function syncNow(){
     .then(function(r){
       if(r.missing){ syncSha = null; return null; }
       syncSha = r.sha;
-      return Sync.decrypt(syncKeyObj, r.text);
+      return Sync.unseal(syncKeyObj, r.text);
     })
     .then(function(remote){
       var mine = toWire(state);
@@ -3004,7 +3113,7 @@ function syncNow(){
       }
       if(remote && fpMerged === Sync.fingerprint(remote)) return { sha: syncSha };
 
-      return Sync.encrypt(syncKeyObj, merged).then(function(text){
+      return Sync.seal(syncKeyObj, syncSalt, merged).then(function(text){
         return Sync.ghPut(syncCfg, text, syncSha, 'billing-tool: ' + Sync.randomId(4));
       });
     })
@@ -3022,14 +3131,15 @@ function syncNow(){
     .catch(function(e){
       syncBusy = false;
       var kind = (e && (e.status === 401 || e.status === 403)) ? 'denied'
-               : (e && e.message === 'wrong-key') ? 'badkey' : 'offline';
+               : (e && e.message === 'wrong-password') ? 'badkey' : 'offline';
       setSyncStatus(kind, (e && e.message) || '');
     });
 }
 
-function startSync(cfg){
-  syncCfg = cfg; syncSha = null;
-  lsSet(SYNC_KEY, JSON.stringify(cfg));
+function startSync(cfg, password, key, salt){
+  syncCfg = cfg; syncSha = null; syncPw = password;
+  syncKeyObj = key || null; syncSalt = salt || null;
+  lsSet(SYNC_KEY, JSON.stringify({cfg: cfg, pw: password}));
   syncMenuItems();
   setSyncStatus('busy');
   clearInterval(syncPoll);
@@ -3038,14 +3148,20 @@ function startSync(cfg){
   syncPoll = setInterval(function(){
     if(document.visibilityState === 'visible' && !typingNow()) syncNow();
   }, 20000);
-  return Sync.importKey(cfg.key).then(function(k){
-    syncKeyObj = k;
+  if(syncKeyObj && syncSalt) return syncNow();
+  /* no key handed in — the sheet must already be there to take a salt from */
+  return Sync.ghGet(cfg).then(function(r){
+    if(r.missing) throw new Error('gone');
+    syncSha = r.sha;
+    return Sync.openSealed(password, r.text);
+  }).then(function(o){
+    syncKeyObj = o.key; syncSalt = o.salt;
     return syncNow();
   });
 }
 function stopSync(){
   clearInterval(syncPoll); clearTimeout(syncTimer);
-  syncCfg = null; syncKeyObj = null; syncSha = null;
+  syncCfg = null; syncKeyObj = null; syncSha = null; syncPw = null; syncSalt = null;
   lsDel(SYNC_KEY);
   syncMenuItems();
   $('syncBtn').hidden = true;
@@ -3092,43 +3208,54 @@ function field(parent, labelText, opts){
 function note(parent, text, cls){ parent.appendChild(el('p','dlg-p' + (cls?' '+cls:''), text)); }
 
 /* ---------- start sharing ---------- */
+function defaultRepo(){
+  var last = null;
+  try{ last = JSON.parse(lsGet('billing-tool.repo') || 'null'); }catch(e){}
+  return (last && last.repo) || '';
+}
+function defaultToken(){
+  var list = knownShared();
+  return (list.length && list[0].token) || '';
+}
+
 function shareSetup(){
   if(!(state.title||'').trim()){ toast(t('share.needname')); return; }
-  var last = {};
-  try{ last = JSON.parse(lsGet('billing-tool.repo') || '{}'); }catch(e){}
-  var repoIn, tokIn;
+  var repoIn, tokIn, pwIn;
   dlgOpen(t('share.setup.title'), function(b){
     note(b, t('share.setup.intro'));
-    repoIn = field(b, t('share.field.repo'), {ph:'user/billing-tool-data', value:last.repo||'', mono:true});
-    tokIn  = field(b, t('share.field.token'), {ph:'github_pat_…', value:'', mono:true});
+    repoIn = field(b, t('share.field.repo'), {ph:'user/billing-tool-data', value:defaultRepo(), mono:true});
+    tokIn  = field(b, t('share.field.token'), {ph:'github_pat_…', value:defaultToken(), mono:true});
+    pwIn   = field(b, t('share.field.pw'), {ph:t('share.pw.ph'), value:Sync.suggestPassword(), mono:true});
+    note(b, t('share.pw.hint'));
     note(b, t('share.setup.warn'), 'warnp');
   }, [
     { label: t('btn.cancel'), act:'cancel', onClick: dlgClose },
+    { label: t('share.pw.new'), act:'newpw', onClick: function(){ pwIn.value = Sync.suggestPassword(); pwIn.focus(); } },
     { label: t('share.setup.go'), act:'go', primary: true, onClick: function(){
         var parts = String(repoIn.value||'').trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').split('/');
         var token = String(tokIn.value||'').trim();
+        var pw = String(pwIn.value||'').trim();
         if(parts.length !== 2 || !parts[0] || !parts[1]){ toast(t('share.badrepo')); repoIn.focus(); return; }
         if(!token){ toast(t('share.badtoken')); tokIn.focus(); return; }
+        if(pw.length < 8){ toast(t('share.badpw')); pwIn.focus(); return; }
         lsSet('billing-tool.repo', JSON.stringify({repo: parts.join('/')}));
         var cfg = { owner: parts[0], repo: parts[1],
-                    path: 'sheets/' + Sync.randomId(10) + '.json', token: token, key: '' };
+                    path: 'sheets/' + Sync.randomId(10) + '.json', token: token };
         dlgClose();
         toast(t('sync.state.busy'));
-        Sync.newKey().then(function(k){
-          syncKeyObj = k;
-          return Sync.exportKey(k);
-        }).then(function(raw){
-          cfg.key = raw;
-          return Sync.encrypt(syncKeyObj, toWire(state));
+        var salt = Sync.newSalt(), key = null;
+        Sync.deriveKey(pw, salt).then(function(k){
+          key = k;
+          return Sync.seal(k, salt, toWire(state));
         }).then(function(text){
           return Sync.ghPut(cfg, text, null, 'billing-tool: new sheet');
         }).then(function(res){
           if(res.conflict) throw new Error('conflict');
           syncSha = res.sha;
-          rememberShared(cfg, sheetTitle());
-          return startSync(cfg);
+          rememberShared(cfg, sheetTitle(), pw);
+          return startSync(cfg, pw, key, salt);
         }).then(function(){
-          showCode(true);
+          return showCode(true);
         }).catch(function(e){
           var msg = (e && e.status === 404) ? t('share.err.404')
                   : (e && (e.status === 401 || e.status === 403)) ? t('share.err.auth')
@@ -3140,35 +3267,42 @@ function shareSetup(){
 }
 
 /* ---------- the invitation code ---------- */
+/* The code is inert without the password, so the two must not travel in the
+   same message. The dialog says so once, plainly, instead of hoping. */
 function showCode(fresh){
-  if(!syncCfg) return;
-  var code = Sync.makeCode(syncCfg);
-  var ta;
-  dlgOpen(t(fresh ? 'code.title.new' : 'code.title'), function(b){
-    note(b, t('code.intro'));
-    ta = field(b, t('code.field'), {area:true, value:code, mono:true, ro:true});
-    note(b, t('code.warn'), 'warnp');
-  }, [
-    { label: t('btn.close'), act:'close', onClick: dlgClose },
-    { label: t('code.share'), act:'send', onClick: function(){
-        if(navigator.share){ navigator.share({title: sheetTitle(), text: code}).catch(function(){}); }
-        else { ta.focus(); ta.select(); toast(t('code.selected')); }
-      } },
-    { label: t('code.copy'), act:'copy', primary: true, onClick: function(){
-        ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
-        var ok = false;
-        try{ ok = document.execCommand('copy'); }catch(e){}
-        if(ok){ toast(t('raw.copied')); return; }
-        if(navigator.clipboard) navigator.clipboard.writeText(code).then(
-          function(){ toast(t('raw.copied')); }, function(){ toast(t('raw.copyfail')); });
-        else toast(t('raw.copyfail'));
-      } },
-  ]);
+  if(!syncCfg || !syncPw) return Promise.resolve();
+  return Sync.makeCode(syncCfg, syncPw).then(function(code){
+    var ta;
+    dlgOpen(t(fresh ? 'code.title.new' : 'code.title'), function(b){
+      note(b, t('code.intro'));
+      ta = field(b, t('code.field'), {area:true, value:code, mono:true, ro:true});
+      note(b, t('code.pw.label') + ' ' + syncPw, 'pwline');
+      note(b, t('code.warn'), 'warnp');
+    }, [
+      { label: t('btn.close'), act:'close', onClick: dlgClose },
+      { label: t('code.share'), act:'send', onClick: function(){
+          if(navigator.share){ navigator.share({title: sheetTitle(), text: code}).catch(function(){}); }
+          else { ta.focus(); ta.select(); toast(t('code.selected')); }
+        } },
+      { label: t('code.copy'), act:'copy', primary: true, onClick: function(){
+          ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
+          var ok = false;
+          try{ ok = document.execCommand('copy'); }catch(e){}
+          if(ok){ toast(t('raw.copied')); return; }
+          if(navigator.clipboard) navigator.clipboard.writeText(code).then(
+            function(){ toast(t('raw.copied')); }, function(){ toast(t('raw.copyfail')); });
+          else toast(t('raw.copyfail'));
+        } },
+    ]);
+  });
 }
 
 /* ---------- open a shared sheet ---------- */
+/* Three ways in, in the order they are actually used: a sheet this device
+   already knows, an invitation code somebody sent, or — with neither — the
+   location typed by hand. None of them ever puts a path on screen. */
 function openShared(){
-  var codeIn;
+  var codeIn, pwIn;
   dlgOpen(t('open.title'), function(b){
     var list = knownShared();
     if(list.length){
@@ -3177,55 +3311,140 @@ function openShared(){
       list.forEach(function(item){
         var row = el('button','sheetitem');
         row.appendChild(el('span','nm', item.title || t('open.untitled')));
-        row.appendChild(el('span','sub', item.path));
-        row.addEventListener('click', function(){ dlgClose(); adoptCode(item.code); });
+        row.addEventListener('click', function(){
+          dlgClose();
+          openKnown(item);
+        });
         box.appendChild(row);
       });
       b.appendChild(box);
     }
     note(b, t('open.paste'));
     codeIn = field(b, t('open.field'), {area:true, ph:Sync.CODE_PREFIX + '…', mono:true});
+    pwIn = field(b, t('open.pw'), {ph:t('open.pw.ph'), mono:true});
   }, [
     { label: t('btn.cancel'), act:'cancel', onClick: dlgClose },
+    { label: t('open.manual'), act:'manual', onClick: function(){ dlgClose(); openManual(); } },
     { label: t('open.go'), act:'go', primary: true, onClick: function(){
         var v = String(codeIn.value||'').trim();
+        var pw = String(pwIn.value||'').trim();
         if(!v){ codeIn.focus(); return; }
-        dlgClose(); adoptCode(v);
+        if(!pw){ toast(t('open.needpw')); pwIn.focus(); return; }
+        dlgClose(); adoptCode(v, pw);
       } },
   ]);
 }
 
-function adoptCode(code){
-  var cfg;
-  try{ cfg = Sync.parseCode(code); }
-  catch(e){ alert(t('open.badcode')); return; }
+function openKnown(item){
+  var cfg = { owner:item.owner, repo:item.repo, path:item.path, token:item.token };
+  loadSheet(cfg, item.pw);
+}
+
+/* the route for a device that was sent nothing at all */
+function openManual(){
+  var repoIn, tokIn, pwIn;
+  dlgOpen(t('manual.title'), function(b){
+    note(b, t('manual.intro'));
+    repoIn = field(b, t('share.field.repo'), {ph:'user/billing-tool-data', value:defaultRepo(), mono:true});
+    tokIn  = field(b, t('share.field.token'), {ph:'github_pat_…', value:defaultToken(), mono:true});
+    pwIn   = field(b, t('open.pw'), {ph:t('open.pw.ph'), mono:true});
+    note(b, t('manual.tokenwhy'));
+  }, [
+    { label: t('btn.cancel'), act:'cancel', onClick: dlgClose },
+    { label: t('manual.go'), act:'go', primary: true, onClick: function(){
+        var parts = String(repoIn.value||'').trim().replace(/^https?:\/\/github\.com\//,'').replace(/\.git$/,'').split('/');
+        var token = String(tokIn.value||'').trim();
+        var pw = String(pwIn.value||'').trim();
+        if(parts.length !== 2 || !parts[0] || !parts[1]){ toast(t('share.badrepo')); repoIn.focus(); return; }
+        if(!token){ toast(t('share.badtoken')); tokIn.focus(); return; }
+        if(!pw){ toast(t('open.needpw')); pwIn.focus(); return; }
+        lsSet('billing-tool.repo', JSON.stringify({repo: parts.join('/')}));
+        dlgClose();
+        browseRepo({owner:parts[0], repo:parts[1], token:token}, pw);
+      } },
+  ]);
+}
+
+/* Ask the repository what it holds and try the password on each file. Only the
+   sheets the password actually opens are offered — the rest belong to somebody
+   else and stay unreadable, which is the whole point of a password per sheet. */
+function browseRepo(base, pw){
   toast(t('sync.state.busy'));
-  var key;
-  Sync.importKey(cfg.key).then(function(k){
-    key = k;
-    return Sync.ghGet(cfg);
-  }).then(function(r){
-    if(r.missing) throw new Error('gone');
-    syncSha = r.sha;
-    return Sync.decrypt(key, r.text);
-  }).then(function(wire){
-    adopt(fromWire(wire));
-    carryChoice = 'keep';
-    syncKeyObj = key;
-    rememberShared(cfg, (wire && wire.title) || '');
-    renderAll();
-    lsSet(STORE_KEY, JSON.stringify(state));
-    return startSync(cfg);
-  }).then(function(){
-    toast(t('open.ok', nPeople(state.people.length), nExpenses(state.expenses.length)));
+  Sync.ghList(base, 'sheets').then(function(paths){
+    if(!paths.length) throw new Error('empty');
+    var found = [];
+    return paths.reduce(function(chain, path){
+      return chain.then(function(){
+        var cfg = {owner:base.owner, repo:base.repo, path:path, token:base.token};
+        return Sync.ghGet(cfg)
+          .then(function(r){ return r.missing ? null : Sync.openSealed(pw, r.text)
+            .then(function(o){ found.push({cfg:cfg, sha:r.sha, o:o}); }, function(){ return null; }); })
+          .catch(function(){ return null; });
+      });
+    }, Promise.resolve()).then(function(){ return found; });
+  }).then(function(found){
+    if(!found.length){ alert(t('manual.err.head') + '\n\n' + t('manual.none')); return; }
+    if(found.length === 1) return applyOpened(found[0], pw);
+    dlgOpen(t('manual.pick'), function(b){
+      note(b, t('manual.pick.intro'));
+      var box = el('div','sheetlist');
+      found.forEach(function(f){
+        var row = el('button','sheetitem');
+        row.appendChild(el('span','nm', (f.o.data && f.o.data.title) || t('open.untitled')));
+        row.addEventListener('click', function(){ dlgClose(); applyOpened(f, pw); });
+        box.appendChild(row);
+      });
+      b.appendChild(box);
+    }, [{ label: t('btn.cancel'), act:'cancel', onClick: dlgClose }]);
   }).catch(function(e){
-    var msg = (e && e.message === 'gone') ? t('open.err.gone')
-            : (e && e.message === 'wrong-key') ? t('open.err.key')
+    var msg = (e && e.message === 'empty') ? t('manual.none')
             : (e && (e.status === 401 || e.status === 403)) ? t('share.err.auth')
             : (e && e.status === 404) ? t('share.err.404')
             : ((e && e.message) || 'error');
-    alert(t('open.err.head') + '\n\n' + msg);
+    alert(t('manual.err.head') + '\n\n' + msg);
   });
+}
+
+function applyOpened(f, pw){
+  adopt(fromWire(f.o.data));
+  carryChoice = 'keep';
+  syncSha = f.sha;
+  rememberShared(f.cfg, (f.o.data && f.o.data.title) || '', pw);
+  renderAll();
+  lsSet(STORE_KEY, JSON.stringify(state));
+  return startSync(f.cfg, pw, f.o.key, f.o.salt).then(function(){
+    toast(t('open.ok', nPeople(state.people.length), nExpenses(state.expenses.length)));
+  });
+}
+
+function adoptCode(code, pw){
+  toast(t('sync.state.busy'));
+  Sync.parseCode(code, pw).then(function(cfg){
+    return loadSheet(cfg, pw);
+  }).catch(function(e){
+    reportOpenError(e);
+  });
+}
+
+function loadSheet(cfg, pw){
+  toast(t('sync.state.busy'));
+  return Sync.ghGet(cfg).then(function(r){
+    if(r.missing) throw new Error('gone');
+    return Sync.openSealed(pw, r.text).then(function(o){
+      return applyOpened({cfg:cfg, sha:r.sha, o:o}, pw);
+    });
+  }).catch(reportOpenError);
+}
+
+function reportOpenError(e){
+  var m = e && e.message;
+  var msg = (m === 'gone') ? t('open.err.gone')
+          : (m === 'wrong-password') ? t('open.err.pw')
+          : (m === 'bad-prefix' || m === 'bad-code') ? t('open.badcode')
+          : (e && (e.status === 401 || e.status === 403)) ? t('share.err.auth')
+          : (e && e.status === 404) ? t('share.err.404')
+          : (m || 'error');
+  alert(t('open.err.head') + '\n\n' + msg);
 }
 
 /* ---------- where to save / where to open ---------- */
@@ -3257,10 +3476,10 @@ window.addEventListener('focus', function(){ if(syncCfg) syncNow(); });
 (function resumeSync(){
   var raw = lsGet(SYNC_KEY);
   if(!raw) return;
-  var cfg;
-  try{ cfg = JSON.parse(raw); }catch(e){ return; }
-  if(!cfg || !cfg.key || !cfg.token) return;
-  startSync(cfg);
+  var box;
+  try{ box = JSON.parse(raw); }catch(e){ return; }
+  if(!box || !box.cfg || !box.cfg.token || !box.pw) return;
+  startSync(box.cfg, box.pw);
 })();
 
 /* ---------------- language ---------------- */
