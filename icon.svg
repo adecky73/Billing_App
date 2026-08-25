@@ -11,15 +11,20 @@
       <path d="M50 60c18 0 30 18 34 41l4 21c2 10-4 16-13 16H25c-9 0-15-6-13-16l4-21c4-23 16-41 34-41z"/>
     </symbol>
 
-    <g id="mark" transform="translate(0,40)">
+    <!-- five figures on a regular pentagon around the centre, one on top.
+         Centres sit on r=150 about (256,256); each use is offset by half its
+         88 x 123 box so the figure is centred on its point. -->
+    <g id="mark">
       <g fill="#ffffff">
-        <use href="#pawn" x="206" y="30"  width="100" height="140"/>
-        <use href="#pawn" x="76"  y="261" width="100" height="140"/>
-        <use href="#pawn" x="336" y="261" width="100" height="140"/>
+        <use href="#pawn" x="212"   y="44.5"  width="88" height="123"/>
+        <use href="#pawn" x="354.7" y="148.1" width="88" height="123"/>
+        <use href="#pawn" x="300.2" y="315.8" width="88" height="123"/>
+        <use href="#pawn" x="123.8" y="315.8" width="88" height="123"/>
+        <use href="#pawn" x="69.3"  y="148.1" width="88" height="123"/>
       </g>
-      <text x="256" y="256" fill="#ffffff"
+      <text x="256" y="258" fill="#ffffff"
             font-family="Roboto, 'Segoe UI', 'DejaVu Sans', Arial, sans-serif"
-            font-size="164" font-weight="700"
+            font-size="150" font-weight="700"
             text-anchor="middle" dominant-baseline="central">€</text>
     </g>
   </defs>

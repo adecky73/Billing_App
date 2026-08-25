@@ -302,17 +302,23 @@ td.payer select.empty{color:var(--error);font-weight:400}
 }
 /* ---------- exact amounts (opt-in, one row at a time) ---------- */
 td.rowtools{white-space:nowrap;text-align:right}
+/* A pill with a visible edge: the previous borderless glyph was invisible as
+   a control unless you already knew it was one (or hovered for the tooltip). */
 .rowex{
-  border:1px solid transparent;background:transparent;cursor:pointer;
-  color:var(--on-surface-var);width:34px;height:34px;border-radius:var(--r-full);
-  font-size:14px;font-weight:650;line-height:1;
+  border:1px solid var(--outline-var);background:transparent;cursor:pointer;
+  color:var(--on-surface-var);min-width:44px;height:34px;padding:0 10px;
+  border-radius:var(--r-full);
+  font-size:14px;font-weight:650;line-height:1;letter-spacing:.02em;
 }
 .rowex:hover{background:var(--surface-2)}
-.rowex.on{color:var(--on-primary-c);background:var(--primary-c)}
+.rowex.on{color:var(--on-primary-c);background:var(--primary-c);border-color:transparent}
 .rowex.active{border-color:var(--focus)}
+/* Nothing left to share in: a red cross rather than a grey dash, so it is
+   read as "this person is out" and not as an empty cell. No opacity here —
+   a washed-out red stops reading as red at all. */
 .sharebtn.spent{
-  opacity:.4;cursor:not-allowed;border-style:dashed;
-  background:transparent;color:var(--on-surface-var);
+  cursor:not-allowed;border-style:dashed;border-color:var(--error);
+  background:transparent;color:var(--error);font-size:16px;font-weight:600;
 }
 .sharebtn.fixed{
   width:auto;min-width:56px;padding:0 10px;font-size:12.5px;
@@ -602,21 +608,26 @@ footer .ver{font-size:11.5px;opacity:.8}
       <path d="M50 60c18 0 30 18 34 41l4 21c2 10-4 16-13 16H25c-9 0-15-6-13-16l4-21c4-23 16-41 34-41z"/>
     </symbol>
 
-    <g id="lg-mark" transform="translate(0,40)">
+    <!-- five figures on a regular pentagon around the centre, one on top.
+         Centres sit on r=150 about (256,256); each use is offset by half its
+         88 x 123 box so the figure is centred on its point. -->
+    <g id="lg-mark">
       <g fill="#ffffff">
-        <use href="#lg-pawn" x="206" y="30"  width="100" height="140"/>
-        <use href="#lg-pawn" x="76"  y="261" width="100" height="140"/>
-        <use href="#lg-pawn" x="336" y="261" width="100" height="140"/>
+        <use href="#lg-pawn" x="212"   y="44.5"  width="88" height="123"/>
+        <use href="#lg-pawn" x="354.7" y="148.1" width="88" height="123"/>
+        <use href="#lg-pawn" x="300.2" y="315.8" width="88" height="123"/>
+        <use href="#lg-pawn" x="123.8" y="315.8" width="88" height="123"/>
+        <use href="#lg-pawn" x="69.3"  y="148.1" width="88" height="123"/>
       </g>
-      <text x="256" y="256" fill="#ffffff"
+      <text x="256" y="258" fill="#ffffff"
             font-family="Roboto, 'Segoe UI', 'DejaVu Sans', Arial, sans-serif"
-            font-size="164" font-weight="700"
+            font-size="150" font-weight="700"
             text-anchor="middle" dominant-baseline="central">€</text>
     </g>
   </defs>
 
   <rect width="100%" height="100%" rx="112" fill="url(#lg-bg)"/>
-  <g transform="translate(256,256) scale(1.16) translate(-256,-256)"><use href="#lg-mark"/></g>
+  <g transform="translate(256,256) scale(1.0) translate(-256,-256)"><use href="#lg-mark"/></g>
 </svg></div>
       <input id="tripTitle" value="" data-i18n-ph="title.ph" data-i18n-aria="title.aria" spellcheck="false">
     </div>
@@ -820,6 +831,7 @@ en: {
   'row.share.spent': 'Nothing left to divide — the fixed amounts already cover the whole expense.',
   'exact.short': '{0} is left over and nobody shares it',
   'exact.noamount': 'Enter the expense amount first — then you can set exact amounts.',
+  'exact.nothingleft': '— nothing left',
   'warn.over': '{0} {1} more fixed than the expense',
   'warn.short': 'in {0} {1} a remainder nobody shares',
   'row.share.aria': '{0} share for {1}',
@@ -986,6 +998,7 @@ de: {
   'row.share.spent': 'Nichts mehr zu verteilen — die festen Beträge decken die Ausgabe bereits vollständig.',
   'exact.short': '{0} bleiben übrig und sind niemandem zugeordnet',
   'exact.noamount': 'Zuerst den Betrag der Ausgabe eintragen — dann sind feste Beträge möglich.',
+  'exact.nothingleft': '— kein Rest übrig',
   'warn.over': 'bei {0} {1} mehr festgelegt als die Ausgabe',
   'warn.short': 'bei {0} {1} ein Rest ohne Zuordnung',
   'row.share.aria': 'Anteil von {0} für {1}',
@@ -1607,7 +1620,9 @@ function renderTable(){
 
     // exact amounts + delete
     var tdX = el('td','rowtools');
-    var exBtn = el('button','rowex','€');
+    /* A bare currency symbol reads as a label, not as something to press —
+       the leading "+" is what makes it an action ("add fixed amounts"). */
+    var exBtn = el('button','rowex','+' + (state.currency || '\u20ac'));
     exBtn.title = t('row.exact');
     if(res.perExpense[ri].hasFixed) exBtn.classList.add('on');
     exBtn.addEventListener('click', function(){
@@ -1770,10 +1785,20 @@ function refreshExactFoot(box, ex, override){
   note.className = 'exact-note';
 
   /* Nothing to divide up yet — the fields stay shut rather than inviting an
-     entry that would immediately be rejected. */
+     entry that would immediately be rejected. The same holds per person once
+     the others have claimed the whole expense: that field says so instead of
+     offering an "amount" that could only be refused. */
   var noAmount = (ex.cents || 0) <= 0;
   var ins = box._inputs || [];
-  for(var i=0;i<ins.length;i++) ins[i].disabled = noAmount;
+  for(var i=0;i<ins.length && i<state.people.length;i++){
+    var pid = state.people[i].id;
+    var own = (ex.fixed && ex.fixed[pid]) || 0;
+    var others = 0;
+    if(ex.fixed) for(var k in ex.fixed) if(k !== pid) others += ex.fixed[k];
+    var taken = !own && ((ex.cents || 0) - others) <= 0;
+    ins[i].disabled = noAmount || taken;
+    ins[i].placeholder = (taken && !noAmount) ? t('exact.nothingleft') : t('exact.ph');
+  }
 
   if(override){ note.textContent = override; note.classList.add('bad'); return; }
   if(noAmount){ note.textContent = t('exact.noamount'); note.classList.add('bad'); return; }
@@ -1797,7 +1822,7 @@ function paintShare(btn, n, fixedCents, spent){
   if(spent){
     btn.dataset.n = 'spent';
     btn.className = 'sharebtn spent';
-    btn.textContent = '–';
+    btn.textContent = '\u00d7';
     btn.title = t('row.share.spent');
     btn.disabled = true;
     return;
@@ -2228,7 +2253,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.16.4';
+var APP_VERSION = '1.17.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
