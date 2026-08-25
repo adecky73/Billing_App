@@ -297,6 +297,41 @@ td.payer select.empty{color:var(--error);font-weight:400}
   background:var(--primary-c);color:var(--on-primary-c);
   border:2px solid var(--focus);font-weight:700;
 }
+/* ---------- exact amounts (opt-in, one row at a time) ---------- */
+td.rowtools{white-space:nowrap;text-align:right}
+.rowex{
+  border:1px solid transparent;background:transparent;cursor:pointer;
+  color:var(--on-surface-var);width:34px;height:34px;border-radius:var(--r-full);
+  font-size:14px;font-weight:650;line-height:1;
+}
+.rowex:hover{background:var(--surface-2)}
+.rowex.on{color:var(--on-primary-c);background:var(--primary-c)}
+.rowex.active{border-color:var(--focus)}
+.sharebtn.fixed{
+  width:auto;min-width:56px;padding:0 10px;font-size:12.5px;
+  background:var(--primary-c);color:var(--on-primary-c);border-color:transparent;
+  font-variant-numeric:tabular-nums;
+}
+tr.exactrow td{background:var(--surface-2);border-bottom:1px solid var(--outline-var);padding:0}
+tr.exactrow:hover td{background:var(--surface-2)}
+.exact{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.exact-h{font-size:13px;color:var(--on-surface-var)}
+.exact-grid{display:flex;flex-wrap:wrap;gap:8px}
+.exact-cell{
+  display:flex;align-items:center;gap:8px;background:var(--surface);
+  border:1px solid var(--outline-var);border-radius:var(--r-s);padding:4px 8px 4px 12px;
+}
+.exact-nm{font-size:12px;font-weight:500;color:var(--on-surface-var);
+  max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exact-cell input{
+  width:92px;border:none;background:transparent;text-align:right;
+  font-variant-numeric:tabular-nums;padding:6px 2px;font-size:14px;
+}
+.exact-cell input:focus{outline:2px solid var(--focus);outline-offset:2px;border-radius:var(--r-xs)}
+.exact-f{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.exact-note{flex:1;font-size:13px;color:var(--on-surface-var);font-variant-numeric:tabular-nums}
+.exact-note.bad{color:var(--error);font-weight:500}
+
 .rowdel{
   border:none;background:transparent;cursor:pointer;color:var(--on-surface-var);
   width:40px;height:40px;border-radius:var(--r-full);font-size:18px;line-height:1;
@@ -497,7 +532,17 @@ footer .ver{font-size:11.5px;opacity:.8}
   td.pershare .v{font-weight:500;color:var(--on-surface)}
   /* the delete button floats in the corner — but the placeholder row has a
      single cell, which would otherwise be caught by :last-child too */
-  tbody tr:not(.placeholder) td:last-child{position:absolute;top:8px;right:6px;padding:0}
+  tbody tr:not(.placeholder):not(.exactrow) td.amt{padding-right:4px}
+  tbody tr.exactrow{display:block;padding:0;margin:-4px 0 8px;background:var(--surface-2)}
+  tbody tr.exactrow td{display:block;padding:0}
+  .exact{padding:12px}
+  .exact-grid{flex-direction:column}
+  .exact-cell{width:100%}
+  .exact-cell input{flex:1;width:auto}
+  /* both row buttons flow in after the per-person cells they belong to —
+     floating them over the amount field made them overlap it */
+  td.rowtools{order:4;display:inline-flex;gap:4px;width:auto;padding:0;margin:6px 0 0 auto}
+  .rowex,td.rowtools .rowdel{position:static;width:34px;height:34px;margin:0}
   tfoot tr{display:flex;align-items:center;gap:8px;padding:8px 6px}
   tfoot td{display:block;border:none;background:transparent;padding:0}
   tfoot td.num{margin-left:auto;font-size:18px}
@@ -742,6 +787,17 @@ en: {
   'row.desc.aria': 'Description',
   'row.amount.aria': 'Amount',
   'row.delete': 'Delete this row',
+  'row.exact': 'Exact amounts for individual people',
+  'exact.head': 'Exact amounts — everyone left blank splits the rest',
+  'exact.ph': 'amount',
+  'exact.close': 'Done',
+  'exact.clear': 'Clear all',
+  'exact.rest': 'Rest to split: {0}',
+  'exact.over': 'The fixed amounts exceed the expense by {0}',
+  'exact.toomuch': 'Too much for {0} — at most {1} is available. Reset to zero.',
+  'exact.short': '{0} is left over and nobody shares it',
+  'warn.over': '{0} {1} more fixed than the expense',
+  'warn.short': 'in {0} {1} a remainder nobody shares',
   'row.share.aria': '{0} share for {1}',
   'row.share.0': 'not involved — click to include (shift-click for more shares)',
   'row.share.1': 'one share — click for a double share',
@@ -895,6 +951,17 @@ de: {
   'row.desc.aria': 'Beschreibung',
   'row.amount.aria': 'Betrag',
   'row.delete': 'Diese Zeile löschen',
+  'row.exact': 'Feste Beträge für einzelne Personen',
+  'exact.head': 'Feste Beträge — wer leer bleibt, teilt sich den Rest',
+  'exact.ph': 'Betrag',
+  'exact.close': 'Fertig',
+  'exact.clear': 'Alle leeren',
+  'exact.rest': 'Zu teilender Rest: {0}',
+  'exact.over': 'Die festen Beträge übersteigen die Ausgabe um {0}',
+  'exact.toomuch': 'Zu viel für {0} — höchstens {1} verfügbar. Auf null zurückgesetzt.',
+  'exact.short': '{0} bleiben übrig und sind niemandem zugeordnet',
+  'warn.over': 'bei {0} {1} mehr festgelegt als die Ausgabe',
+  'warn.short': 'bei {0} {1} ein Rest ohne Zuordnung',
   'row.share.aria': 'Anteil von {0} für {1}',
   'row.share.0': 'nicht beteiligt — anklicken zum Einbeziehen (Umschalt-Klick für mehr Anteile)',
   'row.share.1': 'ein Anteil — anklicken für doppelten Anteil',
@@ -1073,44 +1140,51 @@ function formatCents(cents, opts) {
  * Split one expense over its sharers, cent-exact.
  * shares: array of non-negative integers, one per participant
  *         (1 = the old "x", 2 = the old "xx", any n is allowed).
- * Returns an array of integer cents that sums to exactly `cents`.
- * The remainder (cents % totalShares) is handed out one cent at a time,
- * to the sharers with the most shares first, then by position — deterministic.
+ * fixed:  optional array of integer cents. A person with a fixed amount owes
+ *         exactly that and takes no part in the share-based division; the
+ *         remainder is what the shares divide up. This is the "Anna had the
+ *         expensive dish" case, and it is off unless someone types a number.
+ * Returns an array of integer cents that sums to exactly `cents` whenever the
+ * expense is assignable at all.
  */
-function splitExpense(cents, shares) {
+function splitExpense(cents, shares, fixed) {
   const out = shares.map(() => 0);
-  const totalShares = shares.reduce((a, b) => a + b, 0);
-  if (totalShares <= 0) return out;
+  let rest = cents;
 
-  const neg = cents < 0;
-  const abs = Math.abs(cents);
+  if (fixed) {
+    for (let i = 0; i < shares.length; i++) {
+      const f = Math.round(Number(fixed[i]) || 0);
+      if (f !== 0) { out[i] = f; rest -= f; }
+    }
+  }
+
+  // people with a fixed amount do not also take a share
+  const eff = shares.map((n, i) => (fixed && Math.round(Number(fixed[i]) || 0) !== 0 ? 0 : n));
+  const totalShares = eff.reduce((a, b) => a + b, 0);
+  if (totalShares <= 0 || rest === 0) return out;
+
+  const neg = rest < 0;
+  const abs = Math.abs(rest);
   const perShare = Math.floor(abs / totalShares);
   let remainder = abs - perShare * totalShares;
 
-  for (let i = 0; i < shares.length; i++) out[i] = perShare * shares[i];
-
+  const add = eff.map((n) => perShare * n);
   if (remainder > 0) {
-    const order = shares
+    const order = eff
       .map((s, i) => ({ s, i }))
       .filter((e) => e.s > 0)
       .sort((a, b) => b.s - a.s || a.i - b.i);
     let k = 0;
     while (remainder > 0) {
-      const e = order[k % order.length];
-      out[e.i] += 1;
+      add[order[k % order.length].i] += 1;
       remainder -= 1;
       k += 1;
     }
   }
-  if (neg) for (let i = 0; i < out.length; i++) out[i] = -out[i];
+  for (let i = 0; i < out.length; i++) out[i] += neg ? -add[i] : add[i];
   return out;
 }
 
-/**
- * Compute paid / owed / balance per participant.
- * people:   [{id, name}]
- * expenses: [{payerId, desc, cents, shares:{id:number}}]
- */
 function computeBalances(people, expenses) {
   const idx = new Map(people.map((p, i) => [p.id, i]));
   const paid = people.map(() => 0);
@@ -1120,20 +1194,47 @@ function computeBalances(people, expenses) {
   for (const ex of expenses) {
     const shares = people.map((p) => {
       const v = ex.shares ? ex.shares[p.id] : 0;
-      const n = Math.max(0, Math.floor(Number(v) || 0));
-      return n;
+      return Math.max(0, Math.floor(Number(v) || 0));
     });
-    const totalShares = shares.reduce((a, b) => a + b, 0);
-    const split = splitExpense(ex.cents || 0, shares);
-    for (let i = 0; i < people.length; i++) owed[i] += split[i];
-    if (ex.payerId != null && idx.has(ex.payerId)) paid[idx.get(ex.payerId)] += ex.cents || 0;
+    const fixed = people.map((p) => {
+      const v = ex.fixed ? ex.fixed[p.id] : 0;
+      return Math.round(Number(v) || 0);
+    });
+    const fixedTotal = fixed.reduce((a, b) => a + b, 0);
+    const hasFixed = fixed.some((f) => f !== 0);
+    const eff = shares.map((n, i) => (fixed[i] !== 0 ? 0 : n));
+    const totalShares = eff.reduce((a, b) => a + b, 0);
+    const cents = ex.cents || 0;
+    const rest = cents - fixedTotal;
+
+    /* Nobody at all is attached to this amount. Counting the payer's credit
+       while nobody owes anything would leave the balances not summing to zero,
+       which makes the settlement unsolvable. The expense is flagged and left
+       out of the balances entirely — which is what the warning already says. */
+    const unassigned = totalShares === 0 && !hasFixed && cents !== 0;
+    /* fixed amounts add up to more than the expense */
+    const overfixed = hasFixed && rest < 0;
+    /* fixed amounts leave a remainder that no share picks up */
+    const shortfixed = hasFixed && rest > 0 && totalShares === 0;
+
+    const split = unassigned ? shares.map(() => 0) : splitExpense(cents, shares, fixed);
+    if (!unassigned) {
+      for (let i = 0; i < people.length; i++) owed[i] += split[i];
+      if (ex.payerId != null && idx.has(ex.payerId)) paid[idx.get(ex.payerId)] += cents;
+    }
+
     perExpense.push({
       shares,
+      fixed,
+      hasFixed,
       totalShares,
       split,
-      // "per person" as in the original sheet: amount / number of shares
-      perShare: totalShares > 0 ? (ex.cents || 0) / totalShares : 0,
-      unassigned: totalShares === 0 && (ex.cents || 0) !== 0,
+      rest,
+      // "per person" as in the original sheet: what one share costs
+      perShare: totalShares > 0 ? rest / totalShares : 0,
+      unassigned,
+      overfixed,
+      shortfixed,
     });
   }
 
@@ -1282,7 +1383,15 @@ function normalize(st){
   st.expenses = (st.expenses||[]).map(function(e){
     var sh={};
     for(var k in (e.shares||{})){ var n=Math.max(0,Math.floor(Number(e.shares[k])||0)); if(n) sh[k]=n; }
-    return {id:e.id||uid(), payerId:e.payerId||null, desc:String(e.desc||''), cents:Math.round(Number(e.cents)||0), shares:sh};
+    var fx={}, any=false;
+    for(var k2 in (e.fixed||{})){
+      var c=Math.round(Number(e.fixed[k2])||0);
+      if(c){ fx[k2]=c; any=true; }
+    }
+    var out = {id:e.id||uid(), payerId:e.payerId||null, desc:String(e.desc||''),
+               cents:Math.round(Number(e.cents)||0), shares:sh};
+    if(any) out.fixed = fx;
+    return out;
   });
   return st;
 }
@@ -1438,15 +1547,21 @@ function renderTable(){
       td.appendChild(el('span','mlabel', p.name));
       var b = el('button','sharebtn');
       var n = ex.shares[p.id] || 0;
-      paintShare(b, n);
+      paintShare(b, n, ex.fixed && ex.fixed[p.id]);
       b.setAttribute('aria-label', t('row.share.aria', p.name, ex.desc || t('card.expenses')));
       b.addEventListener('click', function(ev){
+        if(ex.fixed && ex.fixed[p.id]){
+          delete ex.fixed[p.id];
+          if(!Object.keys(ex.fixed).length) delete ex.fixed;
+          closeExactRows(); renderTable(); renderResults(); save();
+          return;
+        }
         var cur = ex.shares[p.id] || 0;
         var next;
         if(ev.shiftKey) next = cur + 1;
         else next = cur === 0 ? 1 : (cur === 1 ? 2 : 0);
         if(next <= 0) delete ex.shares[p.id]; else ex.shares[p.id] = next;
-        paintShare(b, next);
+        paintShare(b, next, null);
         updatePerShare(); renderResults(); save();
       });
       td.appendChild(b); tr.appendChild(td);
@@ -1458,8 +1573,18 @@ function renderTable(){
     tdS.appendChild(el('span','v',''));
     tr.appendChild(tdS);
 
-    // delete
-    var tdX = el('td');
+    // exact amounts + delete
+    var tdX = el('td','rowtools');
+    var exBtn = el('button','rowex','€');
+    exBtn.title = t('row.exact');
+    if(res.perExpense[ri].hasFixed) exBtn.classList.add('on');
+    exBtn.addEventListener('click', function(){
+      var open = tr.nextSibling && tr.nextSibling.classList &&
+                 tr.nextSibling.classList.contains('exactrow');
+      closeExactRows();
+      if(!open) openExactRow(tr, ex);
+    });
+    tdX.appendChild(exBtn);
     var del = el('button','rowdel','×');
     del.title = t('row.delete');
     del.addEventListener('click', function(){
@@ -1492,7 +1617,111 @@ function renderTable(){
   updatePerShare();
 }
 
-function paintShare(btn, n){
+/* The exact-amount strip. It lives directly under its expense row, is opened
+   from the € button, and is closed again as soon as another one opens — so at
+   most one is ever on screen and the normal view stays as plain as before. */
+function closeExactRows(){
+  var open = document.querySelectorAll('#tbody tr.exactrow');
+  for(var i=0;i<open.length;i++) open[i].remove();
+  var on = document.querySelectorAll('#tbody .rowex.active');
+  for(var j=0;j<on.length;j++) on[j].classList.remove('active');
+}
+
+function openExactRow(afterTr, ex){
+  var btn = afterTr.querySelector('.rowex');
+  if(btn) btn.classList.add('active');
+  var tr = document.createElement('tr');
+  tr.className = 'exactrow';
+  var td = document.createElement('td');
+  td.colSpan = state.people.length + 6;
+  var box = el('div','exact');
+  box.appendChild(el('div','exact-h', t('exact.head')));
+
+  var grid = el('div','exact-grid');
+  state.people.forEach(function(p){
+    var cell = el('label','exact-cell');
+    cell.appendChild(el('span','exact-nm', p.name));
+    var inp = document.createElement('input');
+    inp.inputMode = 'decimal';
+    inp.placeholder = t('exact.ph');
+    inp.setAttribute('aria-label', p.name + ' — ' + t('exact.ph'));
+    var cur = ex.fixed && ex.fixed[p.id];
+    inp.value = cur ? formatCents(cur) : '';
+    inp.addEventListener('input', function(){
+      var cents = parseAmount(inp.value);
+      if(!ex.fixed) ex.fixed = {};
+
+      /* What is still unclaimed by the OTHER people. Checking against the whole
+         expense would let two people each stay under it while together going
+         over — the sum is what has to hold. */
+      var others = 0;
+      for(var k in ex.fixed) if(k !== p.id) others += ex.fixed[k];
+      var available = (ex.cents || 0) - others;
+
+      if((ex.cents || 0) > 0 && cents > available){
+        delete ex.fixed[p.id];
+        if(!Object.keys(ex.fixed).length) delete ex.fixed;
+        inp.value = '';
+        updatePerShare(); renderResults(); save();
+        refreshExactFoot(box, ex, t('exact.toomuch', p.name, money(Math.max(0, available))));
+        toast(t('exact.toomuch', p.name, money(Math.max(0, available))));
+        return;
+      }
+
+      if(inp.value.trim() === '' || cents === 0) delete ex.fixed[p.id];
+      else ex.fixed[p.id] = cents;
+      if(ex.fixed && !Object.keys(ex.fixed).length) delete ex.fixed;
+      updatePerShare(); renderResults(); save(); refreshExactFoot(box, ex);
+    });
+    cell.appendChild(inp);
+    grid.appendChild(cell);
+  });
+  box.appendChild(grid);
+
+  var foot = el('div','exact-f');
+  var note = el('span','exact-note','');
+  var clr = el('button','btn sm', t('exact.clear'));
+  clr.addEventListener('click', function(){
+    delete ex.fixed;
+    var ins = box.querySelectorAll('input');
+    for(var i=0;i<ins.length;i++) ins[i].value = '';
+    updatePerShare(); renderResults(); save(); refreshExactFoot(box, ex);
+  });
+  var done = el('button','btn sm primary', t('exact.close'));
+  done.addEventListener('click', function(){ closeExactRows(); renderTable(); renderResults(); });
+  foot.appendChild(note);
+  foot.appendChild(clr);
+  foot.appendChild(done);
+  box.appendChild(foot);
+  box._note = note;
+  box._ex = ex;
+
+  td.appendChild(box);
+  tr.appendChild(td);
+  afterTr.parentNode.insertBefore(tr, afterTr.nextSibling);
+  refreshExactFoot(box, ex);
+  var first = box.querySelector('input'); if(first) first.focus();
+}
+
+function refreshExactFoot(box, ex, override){
+  var res = computeBalances(state.people, [ex]);
+  var pe = res.perExpense[0];
+  var note = box._note;
+  note.className = 'exact-note';
+  if(override){ note.textContent = override; note.classList.add('bad'); return; }
+  if(pe.overfixed){ note.textContent = t('exact.over', money(-pe.rest)); note.classList.add('bad'); }
+  else if(pe.shortfixed){ note.textContent = t('exact.short', money(pe.rest)); note.classList.add('bad'); }
+  else note.textContent = t('exact.rest', money(pe.rest));
+}
+
+function paintShare(btn, n, fixedCents){
+  if(fixedCents){
+    btn.dataset.n = 'fix';
+    btn.className = 'sharebtn fixed';
+    btn.textContent = formatCents(fixedCents);
+    btn.title = t('row.exact');
+    return;
+  }
   btn.dataset.n = n;
   btn.className = 'sharebtn' + (n > 2 ? ' multi' : '');
   btn.textContent = n === 0 ? '·' : (n === 1 ? '✓' : n + '×');
@@ -1507,7 +1736,7 @@ function updatePerShare(){
     cells[i].textContent = pe.totalShares > 0 ? formatCents(Math.round(pe.perShare)) + ' ' + state.currency : '—';
     cells[i].style.color = pe.totalShares > 0 ? '' : 'var(--warn)';
     var row = $('tbody').children[i];
-    if(row) row.className = pe.unassigned ? 'unassigned' : '';
+    if(row) row.className = (pe.unassigned || pe.overfixed || pe.shortfixed) ? 'unassigned' : '';
   }
   var tot = $('tfoot').querySelector('.total');
   if(tot) tot.textContent = money(res.total);
@@ -1519,11 +1748,15 @@ function renderResults(){
 
   var bb = $('balances'); bb.innerHTML = '';
   var unassigned = res.perExpense.filter(function(p){ return p.unassigned; }).length;
+  var overfixed = res.perExpense.filter(function(p){ return p.overfixed; }).length;
+  var shortfixed = res.perExpense.filter(function(p){ return p.shortfixed; }).length;
   var noPayer = state.expenses.filter(function(e){ return !e.payerId && e.cents; }).length;
-  if(unassigned || noPayer){
+  if(unassigned || noPayer || overfixed || shortfixed){
     var msgs = [];
     if(noPayer) msgs.push(t('bal.warn.payer', nExpenses(noPayer), noPayer>1?t('bal.warn.have'):t('bal.warn.has')).trim());
     if(unassigned) msgs.push(t('bal.warn.shared', nExpenses(unassigned), unassigned>1?t('bal.warn.are'):t('bal.warn.is')).trim());
+    if(overfixed) msgs.push(t('warn.over', nExpenses(overfixed), overfixed>1?t('bal.warn.have'):t('bal.warn.has')).trim());
+    if(shortfixed) msgs.push(t('warn.short', nExpenses(shortfixed), shortfixed>1?t('bal.warn.have'):t('bal.warn.has')).trim());
     bb.appendChild(el('div','note', t('bal.warn.tail', msgs.join(' · '))));
   }
   if(!rows.length){ bb.appendChild(el('div','empty-note', t('bal.empty'))); }
@@ -1898,7 +2131,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.15.0';
+var APP_VERSION = '1.16.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
