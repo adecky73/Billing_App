@@ -635,6 +635,13 @@ body.has-syncbar .wrap{padding-bottom:76px}
   background:var(--surface);color:var(--on-surface);font:inherit;
 }
 .sheetitem:hover{background:var(--surface-2)}
+.sheetrow{display:flex;gap:6px;align-items:stretch}
+.sheetrow .sheetitem{flex:1;min-width:0}
+.sheetdel{
+  flex:0 0 auto;width:44px;border:1px solid var(--outline-var);border-radius:var(--r-s);
+  background:var(--surface);color:var(--error);cursor:pointer;font-size:18px;line-height:1;
+}
+.sheetdel:hover{background:var(--error-c);border-color:var(--error)}
 .sheetitem .nm{font-weight:500}
 /* the password is meant to be read off the screen and typed on another phone */
 .dlg-p.pwline{
@@ -940,6 +947,16 @@ en: {
   'open.manual': 'No code?',
   'open.err.pw': 'Wrong password for this sheet.',
   'manual.pw.intro': 'Enter the password of this sheet.',
+  'clash.title': 'That name is already taken',
+  'clash.intro': 'There is already a sheet called “{0}” in the repository. Two sheets with the same name is how a group ends up with two half-filled copies of the same trip.',
+  'clash.warn': 'Opening the existing one replaces what is on this screen right now. Nothing here has been saved anywhere yet.',
+  'clash.open': 'Open the existing one',
+  'clash.rename': 'Choose another name',
+  'clash.renamehint': 'Type a different name, then share again.',
+  'shelf.delete': 'Delete this sheet',
+  'shelf.delete.confirm': 'Delete “{0}” from the repository, for everyone? Nobody will be able to open it again — the password does not help. Only the git history still holds it.',
+  'shelf.deleted': '“{0}” deleted.',
+  'shelf.delete.failed': 'The sheet could not be deleted.',
   'manual.title': 'Open without an invitation code',
   'manual.intro': 'The sheets are all kept in one repository. Enter the access token that may read it, and the app lists what is there.',
   'manual.tokenwhy': 'The access token cannot be left out: a private repository hands out nothing without it. On a device that has been in before, it is already filled in.',
@@ -998,6 +1015,8 @@ en: {
   'open.err.head': 'The sheet could not be opened.',
   'open.err.gone': 'There is no such sheet in the repository any more.',
 
+  'confirm.shared.new': 'This sheet is shared. Starting a new one means this device leaves it — the sheet stays on the server and everyone else keeps working on it — and the {0} and {1} here disappear from this screen. The repository and the token stay stored, so sharing the new sheet will only ask for a password. Continue?',
+  'confirm.shared.clear': 'This sheet is shared. Clearing it means this device leaves it — the sheet stays on the server and everyone else keeps working on it — and the {0} and {1} here disappear from this screen. The repository and the token stay stored, so sharing something new will only ask for a password. Continue?',
   'confirm.unshare': 'Stop syncing this sheet on this device? The data stays here and stays in the repository — only the automatic exchange stops.',
   'unshared': 'Sharing stopped on this device.',
   'warn.over': '{0} {1} more fixed than the expense',
@@ -1189,6 +1208,16 @@ de: {
   'open.manual': 'Kein Code?',
   'open.err.pw': 'Falsches Passwort für diese Abrechnung.',
   'manual.pw.intro': 'Trag das Passwort dieser Abrechnung ein.',
+  'clash.title': 'Dieser Name ist schon vergeben',
+  'clash.intro': 'Im Repository liegt bereits eine Abrechnung namens „{0}". Zwei gleichnamige Abrechnungen sind der Weg, auf dem eine Gruppe mit zwei halbvollen Kopien derselben Reise endet.',
+  'clash.warn': 'Die vorhandene zu öffnen ersetzt, was gerade auf dem Bildschirm steht. Davon ist bisher nichts irgendwo gespeichert.',
+  'clash.open': 'Vorhandene öffnen',
+  'clash.rename': 'Anderen Namen wählen',
+  'clash.renamehint': 'Trag einen anderen Namen ein und teile dann erneut.',
+  'shelf.delete': 'Diese Abrechnung löschen',
+  'shelf.delete.confirm': '„{0}" für alle aus dem Repository löschen? Danach kann sie niemand mehr öffnen — auch mit Passwort nicht. Nur die Git-Historie hat sie noch.',
+  'shelf.deleted': '„{0}" gelöscht.',
+  'shelf.delete.failed': 'Die Abrechnung konnte nicht gelöscht werden.',
   'manual.title': 'Ohne Einladungscode öffnen',
   'manual.intro': 'Die Abrechnungen liegen alle in einem Repository. Trag das Zugriffstoken ein, das es lesen darf — die App zeigt dann, was dort liegt.',
   'manual.tokenwhy': 'Das Zugriffstoken lässt sich nicht weglassen: ein privates Repository gibt ohne Token nichts heraus. Auf einem Gerät, das schon einmal dabei war, steht es bereits da.',
@@ -1247,6 +1276,8 @@ de: {
   'open.err.head': 'Die Abrechnung konnte nicht geöffnet werden.',
   'open.err.gone': 'Diese Abrechnung liegt nicht mehr im Repository.',
 
+  'confirm.shared.new': 'Diese Abrechnung ist geteilt. Eine neue anzulegen heißt: dieses Gerät verlässt sie — die Abrechnung bleibt auf dem Server, alle anderen arbeiten weiter daran — und die {0} und {1} verschwinden hier vom Bildschirm. Repository und Token bleiben gespeichert, das Teilen der neuen Abrechnung fragt also nur nach einem Passwort. Fortfahren?',
+  'confirm.shared.clear': 'Diese Abrechnung ist geteilt. Alles zu löschen heißt: dieses Gerät verlässt sie — die Abrechnung bleibt auf dem Server, alle anderen arbeiten weiter daran — und die {0} und {1} verschwinden hier vom Bildschirm. Repository und Token bleiben gespeichert, ein neues Teilen fragt also nur nach einem Passwort. Fortfahren?',
   'confirm.unshare': 'Abgleich für diese Abrechnung auf diesem Gerät beenden? Die Daten bleiben hier und bleiben im Repository — nur der automatische Austausch hört auf.',
   'unshared': 'Teilen auf diesem Gerät beendet.',
   'warn.over': 'bei {0} {1} mehr festgelegt als die Ausgabe',
@@ -1909,6 +1940,21 @@ function settle(rows) {
       });
   }
 
+  /* Deleting needs the blob sha, i.e. you have to have read the file first —
+     which also means a stale listing cannot delete something newer by accident. */
+  function ghDelete(cfg, sha, message) {
+    return fetch(url(cfg), {
+      method: 'DELETE',
+      headers: headers(cfg.token),
+      body: JSON.stringify({ message: message || 'billing-tool: remove', sha: sha, branch: 'main' }),
+    }).then(function (res) {
+      if (res.status === 409 || res.status === 422) return { conflict: true };
+      if (!res.ok) return res.json().then(function (j) { throw errWith(res.status, j); },
+                                          function () { throw errWith(res.status, null); });
+      return { ok: true };
+    });
+  }
+
   /* ---------- merge ---------- */
   function byId(list) {
     var m = {};
@@ -1972,7 +2018,7 @@ function settle(rows) {
     seal: seal, unseal: unseal, openSealed: openSealed, labelOf: labelOf,
     makeCode: makeCode, parseCode: parseCode, codeIsSelfContained: codeIsSelfContained,
     CODE_PREFIX: CODE_PREFIX, CODE_FULL_PREFIX: CODE_FULL_PREFIX,
-    ghGet: ghGet, ghPut: ghPut, ghList: ghList,
+    ghGet: ghGet, ghPut: ghPut, ghList: ghList, ghDelete: ghDelete,
     mergeState: mergeState, mergeList: mergeList, alive: alive, fingerprint: fingerprint,
     _b64: { bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, b64url: b64url, unb64url: unb64url },
   };
@@ -2799,15 +2845,18 @@ function initMenu(){
       } else { done(); }
     }
     else if(act==='new'){
-      if(countData() && !confirm(t('confirm.new', countData()))) return;
+      /* A shared sheet cannot simply be emptied: the copy on the server is the
+         one everybody else is still editing, and an empty sheet carries no
+         tombstones, so the next exchange would pull all of it back. Leaving the
+         sharing is therefore not a side effect — it is part of the question,
+         which is why it is ONE question and not two in a row. */
+      if(!confirmDrop('new')) return;
       startEmptySheet(false);
       toast(t('new.done'));
     }
     else if(act==='clear'){
-      if(confirm(t('confirm.clear'))){
-        if(syncCfg) stopSync();   /* same reason as starting a new sheet */
-        adopt(emptyState()); renderAll(); save(); toast(t('cleared'));
-      }
+      if(!confirmDrop('clear')) return;
+      adopt(emptyState()); renderAll(); save(); toast(t('cleared'));
     }
   });
 }
@@ -2924,7 +2973,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.21.0';
+var APP_VERSION = '1.22.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3061,9 +3110,9 @@ function applyGate(){
 
 function startEmptySheet(keepTitle){
   /* An empty sheet knows nothing about the records that were there before, so
-     it carries no tombstones for them. Left connected, the very next sync would
-     read the server's copy and put every one of them back — which is exactly
-     what happened. A new sheet is a different sheet: it starts unshared. */
+     it carries no tombstones for them. Left connected, the very next exchange
+     would read the server's copy and put every one of them back. The menu asks
+     before it gets here; this is the backstop for every other caller. */
   if(syncCfg) stopSync();
   var keep = keepTitle ? state.title : '';
   adopt(emptyState());
@@ -3283,6 +3332,25 @@ function startSync(cfg, password, key, salt){
     return syncNow();
   });
 }
+/* One question, not two. On a shared sheet, leaving the sharing and losing the
+   entries are the same decision, and splitting them into two dialogs only
+   invites clicking through both. Ending the sharing keeps the device coupled:
+   repository and token stay stored, so the next sheet this device shares asks
+   for nothing but a password.
+   Returns false when the user backs out. */
+function confirmDrop(kind){
+  if(syncCfg){
+    if(!confirm(t('confirm.shared.' + kind, nPeople(state.people.length),
+                  nExpenses(state.expenses.length)))) return false;
+    var path = syncCfg.path;
+    stopSync();
+    forgetShared(path);
+    return true;
+  }
+  if(kind === 'new') return !countData() || confirm(t('confirm.new', countData()));
+  return confirm(t('confirm.clear'));
+}
+
 function stopSync(){
   syncGen++;
   syncBusy = false; syncAgain = false;
@@ -3409,31 +3477,65 @@ function shareSetup(){
         if(pw.length < 8){ toast(t('share.badpw')); pwIn.focus(); return; }
         var st = readStoreFields(sf);
         if(!st) return;
-        var cfg = { owner: st.owner, repo: st.repo,
-                    path: 'sheets/' + Sync.randomId(10) + '.json', token: st.token };
         dlgClose();
         toast(t('sync.state.busy'));
-        var salt = Sync.newSalt(), key = null;
-        Sync.deriveKey(pw, salt).then(function(k){
-          key = k;
-          return Sync.seal(k, salt, toWire(state), state.title);
-        }).then(function(text){
-          return Sync.ghPut(cfg, text, null, 'billing-tool: new sheet');
-        }).then(function(res){
-          if(res.conflict) throw new Error('conflict');
-          syncSha = res.sha;
-          rememberShared(cfg, sheetTitle(), pw);
-          return startSync(cfg, pw, key, salt);
-        }).then(function(){
-          return showCode(true);
+        /* Two sheets with the same name in one repository is how a group ends
+           up keeping two half-filled copies of the same trip. Look first. */
+        readShelf(st).then(function(items){
+          var clash = items.filter(function(it){ return sameName(it.label, state.title); })[0];
+          if(clash) return askAboutClash(clash);
+          return createShared(st, pw);
         }).catch(function(e){
-          var msg = (e && e.status === 404) ? t('share.err.404')
-                  : (e && (e.status === 401 || e.status === 403)) ? t('share.err.auth')
-                  : ((e && e.message) || 'error');
-          alert(t('share.err.head') + '\n\n' + msg);
+          reportShareError(e);
         });
       } },
   ]);
+}
+
+/* The name is already on the shelf: open that one, or pick another name. */
+function askAboutClash(it){
+  dlgOpen(t('clash.title'), function(b){
+    note(b, t('clash.intro', it.label));
+    note(b, t('clash.warn'), 'warnp');
+  }, [
+    { label: t('btn.cancel'), act:'cancel', onClick: dlgClose },
+    { label: t('clash.rename'), act:'rename', onClick: function(){
+        dlgClose();
+        $('tripTitle').focus();
+        $('tripTitle').select();
+        toast(t('clash.renamehint'));
+      } },
+    { label: t('clash.open'), act:'go', primary: true, onClick: function(){
+        dlgClose();
+        askPasswordFor(it);
+      } },
+  ]);
+}
+
+function reportShareError(e){
+  var msg = (e && e.status === 404) ? t('share.err.404')
+          : (e && (e.status === 401 || e.status === 403)) ? t('share.err.auth')
+          : ((e && e.message) || 'error');
+  alert(t('share.err.head') + '\n\n' + msg);
+}
+
+function createShared(st, pw){
+  var cfg = { owner: st.owner, repo: st.repo,
+              path: 'sheets/' + Sync.randomId(10) + '.json', token: st.token };
+  var salt = Sync.newSalt(), key = null;
+  return Sync.deriveKey(pw, salt).then(function(k){
+    key = k;
+    return Sync.seal(k, salt, toWire(state), state.title);
+  }).then(function(text){
+    return Sync.ghPut(cfg, text, null, 'billing-tool: new sheet');
+  }).then(function(res){
+    if(res.conflict) throw new Error('conflict');
+    syncSha = res.sha;
+    rememberShared(cfg, sheetTitle(), pw);
+    return startSync(cfg, pw, key, salt);
+  }).then(function(){
+    return showCode(true);
+  });
 }
 
 /* ---------- the invitation code ---------- */
@@ -3552,13 +3654,11 @@ function openManual(){
   ]);
 }
 
-/* List what is in the repository and offer it by name. The names are readable
-   because they are stored in the clear beside the ciphertext; everything else
-   about a sheet stays sealed until its password is given. */
-function browseRepo(base){
-  toast(t('sync.state.busy'));
-  Sync.ghList(base, 'sheets').then(function(paths){
-    if(!paths.length) throw new Error('empty');
+/* Read the whole shelf: every file with its sha, its raw text and the title
+   that is stored in the clear. Used both for browsing and for spotting a name
+   that is already taken. */
+function readShelf(base){
+  return Sync.ghList(base, 'sheets').then(function(paths){
     var items = [];
     return paths.reduce(function(chain, path){
       return chain.then(function(){
@@ -3568,19 +3668,20 @@ function browseRepo(base){
         }, function(){});
       });
     }, Promise.resolve()).then(function(){ return items; });
-  }).then(function(items){
+  });
+}
+function sameName(a, b){
+  return String(a||'').trim().toLowerCase() === String(b||'').trim().toLowerCase();
+}
+
+/* List what is in the repository and offer it by name. The names are readable
+   because they are stored in the clear beside the ciphertext; everything else
+   about a sheet stays sealed until its password is given. */
+function browseRepo(base){
+  toast(t('sync.state.busy'));
+  readShelf(base).then(function(items){
     if(!items.length) throw new Error('empty');
-    dlgOpen(t('manual.pick'), function(b){
-      note(b, t('manual.pick.intro'));
-      var box = el('div','sheetlist');
-      items.forEach(function(it){
-        var row = el('button','sheetitem');
-        row.appendChild(el('span','nm', it.label || t('open.untitled')));
-        row.addEventListener('click', function(){ dlgClose(); askPasswordFor(it); });
-        box.appendChild(row);
-      });
-      b.appendChild(box);
-    }, [{ label: t('btn.cancel'), act:'cancel', onClick: dlgClose }]);
+    showShelf(base, items);
   }).catch(function(e){
     var msg = (e && e.message === 'empty') ? t('manual.none')
             : (e && (e.status === 401 || e.status === 403)) ? t('share.err.auth')
@@ -3588,6 +3689,46 @@ function browseRepo(base){
             : ((e && e.message) || 'error');
     alert(t('manual.err.head') + '\n\n' + msg);
   });
+}
+
+function showShelf(base, items){
+  dlgOpen(t('manual.pick'), function(b){
+    note(b, t('manual.pick.intro'));
+    var box = el('div','sheetlist');
+    items.forEach(function(it){
+      var row = el('div','sheetrow');
+      var open = el('button','sheetitem');
+      open.appendChild(el('span','nm', it.label || t('open.untitled')));
+      open.addEventListener('click', function(){ dlgClose(); askPasswordFor(it); });
+      row.appendChild(open);
+      /* Deleting needs no password, and pretending otherwise would be a lie:
+         anyone holding the token can delete any file in this repository from a
+         command line regardless. What the button adds is the confirmation. */
+      var del = el('button','sheetdel','×');
+      del.title = t('shelf.delete');
+      del.setAttribute('aria-label', t('shelf.delete'));
+      del.addEventListener('click', function(){
+        if(!confirm(t('shelf.delete.confirm', it.label || t('open.untitled')))) return;
+        dlgClose();
+        toast(t('sync.state.busy'));
+        Sync.ghDelete(it.cfg, it.sha, 'billing-tool: remove sheet').then(function(res){
+          if(res.conflict) throw new Error('conflict');
+          /* if the deleted one was open here, this device is now sharing nothing */
+          if(syncCfg && syncCfg.path === it.cfg.path){ stopSync(); forgetShared(it.cfg.path); }
+          forgetShared(it.cfg.path);
+          toast(t('shelf.deleted', it.label || t('open.untitled')));
+          return readShelf(base).then(function(rest){
+            if(rest.length) showShelf(base, rest);
+          });
+        }).catch(function(e){
+          alert(t('shelf.delete.failed') + '\n\n' + ((e && e.message) || 'error'));
+        });
+      });
+      row.appendChild(del);
+      box.appendChild(row);
+    });
+    b.appendChild(box);
+  }, [{ label: t('btn.close'), act:'cancel', onClick: dlgClose }]);
 }
 
 function askPasswordFor(it){
