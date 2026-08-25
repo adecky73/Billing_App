@@ -1054,6 +1054,7 @@ en: {
   'save.csv': 'CSV for Excel — {0}.',
   'how.share': 'sent to the share sheet',
   'how.download': 'saved to Downloads',
+  'how.file': 'written to {0}',
   'how.screen': 'shown on screen',
   'how.screen.reason': 'shown on screen — Android refused: {0}',
   'load.ok': 'Loaded {0} {1} and {2} {3}.',
@@ -1313,6 +1314,7 @@ de: {
   'save.csv': 'CSV für Excel — {0}.',
   'how.share': 'an das Teilen-Menü übergeben',
   'how.download': 'in Downloads gesichert',
+  'how.file': 'in {0} geschrieben',
   'how.screen': 'am Bildschirm angezeigt',
   'how.screen.reason': 'am Bildschirm angezeigt — Android hat abgelehnt: {0}',
   'load.ok': '{0} {1} und {2} {3} geladen.',
@@ -2668,6 +2670,54 @@ function saveViaCapacitor(name, mime, text, done){
   return true;
 }
 
+/* The one file handle this session has been given, and the name it belongs to.
+   Kept so the second save of the same sheet overwrites the first instead of
+   producing Test1 (1).json, Test1 (2).json, ... */
+var fileHandle = null, fileHandleName = '';
+
+/* Chromium on the desktop can hand back a real file handle; Firefox, Safari and
+   every Android WebView cannot. There, the browser owns the Downloads folder
+   and appends a counter, and no web API can talk it out of that. */
+function saveViaHandle(name, text, done){
+  if(!window.showSaveFilePicker) return false;
+
+  function write(handle){
+    return handle.createWritable().then(function(w){
+      return w.write(text).then(function(){ return w.close(); });
+    }).then(function(){
+      fileHandle = handle; fileHandleName = name;
+      done(t('how.file', handle.name || name));
+    });
+  }
+
+  /* same sheet as last time: overwrite silently, no dialog at all */
+  if(fileHandle && fileHandleName === name){
+    fileHandle.queryPermission({mode:'readwrite'}).then(function(p){
+      return p === 'granted' ? 'granted' : fileHandle.requestPermission({mode:'readwrite'});
+    }).then(function(p){
+      if(p !== 'granted') throw new Error('permission');
+      return write(fileHandle);
+    }).catch(function(){
+      fileHandle = null;
+      ask();
+    });
+    return true;
+  }
+  ask();
+  return true;
+
+  function ask(){
+    window.showSaveFilePicker({
+      suggestedName: name,
+      types: [{description:'JSON', accept:{'application/json':['.json']}}],
+    }).then(write).catch(function(e){
+      /* the user closing the picker is not a failure */
+      if(e && e.name === 'AbortError'){ done('cancelled'); return; }
+      viaAnchorFallback(name, text, done);
+    });
+  }
+}
+
 function saveFile(name, mime, text, done){
   done = done || function(){};
 
@@ -2680,6 +2730,8 @@ function saveFile(name, mime, text, done){
     done(t('how.screen'));
     return;
   }
+
+  if(mime === 'application/json' && saveViaHandle(name, text, done)) return;
 
   function viaAnchor(){
     var a = document.createElement('a');
@@ -2718,6 +2770,22 @@ function saveFile(name, mime, text, done){
     }
   }
   viaAnchor();
+}
+
+/* the plain-download path, reachable from the file-handle route when it fails */
+function viaAnchorFallback(name, text, done){
+  var a = document.createElement('a');
+  a.download = name;
+  var url = null;
+  try{
+    url = URL.createObjectURL(new Blob([text], {type:'application/json'}));
+    a.href = url;
+  }catch(e){ showRaw(name, text); return done(t('how.screen')); }
+  document.body.appendChild(a);
+  try{ a.click(); }catch(e){ a.remove(); showRaw(name, text); return done(t('how.screen')); }
+  a.remove();
+  if(url) setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+  done(t('how.download'));
 }
 
 /* last resort: put the text where it can at least be selected and copied */
@@ -2941,11 +3009,26 @@ $('addRow').addEventListener('click', function(){
   state.expenses.unshift({id:uid(), payerId:null, desc:'', cents:0, shares:{}});
   renderTable(); renderResults(); save();
   var firstRow = $('tbody').querySelector('tr');
-  if(firstRow){
-    firstRow.scrollIntoView({block:'nearest'});
-    var d = firstRow.querySelector('td.desc input');
-    if(d) d.focus();
-  }
+  if(!firstRow) return;
+  firstRow.scrollIntoView({block:'nearest'});
+
+  /* Walk the row in the order the entry actually happens: who paid, then how
+     much. showPicker() drops the list open in Chromium — everywhere else the
+     field is merely focused, which is the same keystroke away. It throws when
+     the browser will not honour it (no user gesture, no support), and that is
+     not a failure worth reporting. */
+  var sel = firstRow.querySelector('td.payer select');
+  var amt = firstRow.querySelector('td.amt input');
+  if(!sel) return;
+  sel.focus();
+  try{ if(sel.showPicker) sel.showPicker(); }catch(e){}
+
+  if(!amt) return;
+  sel.addEventListener('change', function once(){
+    sel.removeEventListener('change', once);
+    /* the row's own change handler re-renders the results first */
+    setTimeout(function(){ amt.focus(); amt.select(); }, 0);
+  });
 });
 
 $('tripTitle').addEventListener('input', function(){
@@ -2973,7 +3056,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.22.0';
+var APP_VERSION = '1.23.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3369,7 +3452,14 @@ function dlgOpen(title, buildBody, buttons){
   var body = $('shareBody'); body.innerHTML = '';
   buildBody(body);
   var foot = $('shareFoot'); foot.innerHTML = '';
-  buttons.forEach(function(b){
+  /* The way out goes last, on the right, in every dialog — decided in one
+     place so no individual dialog can get the order wrong. */
+  var ordered = buttons.slice().sort(function(x, y){
+    var wx = (x.act === 'cancel' || x.act === 'close') ? 1 : 0;
+    var wy = (y.act === 'cancel' || y.act === 'close') ? 1 : 0;
+    return wx - wy;
+  });
+  ordered.forEach(function(b){
     var btn = el('button', 'btn' + (b.primary ? ' primary' : '') + (b.danger ? ' danger' : ''), b.label);
     if(b.act) btn.dataset.b = b.act;
     btn.addEventListener('click', b.onClick);
