@@ -63,9 +63,11 @@ jobs:
             --exclude='package.json' \
             --exclude='package-lock.json' \
             --exclude='capacitor.config.json' \
-            --exclude='README.md' \
+            --exclude='*.md' \
             --exclude='start-server.cmd' \
             --exclude='*.zip' \
+            --exclude='*.apk' \
+            --exclude='out' \
             --exclude='.nojekyll' \
             ./ www/
           echo "--- www/ contains: ---"
@@ -144,6 +146,19 @@ jobs:
       # without them a debug APK, which is installable but is re-signed with
       # a fresh throwaway key on every run (see README).
       # ------------------------------------------------------------------
+      # A clean, empty place for the one file this run is allowed to publish.
+      - name: Prepare the output directory
+        run: |
+          set -euo pipefail
+          rm -rf out && mkdir -p out
+          # An APK committed to the repository is not an error, but it used to
+          # end up in the download next to the fresh one. Say so, once.
+          STRAY="$(find . -path ./out -prune -o -path ./android/app/build -prune -o \
+                        -name '*.apk' -print 2>/dev/null | head -5)"
+          if [ -n "$STRAY" ]; then
+            echo "::warning::APK files are checked into this repository; they are no longer included in the download. Consider deleting them: $STRAY"
+          fi
+
       - name: Build release APK (signed)
         if: env.KEYSTORE_B64 != ''
         run: |
@@ -177,9 +192,8 @@ jobs:
             --ks-pass "pass:$KEYSTORE_PASSWORD" \
             --ks-key-alias "$KEY_ALIAS" \
             --key-pass "pass:$KEY_PASSWORD" \
-            --out "billing-tool-${{ steps.ver.outputs.version }}.apk" /tmp/aligned.apk
-          cp "billing-tool-${{ steps.ver.outputs.version }}.apk" billing-tool.apk
-          "$BT/apksigner" verify --print-certs billing-tool.apk
+            --out "out/billing-tool-${{ steps.ver.outputs.version }}.apk" /tmp/aligned.apk
+          "$BT/apksigner" verify --print-certs "out/billing-tool-${{ steps.ver.outputs.version }}.apk"
           rm -f /tmp/release.jks
 
       - name: Build debug APK (unsigned release not configured)
@@ -189,19 +203,31 @@ jobs:
           cd android
           ./gradlew --no-daemon assembleDebug
           cd ..
-          cp android/app/build/outputs/apk/debug/app-debug.apk billing-tool.apk
-          cp billing-tool.apk "billing-tool-${{ steps.ver.outputs.version }}-debug.apk"
+          cp android/app/build/outputs/apk/debug/app-debug.apk \
+             "out/billing-tool-${{ steps.ver.outputs.version }}-debug.apk"
           echo "::warning::Built a DEBUG APK. It installs fine, but each build is signed with a new key - you must uninstall the previous version before installing a newer one. See ANDROID-APP.md to set up proper signing."
 
       - name: Show what was built
         run: |
-          ls -lh billing-tool*.apk
-          "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2" dump badging billing-tool.apk | head -5 || true
+          set -euo pipefail
+          ls -lh out/
+          COUNT="$(ls out/*.apk | wc -l)"
+          if [ "$COUNT" -ne 1 ]; then
+            echo "::error::Expected exactly one APK in out/, found $COUNT."
+            exit 1
+          fi
+          "$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/aapt2" \
+            dump badging out/*.apk | head -5 || true
 
+      # Uploading a glob over the workspace also picked up any APK that had been
+      # committed to the repository, so a download could contain an old build
+      # next to the new one. out/ is created empty by this job and holds exactly
+      # the file this run produced.
       - name: Upload the APK
         uses: actions/upload-artifact@v7
         with:
           name: billing-tool-${{ steps.ver.outputs.version }}
-          path: billing-tool*.apk
+          path: out/*.apk
           if-no-files-found: error
+          overwrite: true
           retention-days: 90
