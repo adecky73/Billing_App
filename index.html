@@ -746,18 +746,28 @@ body.has-syncbar .wrap{padding-bottom:76px}
 
 /* ---------- "that one is me" ---------- */
 .chip{position:relative}
+/* room for the hand, so it never lands on top of the delete cross. Set from
+   script rather than with :has(), which is too new to rely on in a WebView. */
+.chip.haspick{padding-right:36px}
 /* The finger sits over the middle of the name, dimmed until it is wanted —
    a solid button there would make the list unreadable. */
+/* At the right edge of the chip rather than over the middle of it: a hand is
+   a solid shape, and in the middle it swallowed two letters of every name. */
 .pickme{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  position:absolute;right:3px;top:50%;transform:translateY(-50%);
   width:30px;height:30px;border-radius:var(--r-full);border:none;cursor:pointer;
   display:grid;place-items:center;
-  background:var(--primary-c);color:var(--on-primary-c);
-  box-shadow:0 1px 4px rgba(0,0,0,.28);opacity:.72;
+  /* The hand is a picture, not a glyph: a free pointing-hand icon from
+     magnific.com, turned a quarter to the left and recoloured to a skin tone
+     with a dark rim so it still reads on a light disc. Source and the exact
+     changes are recorded in CREDITS.md. It carries its own colours, so the
+     button is the same plain disc in either theme. */
+  background:#fffdfa url("data:image/png;base64,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") center/20px 20px no-repeat;
+  box-shadow:0 1px 5px rgba(0,0,0,.32);opacity:.9;
   transition:opacity .12s,transform .12s;
 }
-.pickme:hover,.pickme:focus-visible{opacity:1;transform:translate(-50%,-50%) scale(1.08)}
-.pickme svg{display:block;transform:rotate(-20deg)}
+.pickme:hover,.pickme:focus-visible{opacity:1;transform:translateY(-50%) scale(1.08)}
+
 .chip.me{border-color:var(--me)}
 .mebtn{
   border:none;background:transparent;cursor:pointer;
@@ -990,6 +1000,11 @@ en: {
   'topgap.overlay.off': 'off — the system reserves the strip',
   'topgap.overlay.on': 'on — the app has to keep the strip free itself',
   'topgap.auto': 'Back to automatic',
+  'me.reserved': '“{0}” is what the app calls you — pick a different name.',
+  'me.takenshort': 'Somebody else is this person.',
+  'own.person': 'this person',
+  'own.expense': 'this expense',
+  'own.confirm': '{0} was entered on another device. Change it anyway?',
   'me.nom': 'me',
   'me.acc': 'me',
   'me.pick': 'This is me ({0})',
@@ -1185,6 +1200,7 @@ en: {
   'set.none': 'Nothing to settle yet.',
   'set.done': '✓ All settled — nobody owes anything.',
   'set.pays': 'pays',
+  'set.pays.me': 'pay',
   'set.to': 'to',
   'set.count': '{0} {1} (fewest possible for {2} people)',
   'word.transfer': 'transfer',
@@ -1280,6 +1296,11 @@ de: {
   'topgap.overlay.off': 'aus — das System hält den Streifen frei',
   'topgap.overlay.on': 'an — die App muss den Streifen selbst freihalten',
   'topgap.auto': 'Zurück auf automatisch',
+  'me.reserved': '„{0}" nennt die App dich selbst — nimm einen anderen Namen.',
+  'me.takenshort': 'Jemand anderes ist diese Person.',
+  'own.person': 'Diese Person',
+  'own.expense': 'Diese Ausgabe',
+  'own.confirm': '{0} wurde auf einem anderen Gerät eingetragen. Trotzdem ändern?',
   'me.nom': 'ich',
   'me.acc': 'mich',
   'me.pick': 'Das bin ich ({0})',
@@ -1471,6 +1492,7 @@ de: {
   'set.none': 'Noch nichts auszugleichen.',
   'set.done': '✓ Alles ausgeglichen — niemand schuldet etwas.',
   'set.pays': 'zahlt',
+  'set.pays.me': 'zahle',
   'set.to': 'an',
   'set.count': '{0} {1} (kleinstmögliche Zahl für {2} Personen)',
   'word.transfer': 'Überweisung',
@@ -2331,7 +2353,9 @@ function normalize(st){
     if(c && typeof c === 'object') st.claims[ck] = { d: c.d ? String(c.d) : null, m: Number(c.m) || 0 };
   }
   st.people = (st.people||[]).map(function(p){
-    return {id:p.id||uid(), name:String(p.name||'').toUpperCase(), m:Number(p.m)||0};
+    var pn = {id:p.id||uid(), name:String(p.name||'').toUpperCase(), m:Number(p.m)||0};
+    if(p.o) pn.o = String(p.o);
+    return pn;
   });
   var n = (st.expenses||[]).length;
   st.expenses = (st.expenses||[]).map(function(e, i){
@@ -2349,6 +2373,7 @@ function normalize(st){
                   none, so it is derived from the position — the list already
                   runs newest first, so index 0 must end up with the largest c. */
                c:Number(e.c) || (n - i)};
+    if(e.o) out.o = String(e.o);
     if(any) out.fixed = fx;
     return out;
   });
@@ -2358,12 +2383,7 @@ function normalize(st){
 /* A pointing hand, drawn rather than borrowed from the emoji font: the emoji
    differs wildly between Android, iOS and the desktop, and this one has to
    read as a button at 17 pixels. */
-var FINGER_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">' +
-  '<g fill="currentColor">' +
-  '<rect x="10" y="1.5" width="4.2" height="11" rx="2.1"/>' +
-  '<rect x="6" y="10" width="12.5" height="11" rx="3.6"/>' +
-  '<rect x="2.8" y="12.2" width="4.4" height="6" rx="2.2"/>' +
-  '</g></svg>';
+/* the pointing hand lives in the stylesheet, as a background image */
 
 /* ======================= "that one is me" =======================
    A person can be claimed by exactly one device. The claim travels with the
@@ -2400,10 +2420,47 @@ function isMe(personId){ return claimedBy(personId) === deviceId; }
 
 /** What to show instead of a person's name. `mode` picks the grammatical form
     German needs and English does not. */
+/* "me" is a word this app puts on the screen in place of a name. If a name
+   could also BE that word, nobody could tell the two apart — so the word is
+   reserved, in both languages, whichever one is switched on. */
+function isReservedName(nm){
+  var n = String(nm || '').trim().toLowerCase();
+  if(!n) return false;
+  var words = [];
+  ['en','de'].forEach(function(l){
+    ['me.nom','me.acc'].forEach(function(k){
+      var v = I18N[l] && I18N[l][k];
+      if(v) words.push(String(v).toLowerCase());
+    });
+  });
+  return words.indexOf(n) > -1;
+}
+
 function shownName(personId, mode){
   if(isMe(personId)) return t(mode === 'acc' ? 'me.acc' : 'me.nom');
   return personName(personId);
 }
+
+/* ---------------- who put this here ----------------
+   A record remembers the device that created it. Anybody may still change
+   anything — this is a shared sheet, not a permissions system — but a change to
+   somebody else's entry asks first, once per entry. Records from before this
+   existed have no owner and are free for all. */
+var unlocked = {};
+function ownedByOther(rec){
+  return !!(rec && rec.o && rec.o !== deviceId && !unlocked[rec.id]);
+}
+function mayEdit(rec, whatKey){
+  if(!ownedByOther(rec)) return true;
+  if(confirm(t('own.confirm', t(whatKey)))){
+    unlocked[rec.id] = true;
+    return true;
+  }
+  return false;
+}
+/* The check belongs in the change handler itself. Asking on focus felt nicer
+   but guarded nothing: a field can be filled without ever holding focus, and by
+   then the model has already moved. */
 
 /* ============================ helpers ============================ */
 function money(cents){ return formatCents(cents) + ' ' + state.currency; }
@@ -2449,7 +2506,14 @@ function renderPeople(){
       inp.value = p.name; inp.size = Math.max(4, p.name.length);
       inp.setAttribute('aria-label', t('people.name.aria'));
       inp.addEventListener('input', function(){
-        p.name = inp.value.toUpperCase();
+        if(!mayEdit(p, 'own.person')){ inp.value = p.name; return; }
+        var next = inp.value.toUpperCase();
+        if(isReservedName(next)){
+          toast(t('me.reserved', next));
+          inp.value = p.name;                 /* refuse it, keep what was there */
+          return;
+        }
+        p.name = next;
         inp.value = p.name;
         inp.size = Math.max(4, p.name.length);
         updateHeaderNames(); renderResults(); save();
@@ -2458,19 +2522,24 @@ function renderPeople(){
 
       /* the pointing finger, over the middle of the name - only while this
          device has claimed nobody, and only on a name nobody else holds */
+      if(claimedBy(p.id) && !isMe(p.id)){
+        /* somebody else is this person: no finger, but say why if asked */
+        chip.title = t('me.takenshort');
+      }
       if(!mine && !claimedBy(p.id)){
         var pick = el('button','pickme');
-        pick.innerHTML = FINGER_SVG;
         pick.title = t('me.pick', p.name);
         pick.setAttribute('aria-label', t('me.pick', p.name));
         pick.addEventListener('click', function(ev){ ev.preventDefault(); claimPerson(p.id); });
         chip.appendChild(pick);
+        chip.classList.add('haspick');
       }
     }
 
     var x = el('button','x','×');
     x.title = t('people.remove', shownName(p.id));
     x.addEventListener('click', function(){
+      if(!mayEdit(p, 'own.person')) return;
       var used = state.expenses.some(function(e){ return e.payerId===p.id || (e.shares[p.id]||0)>0; });
       if(used && !confirm(t(isMe(p.id) ? 'confirm.removeme' : 'confirm.removeperson', p.name))) return;
       if(state.claims[p.id]) state.claims[p.id] = { d: null, m: Date.now() };
@@ -2496,10 +2565,11 @@ function renderPeople(){
   function commitPerson(){
     var nm = add.value.trim().toUpperCase();
     if(!nm){ add.focus(); return; }
+    if(isReservedName(nm)){ toast(t('me.reserved', nm)); add.select(); return; }
     if(state.people.some(function(p){return p.name===nm;})){
       toast(t('people.exists', nm)); add.select(); return;
     }
-    state.people.push({id:uid(), name:nm, m:Date.now()});
+    state.people.push({id:uid(), name:nm, m:Date.now(), o:deviceId});
     add.value = '';
     pendingPerson = '';
     renderAll(); save();
@@ -2586,6 +2656,7 @@ function renderTable(){
     sel.value = ex.payerId || '';
     if(!ex.payerId) sel.className = 'empty';
     sel.addEventListener('change', function(){
+      if(!mayEdit(ex, 'own.expense')){ sel.value = ex.payerId || ''; return; }
       ex.payerId = sel.value || null;
       sel.className = ex.payerId ? '' : 'empty';
       renderResults(); save();
@@ -2596,7 +2667,10 @@ function renderTable(){
     var tdD = el('td','desc');
     var inD = document.createElement('input');
     inD.value = ex.desc; inD.placeholder = t('row.desc.ph'); inD.setAttribute('aria-label', t('row.desc.aria'));
-    inD.addEventListener('input', function(){ ex.desc = inD.value; save(); });
+    inD.addEventListener('input', function(){
+      if(!mayEdit(ex, 'own.expense')){ inD.value = ex.desc; return; }
+      ex.desc = inD.value; save();
+    });
     tdD.appendChild(inD); tr.appendChild(tdD);
 
     // amount
@@ -2606,6 +2680,7 @@ function renderTable(){
     inA.value = ex.cents ? formatCents(ex.cents) : '';
     inA.placeholder = '0.00';
     inA.addEventListener('input', function(){
+      if(!mayEdit(ex, 'own.expense')){ inA.value = ex.cents ? formatCents(ex.cents) : ''; return; }
       ex.cents = parseAmount(inA.value);
       /* an exact-amount strip open below this row shows a note about the
          expense — without this it kept the old warning until it was reopened */
@@ -2627,6 +2702,7 @@ function renderTable(){
       b.setAttribute('aria-label', t('row.share.aria', shownName(p.id), ex.desc || t('card.expenses')));
       b.addEventListener('click', function(ev){
         if(b.disabled) return;
+        if(!mayEdit(ex, 'own.expense')) return;
         if(ex.fixed && ex.fixed[p.id]){
           delete ex.fixed[p.id];
           if(!Object.keys(ex.fixed).length) delete ex.fixed;
@@ -2662,6 +2738,7 @@ function renderTable(){
     exBtn.title = t('row.exact');
     if(res.perExpense[ri].hasFixed) exBtn.classList.add('on');
     exBtn.addEventListener('click', function(){
+      if(!mayEdit(ex, 'own.expense')) return;
       var open = tr.nextSibling && tr.nextSibling.classList &&
                  tr.nextSibling.classList.contains('exactrow');
       closeExactRows();
@@ -2671,6 +2748,7 @@ function renderTable(){
     var del = el('button','rowdel','×');
     del.title = t('row.delete');
     del.addEventListener('click', function(){
+      if(!mayEdit(ex, 'own.expense')) return;
       state.expenses = state.expenses.filter(function(e){ return e.id !== ex.id; });
       renderTable(); renderResults(); save();
     });
@@ -2943,7 +3021,9 @@ function renderResults(){
       var d = el('div','tr');
       d.appendChild(el('span', isMe(x.fromId) ? 'from isme' : 'from', shownName(x.fromId)));
       d.appendChild(el('span','arrow','→'));
-      d.appendChild(el('span',null,t('set.pays')));
+      /* the verb follows the person: somebody else "pays", but I "pay" — a
+         third-person verb next to "me" reads as a mistake */
+      d.appendChild(el('span',null,t(isMe(x.fromId) ? 'set.pays.me' : 'set.pays')));
       d.appendChild(el('span','amt', money(x.cents)));
       d.appendChild(el('span',null,t('set.to')));
       d.appendChild(el('span', isMe(x.toId) ? 'to isme' : 'to', shownName(x.toId, 'acc')));
@@ -3359,7 +3439,8 @@ $('addRow').addEventListener('click', function(){
   /* c is the ordering key. Without it the row travels with c = 0 and comes
      back from the exchange sorted below everything else — which is exactly the
      "row jumps down after the first tap" that was reported. */
-  state.expenses.unshift({id:uid(), payerId:null, desc:'', cents:0, shares:{}, m:Date.now(), c:Date.now()});
+  state.expenses.unshift({id:uid(), payerId:null, desc:'', cents:0, shares:{},
+                          m:Date.now(), c:Date.now(), o:deviceId});
   renderTable(); renderResults(); save();
   var firstRow = $('tbody').querySelector('tr');
   if(!firstRow) return;
@@ -3480,7 +3561,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '2.0.0';
+var APP_VERSION = '2.1.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3768,10 +3849,15 @@ function forgetShared(path){
 function toWire(st){
   var w = { title: st.title, tm: st.tm||0, currency: st.currency, cm: st.cm||0,
             people: [], expenses: [], claims: st.claims || {} };
-  st.people.forEach(function(p){ w.people.push({id:p.id, name:p.name, m:p.m||0}); });
+  st.people.forEach(function(p){
+    var r = {id:p.id, name:p.name, m:p.m||0};
+    if(p.o) r.o = p.o;
+    w.people.push(r);
+  });
   st.expenses.forEach(function(e){
     var o = {id:e.id, payerId:e.payerId, desc:e.desc, cents:e.cents, shares:e.shares,
              m:e.m||0, c:e.c||0};
+    if(e.o) o.o = e.o;
     if(e.fixed) o.fixed = e.fixed;
     w.expenses.push(o);
   });
