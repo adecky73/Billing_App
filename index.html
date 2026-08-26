@@ -183,8 +183,14 @@ header.top{
   min-height:0;
   background:var(--surface);
 }
-body.inset-fallback header.top{padding-top:30px}
-body.no-statusbar header.top{padding-top:6px}
+/* Three cases in the packaged app, most specific last:
+   - a WebView that reports the inset correctly: inset + breathing room
+   - one that reports none but still draws under the status bar: fixed 34px
+   - the status bar hidden altogether: no bar to clear, but the mark still
+     needs a margin or it sits flush against the top edge */
+body.native header.top{padding-top:calc(14px + env(safe-area-inset-top, 0px))}
+body.inset-fallback header.top{padding-top:34px}
+body.no-statusbar header.top{padding-top:14px}
 .brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 200px}
 .logo{width:44px;height:44px;flex:none;display:block}
 .logo svg{display:block;width:100%;height:100%}
@@ -3140,7 +3146,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.24.0';
+var APP_VERSION = '1.24.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -4168,6 +4174,7 @@ if(isNativeShell){
     document.body.appendChild(probe);
     var inset = probe.getBoundingClientRect().height;
     probe.remove();
+    if(isNativeShell) document.body.classList.add('native');
     if(inset < 1 && (isNativeShell || isStandalone)) document.body.classList.add('inset-fallback');
   }
   if(document.readyState === 'complete') apply();
