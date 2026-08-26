@@ -187,6 +187,25 @@ header.top{
   min-height:0;
   background:var(--surface);
 }
+
+/* An Android WebView does not keep a sticky header put — it works everywhere
+   else, including a phone browser, but not there. `fixed` has none of sticky's
+   containing-block subtleties, so the packaged app uses that instead and the
+   page reserves the height it takes (--head-h, measured in script, because the
+   bar grows a line when the sheet name is long). */
+body.fixedhead header.top{
+  position:fixed;top:0;left:0;right:0;margin:0;
+  padding-left:calc(16px + env(safe-area-inset-left, 0px));
+  padding-right:calc(16px + env(safe-area-inset-right, 0px));
+}
+body.fixedhead .wrap{padding-top:var(--head-h, 64px)}
+@media (max-width:700px){
+  body.fixedhead header.top{
+    padding-left:calc(12px + env(safe-area-inset-left, 0px));
+    padding-right:calc(12px + env(safe-area-inset-right, 0px));
+  }
+}
+@media print{ body.fixedhead header.top{position:static} body.fixedhead .wrap{padding-top:0} }
 /* Three cases in the packaged app, most specific last:
    - a WebView that reports the inset correctly: inset + breathing room
    - one that reports none but still draws under the status bar: fixed 34px
@@ -3190,6 +3209,7 @@ function fitTitle(){
   }else{
     i.style.width = Math.max(90, wanted) + 'px';
   }
+  measureHead();
 }
 window.addEventListener('resize', function(){ fitTitle(); });
 
@@ -3219,7 +3239,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.26.1';
+var APP_VERSION = '1.27.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3278,7 +3298,17 @@ function applyTopGap(){
   if(v === null) v = autoTopGap();
   v = Math.max(0, Math.min(160, v));
   document.documentElement.style.setProperty('--top-pad', v + 'px');
+  measureHead();
   return v;
+}
+
+/* With a fixed header the page has to reserve its height itself, and that
+   height is not constant: a long sheet name pushes the buttons onto a second
+   line. Measured after every change that can affect it. */
+function measureHead(){
+  if(!document.body.classList.contains('fixedhead')) return;
+  var h = document.querySelector('header.top');
+  if(h) document.documentElement.style.setProperty('--head-h', h.offsetHeight + 'px');
 }
 
 /* Ask the shell not to draw under the bar. Only works if the packaged app
@@ -4291,7 +4321,11 @@ if(isNativeShell){
 /* The inset is only readable once the document is laid out, so this waits. */
 (function safeArea(){
   function apply(){
-    if(isNativeShell) document.body.classList.add('native');
+    if(isNativeShell){
+      document.body.classList.add('native');
+      /* sticky is unreliable in an Android WebView; fixed is not */
+      document.body.classList.add('fixedhead');
+    }
     applyTopGap();
     var menuItem = document.querySelector('#menu [data-act="topgap"]');
     if(menuItem) menuItem.hidden = !(isNativeShell || isStandalone);
