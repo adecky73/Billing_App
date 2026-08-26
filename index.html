@@ -188,10 +188,19 @@ header.top{
    - one that reports none but still draws under the status bar: fixed 34px
    - the status bar hidden altogether: no bar to clear, but the mark still
      needs a margin or it sits flush against the top edge */
-body.native header.top{padding-top:calc(14px + env(safe-area-inset-top, 0px))}
-body.inset-fallback header.top{padding-top:34px}
-/* the system reserves the status bar's space itself, so the page needs none */
-body.no-overlay header.top{padding-top:12px}
+/* Android draws the app edge to edge, so the status bar sits ON TOP of the
+   page unless the shell says otherwise. The page therefore has to keep that
+   strip free itself — and on a phone with a punch-hole camera the strip is
+   taller than the bar's text, because the lens lives inside it.
+
+   Three cases, most specific last:
+   - the WebView reports the inset: trust it, plus a margin below the bar
+   - it reports nothing (common in a Capacitor WebView): assume bar + cutout
+   - the shell was able to turn overlaying off: the system keeps the space
+     itself and only an ordinary margin is left */
+body.native header.top{padding-top:calc(env(safe-area-inset-top, 0px) + 18px)}
+body.inset-fallback header.top{padding-top:max(52px, calc(env(safe-area-inset-top, 0px) + 18px))}
+body.no-overlay header.top{padding-top:18px}
 /* The name takes the room it needs; when that leaves too little for the
    buttons, they wrap onto a second line and stay right-aligned there. The
    switch is thrown from script, which can measure what CSS cannot. */
@@ -3200,7 +3209,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.25.0';
+var APP_VERSION = '1.25.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3208,12 +3217,17 @@ var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
    would only risk serving something stale inside the packaged app. */
 var isNativeShell = !!(window.Capacitor || window.cordova);
 
-/* Hiding the status bar does not stick: Android brings the system bars back
-   the moment the soft keyboard appears, and with the page laid out as if they
-   were gone, the clock and the battery then sit on top of the app's own header.
-   Asking not to draw UNDER the bar is the stable version of the same wish —
-   the bar stays, but the WebView starts below it, so nothing overlaps and no
-   inset padding is needed. */
+/* The status bar keeps its clock and battery; the app begins underneath it.
+   Two things are needed for that, and only one of them is here.
+
+   This asks the shell not to draw under the bar — which only works if the
+   packaged app actually ships @capacitor/status-bar. When it does not, this is
+   a no-op and the CSS fallback carries the whole job, which is why that
+   fallback has to be generous rather than exact.
+
+   Hiding the bar is not an option: Android brings the system bars back the
+   moment the soft keyboard appears, and a page laid out as if they were gone
+   then has the clock sitting on its own header. */
 (function placeBelowStatusBar(){
   if(!isNativeShell) return;
   var P = window.Capacitor && window.Capacitor.Plugins;
