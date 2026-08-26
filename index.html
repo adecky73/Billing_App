@@ -190,14 +190,20 @@ header.top{
      needs a margin or it sits flush against the top edge */
 body.native header.top{padding-top:calc(14px + env(safe-area-inset-top, 0px))}
 body.inset-fallback header.top{padding-top:34px}
-body.no-statusbar header.top{padding-top:14px}
-.brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 200px}
+/* the system reserves the status bar's space itself, so the page needs none */
+body.no-overlay header.top{padding-top:12px}
+/* The name takes the room it needs; when that leaves too little for the
+   buttons, they wrap onto a second line and stay right-aligned there. The
+   switch is thrown from script, which can measure what CSS cannot. */
+.brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 auto}
+header.top.stacked .brand{flex:1 1 100%}
+header.top.stacked #tripTitle{flex:1 1 auto}
 .logo{width:44px;height:44px;flex:none;display:block}
 .logo svg{display:block;width:100%;height:100%}
 #tripTitle{
   font-size:22px;font-weight:400;letter-spacing:0;
   background:transparent;border:none;border-radius:var(--r-s);
-  padding:4px 8px;min-width:0;flex:1 1 auto;width:100%;max-width:520px;
+  padding:4px 8px;min-width:0;flex:0 1 auto;width:auto;max-width:100%;
 }
 #tripTitle:hover{background:var(--surface-2)}
 #tripTitle:focus{outline:2px solid var(--focus);outline-offset:-2px;background:var(--surface-1)}
@@ -542,7 +548,7 @@ footer .ver{font-size:11.5px;opacity:.8}
             calc(12px + env(safe-area-inset-right, 0px)) 6px
             calc(12px + env(safe-area-inset-left, 0px));
   }
-  .brand{flex:1 1 150px}
+  .brand{flex:0 1 auto}
   .logo{width:34px;height:34px}
   #tripTitle{font-size:19px;padding:2px 6px}
   .top-actions{gap:6px}
@@ -2689,6 +2695,7 @@ function renderResults(){
 
 function renderAll(){
   $('tripTitle').value = state.title;
+  fitTitle();
   document.title = (state.title || '').trim() ? state.title + ' — Billing Tool' : 'Billing Tool';
   renderPeople(); renderTable(); renderResults();
   applyGate();
@@ -3121,7 +3128,54 @@ $('addRow').addEventListener('click', function(){
   });
 });
 
+/* A text input does not grow with its text, so a long sheet name used to be
+   scrolled inside a squeezed field. Sizing it to the content lets the flex row
+   wrap the buttons onto a second line instead. */
+/* A text input does not grow with its text, and its `size` attribute is a poor
+   proxy — it reserves roughly an average character each, which for a short name
+   asks for twice the room the text actually needs. So measure the text itself,
+   in the input's own font, and decide from that whether the buttons still fit
+   beside it or have to wrap onto their own line. */
+var titleRuler = null;
+function fitTitle(){
+  var i = $('tripTitle');
+  var hdr = document.querySelector('header.top');
+  var brand = document.querySelector('.brand');
+  var acts = document.querySelector('.top-actions');
+  if(!i || !hdr || !brand || !acts) return;
+
+  if(!titleRuler){
+    titleRuler = document.createElement('span');
+    titleRuler.setAttribute('aria-hidden','true');
+    titleRuler.style.cssText =
+      'position:absolute;left:-9999px;top:0;white-space:pre;visibility:hidden';
+    document.body.appendChild(titleRuler);
+  }
+  var cs = getComputedStyle(i);
+  titleRuler.style.font = cs.font;
+  titleRuler.style.letterSpacing = cs.letterSpacing;
+  titleRuler.textContent = i.value || i.placeholder || '';
+
+  var chrome = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) +
+               parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  var wanted = titleRuler.offsetWidth + chrome + 14;   /* room for the caret */
+
+  hdr.classList.remove('stacked');
+  i.style.width = '';
+  var fixed = brand.getBoundingClientRect().width - i.getBoundingClientRect().width;
+  var room = hdr.clientWidth - acts.scrollWidth - fixed - 16;
+
+  if(wanted > room){
+    hdr.classList.add('stacked');      /* the name takes the line to itself */
+    i.style.width = '';
+  }else{
+    i.style.width = Math.max(90, wanted) + 'px';
+  }
+}
+window.addEventListener('resize', function(){ fitTitle(); });
+
 $('tripTitle').addEventListener('input', function(){
+  fitTitle();
   var wasNamed = !!(state.title || '').trim();
   state.title = this.value;
   /* the moment the name is wiped on a sheet that holds data, the next name
@@ -3146,7 +3200,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.24.1';
+var APP_VERSION = '1.25.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3154,19 +3208,19 @@ var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
    would only risk serving something stale inside the packaged app. */
 var isNativeShell = !!(window.Capacitor || window.cordova);
 
-/* In the packaged app the status bar was costing a strip of screen and putting
-   the clock and battery right where the menu button is. Hide it if the shell
-   ships the plugin; if it does not, nothing happens and the inset padding
-   stays, which is the correct behaviour for a status bar that is still there. */
-(function hideStatusBar(){
+/* Hiding the status bar does not stick: Android brings the system bars back
+   the moment the soft keyboard appears, and with the page laid out as if they
+   were gone, the clock and the battery then sit on top of the app's own header.
+   Asking not to draw UNDER the bar is the stable version of the same wish —
+   the bar stays, but the WebView starts below it, so nothing overlaps and no
+   inset padding is needed. */
+(function placeBelowStatusBar(){
   if(!isNativeShell) return;
   var P = window.Capacitor && window.Capacitor.Plugins;
-  if(!P || !P.StatusBar) return;
-  Promise.resolve()
-    .then(function(){ return P.StatusBar.setOverlaysWebView && P.StatusBar.setOverlaysWebView({overlay:false}); })
-    .then(function(){ return P.StatusBar.hide(); })
+  if(!P || !P.StatusBar || !P.StatusBar.setOverlaysWebView) return;
+  Promise.resolve(P.StatusBar.setOverlaysWebView({overlay:false}))
     .then(function(){ document.body.classList.remove('inset-fallback');
-                      document.body.classList.add('no-statusbar'); })
+                      document.body.classList.add('no-overlay'); })
     .catch(function(){});
 })();
 var isStandalone = isNativeShell ||
