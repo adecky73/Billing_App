@@ -916,7 +916,7 @@ en: {
   'menu.topgap': 'Adjust the gap at the top',
   'topgap.title': 'Gap at the top of the screen',
   'topgap.intro': 'Enough room for the status bar and, on some phones, the camera in it. The app works this out by itself; adjust it here if it guessed wrong. The change is visible while you adjust.',
-  'topgap.measured': 'This device reports an inset of {0} px. Overlaying the status bar is {1}.',
+  'topgap.measured': 'This device reports an inset of {0} px; the automatic value would be {2} px. Overlaying the status bar is {1}.',
   'topgap.overlay.off': 'off — the system reserves the strip',
   'topgap.overlay.on': 'on — the app has to keep the strip free itself',
   'topgap.auto': 'Back to automatic',
@@ -1196,7 +1196,7 @@ de: {
   'menu.topgap': 'Abstand oben anpassen',
   'topgap.title': 'Abstand am oberen Bildschirmrand',
   'topgap.intro': 'Platz für die Statusleiste und, auf manchen Handys, die Kamera darin. Die App ermittelt das selbst; hier lässt es sich korrigieren, wenn sie danebenliegt. Die Änderung ist sofort sichtbar.',
-  'topgap.measured': 'Dieses Gerät meldet einen Inset von {0} px. Das Überzeichnen der Statusleiste ist {1}.',
+  'topgap.measured': 'Dieses Gerät meldet einen Inset von {0} px; automatisch wären es {2} px. Das Überzeichnen der Statusleiste ist {1}.',
   'topgap.overlay.off': 'aus — das System hält den Streifen frei',
   'topgap.overlay.on': 'an — die App muss den Streifen selbst freihalten',
   'topgap.auto': 'Zurück auf automatisch',
@@ -3219,7 +3219,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.26.0';
+var APP_VERSION = '1.26.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3259,10 +3259,19 @@ function storedTopGap(){
 }
 function autoTopGap(){
   if(!isNativeShell && !isStandalone) return window.innerWidth <= 700 ? 4 : 6;
-  if(overlayOff) return 18;              /* the system already left the room */
   var inset = measuredInsetTop();
-  if(inset > 0) return inset + 18;       /* reported: trust it, plus a margin */
-  return 52;                             /* reported nothing: bar plus cutout */
+
+  /* 42 is not a formula, it is a measurement: the value that looks right on a
+     Pixel 8, which reports an inset of 51 and hides its camera in that strip.
+     Deriving it from the reported inset was tried and does not work — adding a
+     margin to 51 gives 69, using 51 raw is more room than the bar needs, and
+     the plugin's "overlay off" says nothing about whether the strip is really
+     reserved, because that device reports 51 either way.
+     Phones differ, so this default is only a starting point — Menu → adjust
+     the gap corrects it, and the correction sticks. */
+  if(inset > 0) return 42;
+  if(overlayOff) return 12;   /* reserved by the system: nothing left to clear */
+  return 42;                  /* nothing reported either: the same starting point */
 }
 function applyTopGap(){
   var v = storedTopGap();
@@ -4313,7 +4322,9 @@ function topGapDialog(){
     out = el('span','gapval', preview + ' px');
     row.appendChild(less); row.appendChild(out); row.appendChild(more);
     b.appendChild(row);
-    note(b, t('topgap.measured', measuredInsetTop(), overlayOff ? t('topgap.overlay.off') : t('topgap.overlay.on')));
+    note(b, t('topgap.measured', measuredInsetTop(),
+                overlayOff ? t('topgap.overlay.off') : t('topgap.overlay.on'),
+                autoTopGap()));
   }, [
     { label: t('topgap.auto'), act:'auto', onClick: function(){
         try{ localStorage.removeItem('billing-tool.topgap'); }catch(e){}
