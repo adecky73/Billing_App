@@ -283,8 +283,10 @@ header.top.stacked #tripTitle{flex:1 1 auto}
   transition:background .15s;
 }
 .chip:hover{background:var(--surface-2)}
+/* the width is measured in script; the cap only stops one very long name from
+   taking a whole line on a phone */
 .chip input{
-  background:transparent;border:none;width:auto;min-width:44px;max-width:150px;
+  background:transparent;border:none;width:auto;min-width:44px;max-width:min(100%, 280px);
   font-size:14px;font-weight:500;padding:2px;border-radius:var(--r-xs);
 }
 .chip input:focus{outline:2px solid var(--focus);outline-offset:1px}
@@ -456,12 +458,20 @@ td.ph{color:var(--on-surface-var);text-align:left;padding:24px 4px;border-bottom
 .hint{color:var(--on-surface-var);font-size:13px}
 
 /* ---- "we are done": one confirmation per device ------------------------- */
+/* ---- the confirmation, under the transfers it confirms ---- */
 .finalbar{
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;
-  padding:4px 20px 16px;
+  padding:4px 20px 14px;
 }
 .finalstat{color:var(--on-surface-var);font-size:13px}
 .finalstat.all{color:var(--success);font-weight:600}
+/* Neither indigo nor grey: this button commits the whole group to a result, so
+   it is deliberately not the same colour as "add expense" or "sync". */
+.btn.finalbtn.seal{background:var(--success-c);color:var(--on-success-c)}
+.btn.finalbtn.seal:hover{background:var(--success-c);box-shadow:var(--e1)}
+.btn.finalbtn.open{background:var(--warn-c);color:var(--on-warn-c)}
+.btn.finalbtn.open:hover{background:var(--warn-c);box-shadow:var(--e1)}
+
 .finalnote{
   margin:0 20px 16px;padding:10px 14px;border-radius:var(--r-m);
   font-size:13px;background:var(--surface-2);color:var(--on-surface-var);
@@ -480,6 +490,11 @@ body.all-final  .card[data-edit]{
 body.all-final .card[data-edit]{opacity:.5}
 body.await-final #tripTitle,
 body.all-final  #tripTitle{opacity:.62}
+/* Waiting for "which one are you?": the same washed-out look as the naming
+   gate, but a tap has to land somewhere that can say why nothing happens. */
+.shaded{position:relative;opacity:.45;filter:saturate(.5)}
+.meshade{position:absolute;inset:0;z-index:3;cursor:not-allowed;background:transparent}
+
 /* the settlement is the one thing that stays fully lit once everybody agrees */
 body.all-final .grid2 .card:not([data-edit]){
   outline:2px solid var(--success);outline-offset:-2px;
@@ -717,6 +732,13 @@ footer .ver{font-size:11.5px;opacity:.8}
 .syncbar .lbl{font-size:13.5px;color:var(--on-surface-var);min-width:0;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .syncbar .spacer{flex:1}
+/* two spacers, so the sync button sits in the middle whatever the two labels
+   either side of it happen to say */
+.syncbar .finalmini{font-size:13px;color:var(--on-surface-var);white-space:nowrap;
+  flex:0 0 auto;max-width:38%;overflow:hidden;text-overflow:ellipsis}
+.syncbar .finalmini.all{color:var(--success);font-weight:600}
+.syncbar .finalmini.warn{color:var(--warn);font-weight:600}
+.syncbar .lbl{max-width:38%}
 .syncbar[data-s="ok"] .dot{background:var(--success)}
 .syncbar[data-s="busy"] .dot{background:var(--warn)}
 .syncbar[data-s="offline"] .dot{background:var(--outline)}
@@ -902,6 +924,7 @@ body.has-syncbar .wrap{padding-bottom:76px}
       <button class="btn" id="gateKeep" data-i18n="gate.keep" hidden>…</button>
       <button class="btn primary" id="gateNew" data-i18n="gate.new" hidden>…</button>
       <button class="btn primary" id="gateName" data-i18n="gate.namebtn">…</button>
+      <button class="btn primary" id="gateMe" data-i18n="gate.mebtn" hidden>…</button>
     </div>
   </div>
 
@@ -911,7 +934,7 @@ body.has-syncbar .wrap{padding-bottom:76px}
     <button class="x" id="installHelpX" data-i18n-aria="install.dismiss">×</button>
   </div>
 
-  <div class="card gated" data-edit>
+  <div class="card gated" data-edit data-meok>
     <div class="card-h">
       <h2 data-i18n="card.people">People</h2>
       <span class="spacer"></span>
@@ -952,7 +975,7 @@ body.has-syncbar .wrap{padding-bottom:76px}
       <div class="card-b" id="transfers"></div>
       <!-- "we are done": one confirmation per device, plus the tally -->
       <div class="finalbar" id="finalBar" hidden>
-        <button class="btn" id="finalBtn">…</button>
+        <button class="btn finalbtn" id="finalBtn">…</button>
         <span class="finalstat" id="finalStat"></span>
       </div>
       <div class="finalnote" id="finalNote" hidden></div>
@@ -975,6 +998,10 @@ body.has-syncbar .wrap{padding-bottom:76px}
   <span class="lbl" id="syncLbl">–</span>
   <span class="spacer"></span>
   <button class="btn sm primary" id="syncBtn" data-i18n="sync.now">…</button>
+  <span class="spacer"></span>
+  <!-- the short form of the tally: the long one lives next to the button that
+       sets it, but "how many are done?" is worth having on screen always -->
+  <span class="finalmini" id="finalMini" hidden></span>
 </div>
 
 <input type="file" id="fileInput" accept="application/json,.json,text/plain" class="sr">
@@ -1040,16 +1067,28 @@ en: {
   'topgap.auto': 'Back to automatic',
   'me.reserved': '“{0}” is what the app calls you — pick a different name.',
   'me.takenshort': 'Somebody else is this person.',
+  'me.namelocked': '\u201c{0}\u201d is another device\u2019s \u201cme\u201d. The name can only be changed once that device hands it back.',
   'own.person': 'this person',
   'own.expense': 'this expense',
   'own.confirm': '{0} was entered on another device. Change it anyway?',
-  'final.btn': 'This is settled',
-  'final.btn.undo': 'Still checking',
+  'final.btn': 'Finalise',
+  'final.btn.undo': 'final \u00bb change again?',
   'final.status': '{0} of {1} devices confirmed',
   'final.status.all': 'everybody confirmed',
   'final.hint': 'Money only moves once every device has confirmed.',
-  'final.locked.mine': 'You have confirmed this sheet. Tap \u201cStill checking\u201d to edit again.',
-  'final.someone': 'Somebody considers the sheet settled. Please check the numbers and confirm.',
+  'final.locked.mine': 'You have finalised this sheet. Tap the button again to edit.',
+  'final.someone': 'Somebody considers the sheet settled. Please check the numbers and confirm \u2014 staying silent counts as a confirmation after 48 hours.',
+  'final.status.auto': '(incl. {0} after 48 h)',
+  'final.mini': '{0} of {1} final',
+  'final.mini.all': 'all final',
+  'final.auto.in': 'Without an answer this counts as confirmed by you in {0}.',
+  'time.h': '{0} h',
+  'time.min': '{0} min',
+  'gate.mebtn': 'Say who I am',
+  'gate.me.head': 'Which one are you?',
+  'gate.me.sub': 'On a shared sheet every device says who it is first: tap the hand next to your name. Only then can expenses be entered \u2014 that is what makes \u201cme\u201d and the confirmations work.',
+  'gate.me.sub.empty': 'On a shared sheet every device says who it is first. Add your name to the list above, then tap the hand next to it.',
+  'gate.me.hint': 'First say which person you are \u2014 tap the hand next to your name.',
   'final.revoked': 'The sheet changed after your confirmation \u2014 all confirmations were cancelled. Please check again.',
   'final.revoked.mine': 'Your change cancelled every confirmation.',
   'final.done': 'All devices confirmed. Nothing can be changed now.',
@@ -1346,16 +1385,28 @@ de: {
   'topgap.auto': 'Zurück auf automatisch',
   'me.reserved': '„{0}" nennt die App dich selbst — nimm einen anderen Namen.',
   'me.takenshort': 'Jemand anderes ist diese Person.',
+  'me.namelocked': '\u201e{0}\u201c ist auf einem anderen Ger\u00e4t als \u201eich\u201c belegt. Der Name l\u00e4sst sich erst \u00e4ndern, wenn dieses Ger\u00e4t ihn wieder freigibt.',
   'own.person': 'Diese Person',
   'own.expense': 'Diese Ausgabe',
   'own.confirm': '{0} wurde auf einem anderen Ger\u00e4t eingetragen. Trotzdem \u00e4ndern?',
-  'final.btn': 'Das ist final',
-  'final.btn.undo': 'Pr\u00fcfe noch',
+  'final.btn': 'Finalisieren',
+  'final.btn.undo': 'final \u00bb nochmal \u00e4ndern?',
   'final.status': '{0} von {1} Ger\u00e4ten best\u00e4tigt',
   'final.status.all': 'alle haben best\u00e4tigt',
   'final.hint': 'Gezahlt wird erst, wenn alle Ger\u00e4te best\u00e4tigt haben.',
-  'final.locked.mine': 'Du hast diese Abrechnung best\u00e4tigt. Zum \u00c4ndern auf \u201ePr\u00fcfe noch\u201c tippen.',
-  'final.someone': 'Jemand h\u00e4lt die Abrechnung f\u00fcr final. Bitte pr\u00fcfe die Zahlen und best\u00e4tige.',
+  'final.locked.mine': 'Du hast diese Abrechnung finalisiert. Zum \u00c4ndern noch einmal auf den Knopf tippen.',
+  'final.someone': 'Jemand h\u00e4lt die Abrechnung f\u00fcr final. Bitte pr\u00fcfe die Zahlen und best\u00e4tige \u2014 keine Reaktion gilt nach 48 Stunden als Best\u00e4tigung.',
+  'final.status.auto': '(davon {0} nach 48 h)',
+  'final.mini': '{0} von {1} final',
+  'final.mini.all': 'alle final',
+  'final.auto.in': 'Ohne Antwort gilt das in {0} als von dir best\u00e4tigt.',
+  'time.h': '{0} Std.',
+  'time.min': '{0} Min.',
+  'gate.mebtn': 'Ich bin \u2026',
+  'gate.me.head': 'Wer bist du?',
+  'gate.me.sub': 'Bei einer geteilten Abrechnung sagt jedes Ger\u00e4t zuerst, wer es ist: tippe auf die Hand neben deinem Namen. Erst danach lassen sich Ausgaben eintragen \u2014 daran h\u00e4ngen \u201eich\u201c und die Best\u00e4tigungen.',
+  'gate.me.sub.empty': 'Bei einer geteilten Abrechnung sagt jedes Ger\u00e4t zuerst, wer es ist. Trage deinen Namen oben ein und tippe dann auf die Hand daneben.',
+  'gate.me.hint': 'Sag zuerst, welche Person du bist \u2014 tippe auf die Hand neben deinem Namen.',
   'final.revoked': 'Nach deiner Best\u00e4tigung wurde noch etwas ge\u00e4ndert \u2014 alle Best\u00e4tigungen sind aufgehoben. Bitte noch einmal pr\u00fcfen.',
   'final.revoked.mine': 'Deine \u00c4nderung hat alle Best\u00e4tigungen aufgehoben.',
   'final.done': 'Alle Ger\u00e4te haben best\u00e4tigt. Jetzt ist nichts mehr \u00e4nderbar.',
@@ -2319,7 +2370,56 @@ function settle(rows) {
     ]);
   }
 
+  /* ---- "we are done": the two-day rule ----
+     Somebody has to be allowed to go on holiday. Once the first device confirms,
+     a clock starts: a device that neither confirms nor objects within two days
+     counts as confirmed, so one silent phone cannot hold the group hostage.
+     Pure arithmetic on the stored timestamps — no server decides this, every
+     device works out the same answer for itself. */
+  var AUTO_FINAL_MS = 48 * 60 * 60 * 1000;
+
+  /* when the round began: the oldest confirmation still standing */
+  function finalRoundStart(final){
+    var t = 0;
+    for(var d in (final || {})){
+      if(!(final[d] && final[d].a)) continue;
+      var m = Number(final[d].m) || 0;
+      if(!t || m < t) t = m;
+    }
+    return t;
+  }
+  /* confirmed, or silent for two days since the round started AND since its own
+     last word — pressing "still checking" is a word, and buys another two days */
+  function deemedFinal(final, d, now){
+    final = final || {};
+    var e = final[d];
+    if(e && e.a) return true;
+    var start = finalRoundStart(final);
+    if(!start) return false;
+    if(now - start < AUTO_FINAL_MS) return false;
+    return (now - (Number(e && e.m) || 0)) >= AUTO_FINAL_MS;
+  }
+  function finalTally(roster, final, now){
+    var ok = 0, auto = 0;
+    (roster || []).forEach(function(d){
+      if(final && final[d] && final[d].a){ ok++; return; }
+      if(deemedFinal(final, d, now)){ ok++; auto++; }
+    });
+    return { ok: ok, total: (roster || []).length, auto: auto };
+  }
+  /* what is left of the two days for one device, 0 when nothing is running */
+  function autoFinalLeft(final, d, now){
+    final = final || {};
+    var start = finalRoundStart(final);
+    if(!start || (final[d] && final[d].a)) return 0;
+    var mine = Number(final[d] && final[d].m) || 0;
+    var left = Math.max(start, mine) + AUTO_FINAL_MS - now;
+    return left > 0 ? left : 0;
+  }
+
   return {
+    AUTO_FINAL_MS: AUTO_FINAL_MS, finalRoundStart: finalRoundStart,
+    deemedFinal: deemedFinal, finalTally: finalTally, autoFinalLeft: autoFinalLeft,
     newSalt: newSalt, deriveKey: deriveKey, suggestPassword: suggestPassword, randomId: randomId,
     seal: seal, unseal: unseal, openSealed: openSealed, labelOf: labelOf,
     makeCode: makeCode, parseCode: parseCode, codeIsSelfContained: codeIsSelfContained,
@@ -2570,17 +2670,25 @@ function finalRoster(){
   return out;
 }
 function iAmFinal(){ var f = (state && state.final) || {}; return !!(f[deviceId] && f[deviceId].a); }
-function finalTally(){
-  var roster = finalRoster(), ok = 0, fi = (state && state.final) || {};
-  roster.forEach(function(d){ if(fi[d] && fi[d].a) ok++; });
-  return { ok: ok, total: roster.length };
-}
+
+/* Somebody has to be allowed to go on holiday. Once the first device confirms,
+   a clock starts: a device that neither confirms nor objects within two days
+   counts as confirmed, so one silent phone cannot hold the group hostage. The
+   rule is announced in the message the others receive — it must never be a
+   surprise. Every device works it out from the same timestamps, so no server
+   decides anything. */
+/* The arithmetic lives with the merge code, where it can be tested without a
+   browser and where every device is guaranteed to use the same version of it. */
+function stFinal(){ return (state && state.final) || {}; }
+function autoFinalLeft(now){ return Sync.autoFinalLeft(stFinal(), deviceId, now || Date.now()); }
+
+function finalTally(){ return Sync.finalTally(finalRoster(), stFinal(), Date.now()); }
 function allFinal(){
   var t = finalTally();
   return t.total > 0 && t.ok === t.total;
 }
 /* the only gate the rest of the app has to ask about */
-function inputsLocked(){ return iAmFinal(); }
+function inputsLocked(){ return iAmFinal() || allFinal(); }
 
 function setFinal(on){
   state.final[deviceId] = { a: on ? 1 : 0, m: Date.now() };
@@ -2635,29 +2743,60 @@ function applyFinalLock(){
 
 /* The confirmation bar under the transfers. Shown as soon as the sheet is
    shared — it is the one place that says how many of the others are done. */
+function fmtLeft(ms){
+  var mins = Math.max(1, Math.round(ms / 60000));
+  return mins >= 120 ? t('time.h', Math.round(mins / 60)) : t('time.min', mins);
+}
+
 function renderFinal(){
   var bar = $('finalBar'), note = $('finalNote');
-  var show = !!syncCfg || iAmFinal();
+  var show = !!syncCfg;
   bar.hidden = !show;
+  var lock = inputsLocked(), all = allFinal();
   if(show){
-    var tal = finalTally(), mine = iAmFinal(), all = allFinal();
+    var tal = finalTally();
     var btn = $('finalBtn');
-    btn.textContent = t(mine ? 'final.btn.undo' : 'final.btn');
-    btn.className = 'btn' + (mine ? '' : ' primary');
+    btn.textContent = t(lock ? 'final.btn.undo' : 'final.btn');
+    btn.className = 'btn finalbtn' + (lock ? ' open' : ' seal');
     var st = $('finalStat');
     st.textContent = all ? t('final.status.all') : t('final.status', tal.ok, tal.total);
+    if(!all && tal.auto) st.textContent += ' ' + t('final.status.auto', tal.auto);
     st.className = 'finalstat' + (all ? ' all' : '');
+  }
+  var mini = $('finalMini');
+  if(mini){
+    mini.hidden = !show;
+    if(show){
+      var m = finalTally();
+      mini.textContent = all ? t('final.mini.all') : t('final.mini', m.ok, m.total);
+      mini.className = 'finalmini' + (all ? ' all' : '') + (finalNotice ? ' warn' : '');
+    }
   }
   var msg = '', warn = true;
   if(finalNotice === 'revoked') msg = t('final.revoked');
   else if(finalNotice === 'someone') msg = t('final.someone');
-  else if(show && allFinal()){ msg = t('final.done'); warn = false; }
+  else if(show && all){ msg = t('final.done'); warn = false; }
   else if(show && iAmFinal()){ msg = t('final.locked.mine'); warn = false; }
   else if(show) { msg = t('final.hint'); warn = false; }
+  /* while a round is running, say plainly how long silence still counts as
+     checking — the deadline is useless if only the other side knows it */
+  if(show && !all){
+    var left = autoFinalLeft();
+    if(left) msg = (msg ? msg + ' ' : '') + t('final.auto.in', fmtLeft(left));
+  }
   note.hidden = !msg;
   note.textContent = msg;
   note.className = 'finalnote' + (warn ? ' warn' : '');
 }
+
+/* The deadline moves without anybody touching anything, so the screen has to
+   catch up on its own. Once a minute is plenty for a two-day clock. */
+setInterval(function(){
+  if(!state || !$('finalBar') || $('finalBar').hidden) return;
+  var was = document.body.classList.contains('all-final');
+  renderFinal();
+  if(was !== allFinal()) applyGate();
+}, 60000);
 
 /* ---------------- who put this here ----------------
    A record remembers the device that created it. Anybody may still change
@@ -2705,7 +2844,14 @@ function personName(id){
 var pendingPerson = '';
 
 function renderPeople(){
-  var box = $('people'); box.innerHTML = '';
+  var box = $('people');
+  /* Everything but the add-person row is rebuilt. That row survives, because a
+     redraw can land between the tap that focuses it and the first letter typed
+     — a blur elsewhere on the page is enough to trigger one — and a field that
+     is replaced under the user swallows both the focus and the text. */
+  var keep = addPersonRow();
+  var kids = Array.prototype.slice.call(box.children);
+  for(var k=0;k<kids.length;k++) if(kids[k] !== keep) box.removeChild(kids[k]);
   var mine = meId();
   state.people.forEach(function(p){
     var chip = el('div','chip');
@@ -2724,16 +2870,26 @@ function renderPeople(){
       inp.value = p.name; inp.size = Math.max(4, p.name.length);
       inp.setAttribute('aria-label', t('people.name.aria'));
       inp.addEventListener('input', function(){
-        if(!mayEdit(p, 'own.person')){ inp.value = p.name; return; }
+        /* Somebody else's phone shows this name as "me". Renaming it under them
+           would rename them, so it waits until they hand the name back. This is
+           the one edit the app refuses outright rather than merely asking. */
+        if(claimedByOther(p.id)){
+          toast(t('me.namelocked', p.name));
+          inp.value = p.name; fitNameInput(inp);
+          return;
+        }
+        if(!mayEdit(p, 'own.person')){ inp.value = p.name; fitNameInput(inp); return; }
         var next = inp.value.toUpperCase();
         if(isReservedName(next)){
           toast(t('me.reserved', next));
           inp.value = p.name;                 /* refuse it, keep what was there */
+          fitNameInput(inp);
           return;
         }
         p.name = next;
         inp.value = p.name;
         inp.size = Math.max(4, p.name.length);
+        fitNameInput(inp);
         updateHeaderNames(); renderResults(); save();
       });
       chip.appendChild(inp);
@@ -2757,6 +2913,9 @@ function renderPeople(){
     var x = el('button','x','×');
     x.title = t('people.remove', shownName(p.id));
     x.addEventListener('click', function(){
+      /* same reason as the name: a person another phone is standing behind is
+         not ours to delete either */
+      if(claimedByOther(p.id)){ toast(t('me.namelocked', p.name)); return; }
       if(!mayEdit(p, 'own.person')) return;
       var used = state.expenses.some(function(e){ return e.payerId===p.id || (e.shares[p.id]||0)>0; });
       if(used && !confirm(t(isMe(p.id) ? 'confirm.removeme' : 'confirm.removeperson', p.name))) return;
@@ -2766,7 +2925,8 @@ function renderPeople(){
       renderAll(); save();
     });
     chip.appendChild(x);
-    box.appendChild(chip);
+    box.insertBefore(chip, keep.parentNode === box ? keep : null);
+    if(inp) fitNameInput(inp);       /* needs the real font, so after insertion */
   });
 
   /* Adding a person used to depend on the keyboard's return key alone. On iOS
@@ -2774,6 +2934,43 @@ function renderPeople(){
      keyCode 229 with key "Unidentified", so the name was never committed — it
      just sat in the field looking added until the next redraw cleared it. Hence
      a button that cannot be misread, and three ways to trigger the same thing. */
+  if(keep.parentNode !== box) box.appendChild(keep);
+  keep.querySelector('input').placeholder = t('people.add');
+  $('peopleHint').textContent = state.people.length ? nPeople(state.people.length)
+                                                    : t('people.hint.empty');
+}
+
+function claimedByOther(personId){
+  var who = claimedBy(personId);
+  return !!(who && who !== deviceId);
+}
+
+/* A name field that is too short for its name scrolls the text, which reads as
+   a broken layout. Measure the name in the field's own font and give it that
+   much room — the chips are in a flex row and wrap by themselves. */
+var nameRuler = null;
+function fitNameInput(inp){
+  if(!inp || !inp.isConnected) return;
+  if(!nameRuler){
+    nameRuler = document.createElement('span');
+    nameRuler.setAttribute('aria-hidden','true');
+    nameRuler.style.cssText =
+      'position:absolute;left:-9999px;top:0;white-space:pre;visibility:hidden';
+    document.body.appendChild(nameRuler);
+  }
+  var cs = getComputedStyle(inp);
+  nameRuler.style.font = cs.font;
+  nameRuler.style.letterSpacing = cs.letterSpacing;
+  nameRuler.textContent = inp.value || '';
+  var chrome = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) +
+               parseFloat(cs.borderLeftWidth) + parseFloat(cs.borderRightWidth);
+  inp.style.width = Math.max(44, nameRuler.offsetWidth + chrome + 4) + 'px';
+}
+
+/* Built once, kept for the life of the page. */
+var addRowNode = null;
+function addPersonRow(){
+  if(addRowNode) return addRowNode;
   var addWrap = el('div','addperson');
   var add = document.createElement('input');
   add.id = 'newPerson'; add.placeholder = t('people.add'); add.setAttribute('aria-label', t('people.add.aria'));
@@ -2791,7 +2988,7 @@ function renderPeople(){
     add.value = '';
     pendingPerson = '';
     renderAll(); save();
-    var np = $('newPerson'); if(np) np.focus();
+    add.focus();
   }
   add.addEventListener('keydown', function(ev){
     if(ev.key === 'Enter' || ev.keyCode === 13){ ev.preventDefault(); commitPerson(); }
@@ -2800,8 +2997,8 @@ function renderPeople(){
   add.addEventListener('beforeinput', function(ev){
     if(ev.inputType === 'insertLineBreak'){ ev.preventDefault(); commitPerson(); }
   });
-  /* whatever is half-typed must survive a redraw — an exchange with the other
-     phones can land at any moment, and it used to wipe the field */
+  /* belt and braces: the row is kept now, but a value typed into a copy that
+     was already detached still has somewhere to land */
   add.value = pendingPerson || '';
   add.addEventListener('input', function(){ pendingPerson = add.value; });
 
@@ -2814,9 +3011,8 @@ function renderPeople(){
 
   addWrap.appendChild(add);
   addWrap.appendChild(addBtn);
-  box.appendChild(addWrap);
-  $('peopleHint').textContent = state.people.length ? nPeople(state.people.length)
-                                                    : t('people.hint.empty');
+  addRowNode = addWrap;
+  return addWrap;
 }
 
 function updateHeaderNames(){
@@ -3688,15 +3884,31 @@ $('addRow').addEventListener('click', function(){
   sel.addEventListener('change', function once(){
     sel.removeEventListener('change', once);
     /* the row's own change handler re-renders the results first */
-    setTimeout(function(){ amt.focus(); amt.select(); }, 0);
+    setTimeout(function(){
+      if(!focusIsFree(sel)) return;
+      amt.focus(); amt.select();
+    }, 0);
   });
   /* ...and on to what it was for. `change` fires on Enter and on leaving the
      field, which is exactly when the amount is finished. */
   if(desc) amt.addEventListener('change', function onceAmt(){
     amt.removeEventListener('change', onceAmt);
-    setTimeout(function(){ desc.focus(); }, 0);
+    setTimeout(function(){
+      if(!focusIsFree(amt)) return;
+      desc.focus();
+    }, 0);
   });
 });
+
+/* The hop to the next field is a convenience for somebody who is still working
+   down the row. `change` also fires when the field is left on purpose — tapping
+   the name box, say — and pulling the cursor back from there is not a
+   convenience, it is a fight. So the hop only happens when nothing else has
+   claimed the focus in the meantime. */
+function focusIsFree(from){
+  var a = document.activeElement;
+  return !a || a === document.body || a === from;
+}
 
 /* A text input does not grow with its text, so a long sheet name used to be
    scrolled inside a squeezed field. Sizing it to the content lets the flex row
@@ -3787,7 +3999,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '3.0.0';
+var APP_VERSION = '3.1.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3972,17 +4184,27 @@ var carryChoice = 'keep';   // 'keep' | 'new' | null = still undecided
 
 function countData(){ return state.people.length + state.expenses.length; }
 
+/* A shared sheet has to know who is typing. Everything the group settles later
+   hangs on it: who owes whom, whose confirmation is still missing, whose name
+   turns into "me". So on a shared sheet the device says who it is BEFORE it
+   may enter anything — the people list stays open, everything else waits.
+   A sheet used alone needs none of this. */
+function needsMeGate(){ return !!syncCfg && !meId(); }
+
 function applyGate(){
   var named = !!(state.title || '').trim();
   var hasData = countData() > 0;
   var undecided = hasData && carryChoice === null;
   var locked = !named || undecided;
+  var needMe = !locked && needsMeGate();
 
   document.body.classList.toggle('needs-title', locked);
-  $('gateBar').hidden = !locked;
+  document.body.classList.toggle('needs-me', needMe);
+  $('gateBar').hidden = !(locked || needMe);
   $('gateKeep').hidden = !undecided;
   $('gateNew').hidden = !undecided;
-  $('gateName').hidden = undecided;
+  $('gateName').hidden = undecided || needMe;
+  $('gateMe').hidden = !needMe;
 
   if(undecided){
     $('gateHead').textContent = t(named ? 'gate.carry.head.named' : 'gate.carry.head.unnamed');
@@ -3991,19 +4213,51 @@ function applyGate(){
   } else if(locked){
     $('gateHead').textContent = t('gate.name.head');
     $('gateSub').textContent = t('gate.name.sub');
+  } else if(needMe){
+    $('gateHead').textContent = t('gate.me.head');
+    $('gateSub').textContent = t(state.people.length ? 'gate.me.sub' : 'gate.me.sub.empty');
   }
 
-  /* Two locks, one place. The gate closes everything until the sheet has a
-     name; a confirmation closes only what can be edited, so the confirmation
-     itself stays reachable and can be taken back. */
+  /* Three locks, one place.
+       - the gate closes everything until the sheet has a name
+       - "who am I" closes everything except the people list, and answers a tap
+         with a hint instead of silence, so nobody wonders what is broken
+       - a confirmation closes what can be edited, and leaves the rest alone */
   var editLock = inputsLocked();
   var cards = document.querySelectorAll('.gated');
   for(var i=0;i<cards.length;i++){
-    var shut = locked || (editLock && cards[i].hasAttribute('data-edit'));
-    if(shut) cards[i].setAttribute('inert',''); else cards[i].removeAttribute('inert');
+    var card = cards[i];
+    var meShut = needMe && !card.hasAttribute('data-meok');
+    var shut = locked || (editLock && card.hasAttribute('data-edit'));
+    setCardLock(card, shut ? 'inert' : (meShut ? 'shade' : 'open'));
   }
   $('tripTitle').readOnly = editLock;
   applyFinalLock();
+}
+
+/* An inert subtree swallows the click whole — the event never reaches any
+   handler, so there is nothing left to explain the lock with. The shade is a
+   plain element on top: it catches the tap, the parts underneath go inert. */
+function setCardLock(card, mode){
+  var shade = card.querySelector(':scope > .meshade');
+  if(mode === 'shade'){
+    card.removeAttribute('inert');
+    for(var i=0;i<card.children.length;i++){
+      var ch = card.children[i];
+      if(ch !== shade) ch.setAttribute('inert','');
+    }
+    if(!shade){
+      shade = el('div','meshade');
+      shade.addEventListener('click', function(){ toast(t('gate.me.hint')); });
+      card.appendChild(shade);
+    }
+    card.classList.add('shaded');
+    return;
+  }
+  if(shade) shade.remove();
+  card.classList.remove('shaded');
+  for(var j=0;j<card.children.length;j++) card.children[j].removeAttribute('inert');
+  if(mode === 'inert') card.setAttribute('inert',''); else card.removeAttribute('inert');
 }
 
 function startEmptySheet(keepTitle){
@@ -4022,6 +4276,16 @@ function startEmptySheet(keepTitle){
 }
 
 $('gateName').addEventListener('click', function(){ $('tripTitle').focus(); });
+/* "who am I" is answered in the people list, so send the user there rather than
+   leaving them to find it */
+$('gateMe').addEventListener('click', function(){
+  var card = document.querySelector('.gated[data-meok]');
+  if(card) card.scrollIntoView({block:'start', behavior:'smooth'});
+  if(!state.people.length){
+    var np = $('newPerson');
+    if(np) setTimeout(function(){ np.focus(); }, 350);
+  }
+});
 $('gateOpen').addEventListener('click', function(){ askOpenTarget(); });
 $('gateKeep').addEventListener('click', function(){
   carryChoice = 'keep'; applyGate();
