@@ -720,6 +720,9 @@ body.has-syncbar .wrap{padding-bottom:76px}
 .gaprow{display:flex;align-items:center;gap:14px;justify-content:center}
 .gaprow .btn{min-width:64px;font-size:17px}
 .gapval{font-variant-numeric:tabular-nums;font-size:17px;font-weight:500;min-width:70px;text-align:center}
+/* the add-person field and its button belong together */
+.addperson{display:inline-flex;align-items:center;gap:6px}
+.addperson .addbtn{flex:none}
 
 </style>
 </head>
@@ -969,6 +972,8 @@ en: {
   'word.people': 'people',
   'word.expense': 'expense',
   'word.expenses': 'expenses',
+  'people.addbtn': 'Add',
+  'people.exists': '{0} is already on the list.',
   'people.add': '+ add person',
   'people.add.aria': 'Add a person',
   'people.name.aria': 'Name',
@@ -1247,6 +1252,8 @@ de: {
   'word.people': 'Personen',
   'word.expense': 'Ausgabe',
   'word.expenses': 'Ausgaben',
+  'people.addbtn': 'Hinzufügen',
+  'people.exists': '{0} steht schon auf der Liste.',
   'people.add': '+ Person hinzufügen',
   'people.add.aria': 'Person hinzufügen',
   'people.name.aria': 'Name',
@@ -2263,6 +2270,9 @@ function personName(id){
 }
 
 /* ============================ rendering ============================ */
+/* what is typed into the add-person field but not committed yet */
+var pendingPerson = '';
+
 function renderPeople(){
   var box = $('people'); box.innerHTML = '';
   state.people.forEach(function(p){
@@ -2289,19 +2299,48 @@ function renderPeople(){
     box.appendChild(chip);
   });
 
+  /* Adding a person used to depend on the keyboard's return key alone. On iOS
+     that is not dependable: while autocorrect is composing, keydown arrives as
+     keyCode 229 with key "Unidentified", so the name was never committed — it
+     just sat in the field looking added until the next redraw cleared it. Hence
+     a button that cannot be misread, and three ways to trigger the same thing. */
+  var addWrap = el('div','addperson');
   var add = document.createElement('input');
   add.id = 'newPerson'; add.placeholder = t('people.add'); add.setAttribute('aria-label', t('people.add.aria'));
-  add.addEventListener('keydown', function(ev){
-    if(ev.key === 'Enter'){
-      var nm = add.value.trim().toUpperCase();
-      if(!nm) return;
-      if(state.people.some(function(p){return p.name===nm;})){ toast('That name already exists.'); return; }
-      state.people.push({id:uid(), name:nm});
-      renderAll(); save();
-      var np = $('newPerson'); if(np) np.focus();
+  add.autocapitalize = 'characters';
+  add.setAttribute('enterkeyhint', 'done');
+
+  function commitPerson(){
+    var nm = add.value.trim().toUpperCase();
+    if(!nm){ add.focus(); return; }
+    if(state.people.some(function(p){return p.name===nm;})){
+      toast(t('people.exists', nm)); add.select(); return;
     }
+    state.people.push({id:uid(), name:nm, m:Date.now()});
+    add.value = '';
+    pendingPerson = '';
+    renderAll(); save();
+    var np = $('newPerson'); if(np) np.focus();
+  }
+  add.addEventListener('keydown', function(ev){
+    if(ev.key === 'Enter' || ev.keyCode === 13){ ev.preventDefault(); commitPerson(); }
   });
-  box.appendChild(add);
+  /* iOS fires this for the return key even when keydown reported nothing useful */
+  add.addEventListener('beforeinput', function(ev){
+    if(ev.inputType === 'insertLineBreak'){ ev.preventDefault(); commitPerson(); }
+  });
+  /* whatever is half-typed must survive a redraw — an exchange with the other
+     phones can land at any moment, and it used to wipe the field */
+  add.value = pendingPerson || '';
+  add.addEventListener('input', function(){ pendingPerson = add.value; });
+
+  var addBtn = el('button','btn sm addbtn', t('people.addbtn'));
+  addBtn.title = t('people.add.aria');
+  addBtn.addEventListener('click', commitPerson);
+
+  addWrap.appendChild(add);
+  addWrap.appendChild(addBtn);
+  box.appendChild(addWrap);
   $('peopleHint').textContent = state.people.length ? nPeople(state.people.length)
                                                     : t('people.hint.empty');
 }
@@ -3239,7 +3278,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.27.0';
+var APP_VERSION = '1.28.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
