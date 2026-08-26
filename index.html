@@ -44,6 +44,7 @@
   --outline:#79767f;
   --outline-var:#cac5d0;
   --row-line:#948f9e;
+  --me:#8c1220;
 
   --success:#0f6b3c;
   --success-c:#9df6c1;
@@ -77,6 +78,7 @@
     --outline:#938f99;
     --outline-var:#48464f;
     --row-line:#5f5c6b;
+    --me:#ff9aa2;
 
     --success:#83d9a4;
     --success-c:#00522a;
@@ -107,6 +109,7 @@
   --outline:#938f99;
   --outline-var:#48464f;
   --row-line:#5f5c6b;
+  --me:#ff9aa2;
 
   --success:#83d9a4;
   --success-c:#00522a;
@@ -741,6 +744,30 @@ body.has-syncbar .wrap{padding-bottom:76px}
 .addperson{display:inline-flex;align-items:center;gap:6px}
 .addperson .addbtn{flex:none}
 
+/* ---------- "that one is me" ---------- */
+.chip{position:relative}
+/* The finger sits over the middle of the name, dimmed until it is wanted —
+   a solid button there would make the list unreadable. */
+.pickme{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:30px;height:30px;border-radius:var(--r-full);border:none;cursor:pointer;
+  display:grid;place-items:center;
+  background:var(--primary-c);color:var(--on-primary-c);
+  box-shadow:0 1px 4px rgba(0,0,0,.28);opacity:.72;
+  transition:opacity .12s,transform .12s;
+}
+.pickme:hover,.pickme:focus-visible{opacity:1;transform:translate(-50%,-50%) scale(1.08)}
+.pickme svg{display:block;transform:rotate(-20deg)}
+.chip.me{border-color:var(--me)}
+.mebtn{
+  border:none;background:transparent;cursor:pointer;
+  color:var(--me);font:inherit;font-size:15px;font-weight:700;
+  letter-spacing:.04em;padding:0 4px;min-height:32px;
+}
+.mebtn:hover{text-decoration:underline}
+/* the substitution stays recognisable wherever it appears */
+.balrow .nm.isme,.tr .from.isme,.tr .to.isme{color:var(--me);font-weight:600}
+
 </style>
 </head>
 <body>
@@ -963,6 +990,14 @@ en: {
   'topgap.overlay.off': 'off — the system reserves the strip',
   'topgap.overlay.on': 'on — the app has to keep the strip free itself',
   'topgap.auto': 'Back to automatic',
+  'me.nom': 'me',
+  'me.acc': 'me',
+  'me.pick': 'This is me ({0})',
+  'me.release': 'me = {0}. Tap to hand the name back.',
+  'me.taken': '{0} is already taken by another device.',
+  'me.lost': 'Somebody else claimed {0} at the same moment. Pick another one.',
+  'me.checking': 'checking with the others…',
+  'confirm.removeme': 'Remove yourself? You appear in the expense list — those entries lose you as payer and as a sharer.',
   'menu.currency': '💱 Currency symbol …',
   'menu.update': '🔄 Check for update',
   'menu.update.native': 'ℹ️ About updating this app',
@@ -1245,6 +1280,14 @@ de: {
   'topgap.overlay.off': 'aus — das System hält den Streifen frei',
   'topgap.overlay.on': 'an — die App muss den Streifen selbst freihalten',
   'topgap.auto': 'Zurück auf automatisch',
+  'me.nom': 'ich',
+  'me.acc': 'mich',
+  'me.pick': 'Das bin ich ({0})',
+  'me.release': 'ich = {0}. Tippen, um den Namen zurückzugeben.',
+  'me.taken': '{0} ist schon von einem anderen Gerät belegt.',
+  'me.lost': 'Jemand anderes hat {0} im selben Moment gewählt. Nimm einen anderen Namen.',
+  'me.checking': 'Abgleich mit den anderen…',
+  'confirm.removeme': 'Dich selbst entfernen? Du kommst in der Ausgabenliste vor — dort verlierst du die Rolle als zahlende Person und als Beteiligte.',
   'menu.currency': '💱 Währungszeichen …',
   'menu.update': '🔄 Nach Aktualisierung suchen',
   'menu.update.native': 'ℹ️ Zur Aktualisierung dieser App',
@@ -2110,6 +2153,35 @@ function settle(rows) {
   }
   function alive(list) { return list.filter(function (r) { return !r.x; }); }
 
+  /* Who has claimed which person as "me". One entry per person, holding the
+     device that claimed it and when. A release is an entry with no device, so
+     that it can out-date an older claim instead of vanishing and letting the
+     claim come back from the other side.
+
+     Later stamp wins, and the loser finds out: a device checks after every
+     exchange whether its own claim survived. First-come-first-served would
+     read better on paper, but it needs the clocks to agree, and they do not. */
+  function mergeClaims(local, remote) {
+    var out = {};
+    var all = {};
+    var k;
+    for (k in (local || {})) all[k] = 1;
+    for (k in (remote || {})) all[k] = 1;
+    for (k in all) {
+      var a = (local || {})[k];
+      var b = (remote || {})[k];
+      if (!a) { out[k] = b; continue; }
+      if (!b) { out[k] = a; continue; }
+      var ma = Number(a.m) || 0, mb = Number(b.m) || 0;
+      if (mb > ma) out[k] = b;
+      else if (ma > mb) out[k] = a;
+      /* same instant on two devices: pick deterministically, or the two would
+         disagree forever, each convinced it holds the claim */
+      else out[k] = (String(a.d || '') <= String(b.d || '')) ? a : b;
+    }
+    return out;
+  }
+
   /**
    * Merge two sheet states. Neither side is authoritative: every record is
    * resolved on its own, so two people working on different rows both keep
@@ -2124,6 +2196,7 @@ function settle(rows) {
       cm: Math.max(Number(local.cm) || 0, Number(remote.cm) || 0),
       people: mergeList(local.people, remote.people),
       expenses: mergeList(local.expenses, remote.expenses),
+      claims: mergeClaims(local.claims, remote.claims),
     };
     /* newest expense first, the same order a single device produces */
     out.expenses.sort(function (a, b) { return (Number(b.c) || 0) - (Number(a.c) || 0); });
@@ -2140,6 +2213,9 @@ function settle(rows) {
       (st.expenses || []).map(function (e) {
         return [e.id, e.m, e.x ? 1 : 0, e.payerId, e.desc, e.cents, e.shares, e.fixed, e.c];
       }),
+      Object.keys(st.claims || {}).sort().map(function (k) {
+        return [k, st.claims[k] && st.claims[k].d, st.claims[k] && st.claims[k].m];
+      }),
     ]);
   }
 
@@ -2149,7 +2225,8 @@ function settle(rows) {
     makeCode: makeCode, parseCode: parseCode, codeIsSelfContained: codeIsSelfContained,
     CODE_PREFIX: CODE_PREFIX, CODE_FULL_PREFIX: CODE_FULL_PREFIX,
     ghGet: ghGet, ghPut: ghPut, ghList: ghList, ghDelete: ghDelete,
-    mergeState: mergeState, mergeList: mergeList, alive: alive, fingerprint: fingerprint,
+    mergeState: mergeState, mergeList: mergeList, mergeClaims: mergeClaims,
+    alive: alive, fingerprint: fingerprint,
     _b64: { bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, b64url: b64url, unb64url: unb64url },
   };
 });
@@ -2171,7 +2248,8 @@ function emptyState(){
   /* tm/cm are the edit times of the two scalar fields, `gone` holds the
      tombstones of deleted records. Both only matter for shared sheets, but
      they are always kept so a local sheet can become a shared one later. */
-  return { title:'', currency:'\u20ac', people:[], expenses:[], tm:0, cm:0, gone:{p:{},e:{}} };
+  return { title:'', currency:'\u20ac', people:[], expenses:[], tm:0, cm:0,
+           gone:{p:{},e:{}}, claims:{} };
 }
 
 function load(){
@@ -2245,6 +2323,13 @@ function normalize(st){
   st.cm = Number(st.cm) || 0;
   var g = st.gone && typeof st.gone === 'object' ? st.gone : {};
   st.gone = { p: g.p || {}, e: g.e || {} };
+  /* who says "that one is me" — see the claim section below */
+  var cl = st.claims && typeof st.claims === 'object' ? st.claims : {};
+  st.claims = {};
+  for(var ck in cl){
+    var c = cl[ck];
+    if(c && typeof c === 'object') st.claims[ck] = { d: c.d ? String(c.d) : null, m: Number(c.m) || 0 };
+  }
   st.people = (st.people||[]).map(function(p){
     return {id:p.id||uid(), name:String(p.name||'').toUpperCase(), m:Number(p.m)||0};
   });
@@ -2268,6 +2353,56 @@ function normalize(st){
     return out;
   });
   return st;
+}
+
+/* A pointing hand, drawn rather than borrowed from the emoji font: the emoji
+   differs wildly between Android, iOS and the desktop, and this one has to
+   read as a button at 17 pixels. */
+var FINGER_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">' +
+  '<g fill="currentColor">' +
+  '<rect x="10" y="1.5" width="4.2" height="11" rx="2.1"/>' +
+  '<rect x="6" y="10" width="12.5" height="11" rx="3.6"/>' +
+  '<rect x="2.8" y="12.2" width="4.4" height="6" rx="2.2"/>' +
+  '</g></svg>';
+
+/* ======================= "that one is me" =======================
+   A person can be claimed by exactly one device. The claim travels with the
+   sheet so that no two people can pick the same name; the SUBSTITUTION is
+   local, because "me" only means anything on the device that said it.
+
+   The device id is per browser profile, not per person: clearing the site data
+   loses the claim, which is the same thing that loses the sheet, so nothing is
+   made worse by it. */
+var DEVICE_KEY = 'billing-tool.device';
+var deviceId = (function(){
+  var v = null;
+  try{ v = localStorage.getItem(DEVICE_KEY); }catch(e){}
+  if(v) return v;
+  v = 'd' + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+  try{ localStorage.setItem(DEVICE_KEY, v); }catch(e){}
+  return v;
+})();
+
+/** the person this device calls "me", or null */
+function meId(){
+  for(var id in state.claims){
+    var c = state.claims[id];
+    if(c && c.d === deviceId) return id;
+  }
+  return null;
+}
+/** the device holding a person, or null */
+function claimedBy(personId){
+  var c = state.claims[personId];
+  return (c && c.d) ? c.d : null;
+}
+function isMe(personId){ return claimedBy(personId) === deviceId; }
+
+/** What to show instead of a person's name. `mode` picks the grammatical form
+    German needs and English does not. */
+function shownName(personId, mode){
+  if(isMe(personId)) return t(mode === 'acc' ? 'me.acc' : 'me.nom');
+  return personName(personId);
 }
 
 /* ============================ helpers ============================ */
@@ -2296,27 +2431,54 @@ var pendingPerson = '';
 
 function renderPeople(){
   var box = $('people'); box.innerHTML = '';
+  var mine = meId();
   state.people.forEach(function(p){
     var chip = el('div','chip');
-    var inp = document.createElement('input');
-    inp.value = p.name; inp.size = Math.max(4, p.name.length);
-    inp.setAttribute('aria-label', t('people.name.aria'));
-    inp.addEventListener('input', function(){
-      p.name = inp.value.toUpperCase();
-      inp.value = p.name;
-      inp.size = Math.max(4, p.name.length);
-      updateHeaderNames(); renderResults(); save();
-    });
+    if(isMe(p.id)) chip.classList.add('me');
+
+    if(isMe(p.id)){
+      /* The claim is itself the control: pressing it hands the name back. The
+         real name stays in the tooltip, so it is never actually lost. */
+      var meBtn = el('button','mebtn', t('me.nom'));
+      meBtn.title = t('me.release', p.name);
+      meBtn.setAttribute('aria-label', t('me.release', p.name));
+      meBtn.addEventListener('click', function(){ releasePerson(p.id); });
+      chip.appendChild(meBtn);
+    }else{
+      var inp = document.createElement('input');
+      inp.value = p.name; inp.size = Math.max(4, p.name.length);
+      inp.setAttribute('aria-label', t('people.name.aria'));
+      inp.addEventListener('input', function(){
+        p.name = inp.value.toUpperCase();
+        inp.value = p.name;
+        inp.size = Math.max(4, p.name.length);
+        updateHeaderNames(); renderResults(); save();
+      });
+      chip.appendChild(inp);
+
+      /* the pointing finger, over the middle of the name - only while this
+         device has claimed nobody, and only on a name nobody else holds */
+      if(!mine && !claimedBy(p.id)){
+        var pick = el('button','pickme');
+        pick.innerHTML = FINGER_SVG;
+        pick.title = t('me.pick', p.name);
+        pick.setAttribute('aria-label', t('me.pick', p.name));
+        pick.addEventListener('click', function(ev){ ev.preventDefault(); claimPerson(p.id); });
+        chip.appendChild(pick);
+      }
+    }
+
     var x = el('button','x','×');
-    x.title = t('people.remove', p.name);
+    x.title = t('people.remove', shownName(p.id));
     x.addEventListener('click', function(){
       var used = state.expenses.some(function(e){ return e.payerId===p.id || (e.shares[p.id]||0)>0; });
-      if(used && !confirm(t('confirm.removeperson', p.name))) return;
+      if(used && !confirm(t(isMe(p.id) ? 'confirm.removeme' : 'confirm.removeperson', p.name))) return;
+      if(state.claims[p.id]) state.claims[p.id] = { d: null, m: Date.now() };
       state.people = state.people.filter(function(q){ return q.id!==p.id; });
       state.expenses.forEach(function(e){ if(e.payerId===p.id) e.payerId=null; delete e.shares[p.id]; });
       renderAll(); save();
     });
-    chip.appendChild(inp); chip.appendChild(x);
+    chip.appendChild(x);
     box.appendChild(chip);
   });
 
@@ -2376,7 +2538,7 @@ function updateHeaderNames(){
   for(var j=0;j<sels.length;j++){
     var opts = sels[j].options;
     for(var k=0;k<opts.length;k++){
-      if(opts[k].value) opts[k].textContent = personName(opts[k].value);
+      if(opts[k].value) opts[k].textContent = shownName(opts[k].value);
     }
   }
   var rows = $('tbody').children;
@@ -2393,9 +2555,9 @@ function renderTable(){
   var thA = el('th','num',t('th.amount')); head.appendChild(thA);
   state.people.forEach(function(p, i){
     var th = el('th','share');
-    var span = el('span','pname', p.name);
+    var span = el('span','pname', shownName(p.id));
     th.appendChild(span);
-    th.title = t('th.share.title', p.name);
+    th.title = t('th.share.title', shownName(p.id));
     th.addEventListener('click', function(){
       var allIn = state.expenses.every(function(e){ return (e.shares[p.id]||0) > 0; });
       state.expenses.forEach(function(e){ if(allIn) delete e.shares[p.id]; else if(!e.shares[p.id]) e.shares[p.id]=1; });
@@ -2419,7 +2581,7 @@ function renderTable(){
     var sel = document.createElement('select');
     var o0 = document.createElement('option'); o0.value=''; o0.textContent=t('row.payer.empty'); sel.appendChild(o0);
     state.people.forEach(function(p){
-      var o = document.createElement('option'); o.value=p.id; o.textContent=p.name; sel.appendChild(o);
+      var o = document.createElement('option'); o.value=p.id; o.textContent=shownName(p.id); sel.appendChild(o);
     });
     sel.value = ex.payerId || '';
     if(!ex.payerId) sel.className = 'empty';
@@ -2456,13 +2618,13 @@ function renderTable(){
     // shares
     state.people.forEach(function(p){
       var td = el('td','share');
-      td.appendChild(el('span','mlabel', p.name));
+      td.appendChild(el('span','mlabel', shownName(p.id)));
       var b = el('button','sharebtn');
       var n = ex.shares[p.id] || 0;
       var pe0 = res.perExpense[ri];
       paintShare(b, n, ex.fixed && ex.fixed[p.id],
                  pe0.hasFixed && pe0.rest === 0 && (ex.cents||0) !== 0);
-      b.setAttribute('aria-label', t('row.share.aria', p.name, ex.desc || t('card.expenses')));
+      b.setAttribute('aria-label', t('row.share.aria', shownName(p.id), ex.desc || t('card.expenses')));
       b.addEventListener('click', function(ev){
         if(b.disabled) return;
         if(ex.fixed && ex.fixed[p.id]){
@@ -2565,11 +2727,11 @@ function openExactRow(afterTr, ex){
   var inputs = [];
   state.people.forEach(function(p){
     var cell = el('label','exact-cell');
-    cell.appendChild(el('span','exact-nm', p.name));
+    cell.appendChild(el('span','exact-nm', shownName(p.id)));
     var inp = document.createElement('input');
     inp.inputMode = 'decimal';
     inp.placeholder = t('exact.ph');
-    inp.setAttribute('aria-label', p.name + ' — ' + t('exact.ph'));
+    inp.setAttribute('aria-label', shownName(p.id) + ' — ' + t('exact.ph'));
     var cur = ex.fixed && ex.fixed[p.id];
     inp.value = cur ? formatCents(cur) : '';
     inp.addEventListener('input', function(){
@@ -2602,8 +2764,8 @@ function openExactRow(afterTr, ex){
         if(!Object.keys(ex.fixed).length) delete ex.fixed;
         inp.value = '';
         updatePerShare(); renderResults(); save();
-        refreshExactFoot(box, ex, t('exact.toomuch', p.name, money(Math.max(0, available))));
-        toast(t('exact.toomuch', p.name, money(Math.max(0, available))));
+        refreshExactFoot(box, ex, t('exact.toomuch', shownName(p.id), money(Math.max(0, available))));
+        toast(t('exact.toomuch', shownName(p.id), money(Math.max(0, available))));
         return;
       }
 
@@ -2759,7 +2921,7 @@ function renderResults(){
   rows.forEach(function(r){
     var row = el('div','balrow');
     var left = el('div');
-    left.appendChild(el('div','nm', r.name));
+    left.appendChild(el('div', isMe(r.id) ? 'nm isme' : 'nm', shownName(r.id)));
     left.appendChild(el('div','sub', t('bal.sub', money(r.paid), money(r.owed))));
     row.appendChild(left);
     var v = el('div','val ' + (r.balance>0?'pos':(r.balance<0?'neg':'zero')),
@@ -2779,12 +2941,12 @@ function renderResults(){
   }else{
     transfers.forEach(function(x){
       var d = el('div','tr');
-      d.appendChild(el('span','from', x.fromName));
+      d.appendChild(el('span', isMe(x.fromId) ? 'from isme' : 'from', shownName(x.fromId)));
       d.appendChild(el('span','arrow','→'));
       d.appendChild(el('span',null,t('set.pays')));
       d.appendChild(el('span','amt', money(x.cents)));
       d.appendChild(el('span',null,t('set.to')));
-      d.appendChild(el('span','to', x.toName));
+      d.appendChild(el('span', isMe(x.toId) ? 'to isme' : 'to', shownName(x.toId, 'acc')));
       tb.appendChild(d);
     });
     var n = res.rows.filter(function(r){return r.balance!==0;}).length;
@@ -3318,7 +3480,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.29.0';
+var APP_VERSION = '2.0.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3605,7 +3767,7 @@ function forgetShared(path){
    and nothing else. */
 function toWire(st){
   var w = { title: st.title, tm: st.tm||0, currency: st.currency, cm: st.cm||0,
-            people: [], expenses: [] };
+            people: [], expenses: [], claims: st.claims || {} };
   st.people.forEach(function(p){ w.people.push({id:p.id, name:p.name, m:p.m||0}); });
   st.expenses.forEach(function(e){
     var o = {id:e.id, payerId:e.payerId, desc:e.desc, cents:e.cents, shares:e.shares,
@@ -3621,6 +3783,7 @@ function fromWire(w){
   var st = emptyState();
   st.title = String(w.title || ''); st.tm = Number(w.tm)||0;
   st.currency = w.currency || st.currency; st.cm = Number(w.cm)||0;
+  st.claims = w.claims || {};
   (w.people||[]).forEach(function(p){
     if(p.x) st.gone.p[p.id] = Number(p.m)||0; else st.people.push(p);
   });
@@ -3628,6 +3791,47 @@ function fromWire(w){
     if(e.x) st.gone.e[e.id] = Number(e.m)||0; else st.expenses.push(e);
   });
   return normalize(st);
+}
+
+/* ---------- claiming a person as "me" ---------- */
+/* On a shared sheet the claim has to be checked against the others before it
+   is believed: read what is on the server, look again, write, then read back.
+   On a local sheet there is nobody to collide with and it is immediate. */
+function claimPerson(personId){
+  if(meId()) return;                       /* one at a time */
+  var taken = claimedBy(personId);
+  if(taken && taken !== deviceId){ toast(t('me.taken', personName(personId))); return; }
+
+  function apply(){
+    state.claims[personId] = { d: deviceId, m: Date.now() };
+    renderAll(); save();
+  }
+
+  if(!syncCfg){ apply(); return; }
+
+  toast(t('me.checking'));
+  syncNow().then(function(){
+    var who = claimedBy(personId);
+    if(who && who !== deviceId){ toast(t('me.taken', personName(personId))); renderAll(); return; }
+    apply();
+    return syncNow();
+  }).then(function(){
+    /* the exchange may have brought a competing claim with a later stamp */
+    if(meId() !== personId && claimedBy(personId)){
+      toast(t('me.lost', personName(personId)));
+      renderAll();
+    }
+  }).catch(function(){
+    /* offline: keep it locally, the next exchange settles it */
+    apply();
+  });
+}
+
+function releasePerson(personId){
+  /* An empty entry, stamped now: a claim that is merely deleted would come
+     straight back from the other side, which still has the old one. */
+  state.claims[personId] = { d: null, m: Date.now() };
+  renderAll(); save();
 }
 
 /* ---------- status ---------- */
