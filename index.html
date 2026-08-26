@@ -455,6 +455,37 @@ td.ph{color:var(--on-surface-var);text-align:left;padding:24px 4px;border-bottom
 }
 .hint{color:var(--on-surface-var);font-size:13px}
 
+/* ---- "we are done": one confirmation per device ------------------------- */
+.finalbar{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  padding:4px 20px 16px;
+}
+.finalstat{color:var(--on-surface-var);font-size:13px}
+.finalstat.all{color:var(--success);font-weight:600}
+.finalnote{
+  margin:0 20px 16px;padding:10px 14px;border-radius:var(--r-m);
+  font-size:13px;background:var(--surface-2);color:var(--on-surface-var);
+}
+.finalnote.warn{background:var(--warn-c);color:var(--on-warn-c)}
+
+/* Locked cards say so by going flat and grey. inert already stops every click;
+   this is only so nobody wonders why nothing reacts. */
+body.await-final .card[data-edit],
+body.all-final  .card[data-edit]{
+  opacity:.6;filter:grayscale(.6);
+  background:
+    repeating-linear-gradient(135deg, transparent 0 9px, rgba(120,120,145,.13) 9px 18px),
+    var(--surface-2);
+}
+body.all-final .card[data-edit]{opacity:.5}
+body.await-final #tripTitle,
+body.all-final  #tripTitle{opacity:.62}
+/* the settlement is the one thing that stays fully lit once everybody agrees */
+body.all-final .grid2 .card:not([data-edit]){
+  outline:2px solid var(--success);outline-offset:-2px;
+}
+
+
 /* ---------- naming gate ---------- */
 .gate{
   display:flex;align-items:center;gap:16px;flex-wrap:wrap;
@@ -746,15 +777,16 @@ body.has-syncbar .wrap{padding-bottom:76px}
 
 /* ---------- "that one is me" ---------- */
 .chip{position:relative}
-/* room for the hand, so it never lands on top of the delete cross. Set from
-   script rather than with :has(), which is too new to rely on in a WebView. */
-.chip.haspick{padding-right:36px}
+/* room for the hand ahead of the name. Set from script rather than with
+   :has(), which is too new to rely on in a WebView. */
+.chip.haspick{padding-left:36px}
 /* The finger sits over the middle of the name, dimmed until it is wanted —
    a solid button there would make the list unreadable. */
-/* At the right edge of the chip rather than over the middle of it: a hand is
-   a solid shape, and in the middle it swallowed two letters of every name. */
+/* Ahead of the name rather than over the middle of it: a hand is a solid
+   shape, and in the middle it swallowed two letters of every name. Pointing
+   right, from the left, it points AT the name it belongs to. */
 .pickme{
-  position:absolute;right:3px;top:50%;transform:translateY(-50%);
+  position:absolute;left:3px;top:50%;transform:translateY(-50%);
   width:30px;height:30px;border-radius:var(--r-full);border:none;cursor:pointer;
   display:grid;place-items:center;
   /* The hand is a picture, not a glyph: a free pointing-hand icon from
@@ -762,7 +794,7 @@ body.has-syncbar .wrap{padding-bottom:76px}
      with a dark rim so it still reads on a light disc. Source and the exact
      changes are recorded in CREDITS.md. It carries its own colours, so the
      button is the same plain disc in either theme. */
-  background:#fffdfa url("data:image/png;base64,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") center/20px 20px no-repeat;
+  background:#fffdfa url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAU7klEQVR4nO2deXBc1ZXGv3Pve72qtVurtXiRF9kyNrZjHBZDwJgtATLpAGFJJjWpGpgqpqYyk8o6QqlshGSKSjJZCQkkk2ToECrDHgKJErAxNpvxAraFZUuWLFuLW93q7b17z/zR3ULYlldZsrrfr6rLqn7d7fve+e52zr3nAg4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODg45C011AaaAsffMU1YKh0mFgkHI1laIsW9y5n3kZ0XID4KAPOItd3Nzs6uhocFzxPt5KYKcvulWQLQBGkDx8rm1/0xCLE5a9iJbaWFIYXhd5l5L6b++vrv7BwBiSD+PvOoWclYAwSBkKAS1qLF6XZHXfb9mvcCQEjXlRagpL0J/eAR7egZABCRS9jOD/V033343Im1tYOSRCHJSAGvWrDHa29vthY2VN5X5fb9OWrYxq6bM/sx1F9J5TTPJlBIMxktb3uX/+t8/K1uxK5pIfuf13fv/Iyucqb6HySLXBEDBIEQoBLWwrvKmsiLfr0fiKXn5inn6c5+4UgZ8biSSFjQDAKPQ78ULr76t73nwKWjmaGdveGlfOLwHedQViBN/ZHqQGexxKATV3FBxS3mh71dp48/nL99xtXSbEtF4EgyACCAiHI7EcPHSJnHRktlsK11YO6PgegAIBoM581xORC7cqABAIUABCCyfW/ud0oD/N4dHEuYVK+bzl+64SjAAS2lI8f7bJSIwM65d3cJ+t8kk6CIAorm5OS9qPzC9BSAy83oNgBc2VF29emHDy4YhP5tIWXzr2hX8+duuFARAaQ1BR/d2JAiWpTCvvlKUFwfItvR8AGZbW5tG7nWPx2S6CWCs40a3tUE31cxY+oEFdX8u8rqfiiet5vrKUt36j9fS3cHLSAgxrvGR+RGlGQU+N+bUlkOzrp5fWVQ95nLOY0x1AU4CAkDBYJBCoZDKjtAX11Ws9XhdtxLRTbatPZUlBfyRC1v42gsXi8qSACKxBEgI0DjGz8LMkERUVugHERWx4S6cjJs6VzhXBUBBQDS3gtva0k18KBTCDKCgsan2FjKMoFZqLQAU+bxY3dKobvrQCjm/vpKi8SSGY4mj+vvxYDAMKdBQVQpBpAWRPps3dq5xrglAtLYCbW3QIUChDaiuhq/MXbXS7TKvJcaHQVggGKitKOHLVyzQl58/X9RXlkjNjMPRGIQQJ23896ATthS5yrkiAGoFqC3dr6O6oKC8akbRGsMlblCKVymtmwhAwOfG3NpyddUFi3DRkjky4PdIZWvEUxYIOA3DAwSCZo1oPDnhNzUdmHIBBAEZAlQbwHNrypcVF3juJmCdrXQ1gVBdFsD8+kosbKi0VyxsEI1VpdLjMpFI2YjFUyDCuIO8k4LSs4Sug0NQmonBedUUTKUARCuANkD5/f7K+TXFXzelvE0p7S4q8GLZvHr+QHODXtpUS1WlRWRIadhKIWUrjMRTEIIgxJnbShAhmVI4MDAMBrojOt6TuZQXvoCpEEDW8LoNwHmzq28s8LjvtTU3uUyJKy5YYF9/UYtsqqsgQwqZSNlIWTaSKXvUg0cTYHgA0Mxwmwbe2XuAd3YdJJcUh3p6IuEJ+fFpwmQKQASDoFAIqg3AnLqSRWW+gm9JIa+LJVNY0FCl7rrxErFyQYNhKYV40gIjXUOJCGdjjMbMcJkGXt3ZzeGROISQLwCw8ykgNBkCGA3QhEJAQ2npwooy/xeERDBlaU9hkZdvueJ8vunyFTLgcyMST0IQJqR5Px7MgCElBodH8Pzmt4UQQg9F448DQHMoP5p/4OwLQAJQoRBUfVVpc0Wh725BdKtSusDv9uDq1fPURy5skYtn1dBIIoVYwoI8y4bPorSGz+PGw0+/rDt6+oUhxZsdPYc2M4OIkDe+gLMpAAlAlZZ6a2eXl3/eEPRpW2mfx23ioiWz1fUXnyfOmztTWrZCuvkVZ73WZ1FKo8jvxaa3O/mRv7ymPS5DhKPJrwJIffzj6XJPSkHOAc7GEx+d0y+sr7iipMD7gNZoEIKwZtlc9dFLlonmxipiAPFkarSPnyxspRHwebCjsxdf/tnj9vBIwoilrF+9tqv7DmA0uJQ3TPSTJ2aACLxkTs2/F/k890ViSTTPqrT/5YY1ctm8OtLMSCQt4Ezn76cIM4MZKCrw4q13e/Cln/zRPhyJGwq8pXNw4Mo77xw5lG/LwYCJFYAggmaGsbxp5i+8bvO2aCypP3xhC+684WJREvAhmkiCiCbX8AC01nCbJgwp8Owr2/nHj/1dReJJQ2vesvNg5JrBwcH9yKNVQGOZKEsIZjARjOXz6h72uoybtWb1qWsuELeuXUm20kjZ9mm5as8ErRlSEHweF7oODuFnj7+kntv0jvS6DNg2r9/Vf/Djg4Px/cjDpj/LRAhg1Pgr59U97HEZN6dsZX/x9nXGtasX43A0PurAmSyYGQzA73ZhOJbAY+1v6Mde3EIDh6PkMoxUwrK/8dru7m8AsJDHxgfOXABZ48vl8+p+5XUZN9u2tr9wxzpj3apmDEdjMOSR+zLOLkozXKaEKQXa39jNDz+zUe/cd1CapgQ0PxeOJr+yY3/fxkx7n9fGB85MANnpkjla8y1lf/GOq4x1qxYicgox+YmAOd19+71udPYO4KePv6TWb+mQaW+i2B6Jp9q2dvY8AozuGdDIwz7/SE5LAGsAox2w/X5/RXNt6X+7TeNjlko3++tWNU+J8QURDEPiqQ3b8OCTG1R/OCpdhhi2bP3Dzbu6vwlgGJnVRcjzWj+WUxXAqJNkdmXJ4oqSwCNCiIWa2f7CbVdOifE1M4yME+m+3z7Pj7+0BT63ixTr9oFw7N929/S/DrwXdp60gk0TTiSAzHq8dBAn+97i2TWfKvK67o8nrcKZM4rV525dK5c11SGetCbNmweka74hBTQzvvvb5/WTG7YJv9eNkWTiy6/v6vk2ACvY3Ow6OGO7rmjPj+Y+hFFfxknd7zGt1QqIe9KDu7E/Ilvqay7z+11fBXh1PJnChS1z9N0fu1Q0VJUhGp/8Zt9lGugbjOBrDz3N2/b0ksdlRIYiiU9u3dv72KQV5ByltRWirQ3ACbq741bXmTMLS4sNX4vHNC8E4ToAq7XSmFlRzP9w6TJc98HF5DINJFLW5Bof2YIzWn/+FP/ltZ0oDngHB4bjz7JSj8KUAa2VBigvaj2Q7ptN0yS29PZwOPbuvnB4CDhx1/c+AWQiYbx4duW1Hml+RjGfz5rrpBQI+NyoKS/CJUua9BUr54v6ylJE40nozABsMmEGTEPggSfW4zd/2oSAzwNL2SkwSAhhvieQ3Cd7r7bSiCZSEIBtGrJPg5/rC498t7tvaCswfoDrKAGsIBhoqtsc8LqWlBcXYF5dBRY0VKn59RU0q7pcFPo8SFr2lHj23gcDw/EEDg1FoDSPcTRx3o3wBRGi8SQ6ewbwdtdBsWlHJ6LxFKQQh8Mj8a9s39f3A4zj86Aj/ubm5hkFZsLcunRu7cxv3XkDAj63cBkGJS0btlKwlZ70CN54yMzoPy+d+EcgBME0JCxL8a7uQ3jwyfVq0469hhAChyPRi7btO/TSsVY6HbUeoLa2mrt29KoFDVWyNODX4ZE4xckaNfqU1vojUFrDVvlu+jQMIJZIgUA0u6YM9955g/G1h56xn3l5m+H3eu4FcNkjj8A+st4ec0EIAcTMUJn+fTKndqfKudASnQsQgOzCyZRlgwF85sMfNLZ07Oe+weHVs2aWLSUa2IQjuoKjqnNxxKd1OkiSNwOpXEMIgZRlo7qsGFevWqQtpUWR230JAASPMOu50547TChEBEspLJtXy4U+DwSoGQAQDL7vc44AchRBBNtWqKsoQ2VpAEl1bFeAI4AchgF4XCZchgHWx54dOwLIcbRmaM0AHXum7AggxxGCjrvXwhFADkNEGEkkEUumIOjYpnYEkKNozTANgX0HBtA3FGG3YRxzEOAIIGdhgIEnNmwT8aRFNqstAIBQ6H2fcgSQg9hKo8DrwVsd+/nFLbthSBEJx1PPAUDoiIDQlGcImW5ofe7GHhjpqGiR34O9B4bw3d89bzPDtGz1UGfPwDsnFQxyGB8ioMDnBpBeizgaheQpDkZmBvmSCImUjRff6uAfPfY31dV32ASw98BA7NsAKLMS+n04AjhJiAhJy8azG9+EIQXcLhNa62wwakrDJsyAEMCBgWG8vqsbr+3sIgESRNh1aChyY8/QUBfG2frmCOAkYWYYgpCybPzy6c3oOXQYPo8btlZJZkg6+mSSSYaQtG0IIttjGnuStv27Vzv2fx9AP46zAcYRwCkghMDNa1fisuXz8fWHnuHXdnaRKWXf/oHDn/YZIpZKR8+nrDuQ0hBa8Mib7/a8DSCeLTaOszDUEcApEo7EUFzgReunr6HPfu9R9W5vf31FUeD8zbu675vqso1lzO6n4y6Rc6aBp4iUAomkhZKAD3dcs4qkFADR7XMBN9LPU2b+ncpXdh/HCVsjRwCngZQCI/EkVjXPoubGali23WhVl80CRvcb6il+nXQ35AjgNGEG3KaBRbOqwQy/SxhFU12m08ERwBlABNRVlMCQkoWwp+W+Q0cAZwBR2iEEMDJ+oWmHI4Azgd/LUE729Nya4AjgDGAAQ5FYOj5gTnVpTg9HAKcLpRNO7th7AJpZ2/b03IjqOIJOA2aGaUj0Dg7ztnd7YQjRNZTUu7KXp7Rwp4jTApwi2YSTLinxP89u0oPDIySk2Dg4ODicOcZuWgnAaQGOQzbxFGf+JkpvwPS6TDz45AZ+8uWtZEhpDw5HfwwAaJvCwp4mjgDGgQCYppE+Vk4IGFIgZSs+MDiMP/z1DfVo+xvC4zJkOBJv3dXd/7cxR9VPKxwBjIOtNbp7D8PjNtE7EEZX3xBv6eihN3d3oz88YrhNA+FY/N4tnQe+mjH+tGr6szgCGAdBhAceX49XduyFlISRRIpYMxtSHCBBfx6KxH65fV/fC2OM7wggV8iO8u/66CXY9b3f66FITLgM8Zto1Lp/MHG4e19/rDfzUZqOzf5YnFnAMSAiJFM2GqvLcMsVK9lWGorh3dZ9YNO+/lhvMBjMhnynZa0fiyOAcZBSIJ5I4dLzm0R9ZSmIed2cmpI6ABQKhU640GK64AjgONhKobyogM6fV8fJlO1zu8xlSNf6nHluOXMjZ4Ns+76wsQou0wTbufe8cu6GJhIigq01yosK4HYZUOMkWZjOOAI4AekkjCrtCRRCAkDwBN+ZTjgCOAmkFOnFHzkw6j8SRwDHI5ONvLNnALGEBbcpcs5v4gjguKR3Am3cvgcgsNI8AAChE31tGuEIYBxsW6HA58ar73TpNzt6YEjZEdGu9ZnLOTMadAQwBmaG0umevqjAh70HBvDDP/zN1ppJafWH7u7ueDA41XsAJ5ac69NOlewCDyHSZw65TQMj8SSe3rhVP/B/6/VAZMSlmDt6e8P3YZwt1tOZvBYAA3C7DBAIiZTNvYfCese+A/zHv78lt3f2CENKoTW/0j8Y+afeaLQfOXi6aN4KQDPD4zLx/KvvYP2WDvQPj1B335AMxxKwbQ3ToJ3xZPL7r3f0/gLACHL0jMG8FQA4HfO3bMVPbNhKLsMY0sxbTJexOWlbL+86GH8+nDl2BTlqfCCPBSBEOuPHxUvmYNGsGnT29ove/tgnugZ6erKfOdkt1tOZo2cBdQDxOFkFcwylFAJ+Dy2dO5MTKbuoOCBXBoNB2Qy4cApbrKczRxk6HreIiAVlzoLP5prNvjiHHkc6rktYNLuK3aYBDVEYCoXUIuS+4bMcXdN7AQjiRMpin9tkv9fFPq+L/V4XfB4XTCN9UCPngBJGo32Ffu33uOA2zcUAjsqpn8scNQZ4tacH1X7TeHN3Nz3a/oYwpCAwoKG13+PWs2vKZXVZETEzEin7uImIz3UIAGuN4oAPXrcLh0cS0/dmTpOxAmAA1Nvbm6iaW/v6oaFo/TcfftYGQYLBUpJ0GYZwuwxc2DJb3X7VKjlzRgniiVT67MBpKARGNqFyCinbBgmapls8T59jzQJ0Z/fA3YGA9z63m2xmQ9i2zSUBb5Ni+0Mpy77jyQ3b5IZtneoTa1eIGy85jzyGgZFE6pw5Tu6kYYaUAoeGohSNJ0HMewEclU83lzlSAAwAQ4lE11Ai0TX2QmcfNgL4dUtDxU99Xs890Vhy3Q9+346N2/aoT159gVzaVAfbVkhaNkCY9NNET4fsKObFLbtFMmUhmVKdU1meqWA8K9GR14IAIQhkc822zKq5q8Br3mPbeobHZeKaCxbZN1yyRDZWlZFmRspSsLVO/xCde8e72Uqj2O/Fhm17+Is//SMrrSOHDkRaOo6TVTMXOR2rSGQyUVUVFzfUzgi0mob4lGUrKi/yY/mCenXlioVY0Fgliv1eAoCkZUNrDaU5k1aXkB0yTKYwmDmd4zeTUHnz2/vwnz9/wkokLTOWtH706q7uu46VUDmXOe2nP/ZU6gU1FasDAc+/sua1DF3qcblQX1GCljk1evHsGt0yu4YKvG7hdZtwu0zSWiOVyalkq/ecbFrrs+JnIEpn+ZSC4DYNxFMWNmzdw/c/8oIdiSVNpdTLnd2D1/eNjBzKfCUvaj9w5kmOqXXM9qj6oqJZVZVFQcV8FUMvt21dWOB1p08eLytCXVUp6ipKuCTg5fqKUjYNwTXlJSACMYN8HhcMKcA8egjmGZH9HVtpxBIp9A0O867ug/ynV3bIN3Z3k2kYsGy1flv33huiURxCHjX9WSaq/RWtrUBb23s+86aZpbWFXv8VQtB5yaS1RAhawOBSzfC6DIkCrxuGFKgoCYCIoLVGY3U5Cn3u7ClXZw4DJAgj8SQ6evoxGB7B4WgcSjPcptE5Ylk/2bJ7/48AhJHDAZ/jMdEdMK1ZA9nefpQrVcyrri71FroKOGW1aHChIJptCqqPp+wUESoMKVpSlmI9wfnWGOkZicuUJCDeFhJvJpL2pu5w30vhMHI+2ncizuYIjIKAOLhmDf21vV3RCZrWmTNneufMkdyIRgCdE1iMRnSiEx0dirq7u+Njr4yJ9uVVsz+WyZybZf8vEQQyuyvSPvfm5hCP7T7OFsygSy9dI9vb27P5fPPW8FnOpcn5ZJQl7w3u4ODg4ODg4ODg4ODg4ODg4ODg4ODg4ODgkEf8P/AOJ2VAbUUDAAAAAElFTkSuQmCC") center/20px 20px no-repeat;
   box-shadow:0 1px 5px rgba(0,0,0,.32);opacity:.9;
   transition:opacity .12s,transform .12s;
 }
@@ -879,7 +911,7 @@ body.has-syncbar .wrap{padding-bottom:76px}
     <button class="x" id="installHelpX" data-i18n-aria="install.dismiss">×</button>
   </div>
 
-  <div class="card gated">
+  <div class="card gated" data-edit>
     <div class="card-h">
       <h2 data-i18n="card.people">People</h2>
       <span class="spacer"></span>
@@ -890,7 +922,7 @@ body.has-syncbar .wrap{padding-bottom:76px}
     </div>
   </div>
 
-  <div class="card gated">
+  <div class="card gated" data-edit>
     <div class="card-h">
       <h2 data-i18n="card.expenses">Expenses</h2>
       <span class="spacer"></span>
@@ -918,6 +950,12 @@ body.has-syncbar .wrap{padding-bottom:76px}
         <span class="hint" id="trCount"></span>
       </div>
       <div class="card-b" id="transfers"></div>
+      <!-- "we are done": one confirmation per device, plus the tally -->
+      <div class="finalbar" id="finalBar" hidden>
+        <button class="btn" id="finalBtn">…</button>
+        <span class="finalstat" id="finalStat"></span>
+      </div>
+      <div class="finalnote" id="finalNote" hidden></div>
     </div>
   </div>
 
@@ -1005,6 +1043,16 @@ en: {
   'own.person': 'this person',
   'own.expense': 'this expense',
   'own.confirm': '{0} was entered on another device. Change it anyway?',
+  'final.btn': 'This is settled',
+  'final.btn.undo': 'Still checking',
+  'final.status': '{0} of {1} devices confirmed',
+  'final.status.all': 'everybody confirmed',
+  'final.hint': 'Money only moves once every device has confirmed.',
+  'final.locked.mine': 'You have confirmed this sheet. Tap \u201cStill checking\u201d to edit again.',
+  'final.someone': 'Somebody considers the sheet settled. Please check the numbers and confirm.',
+  'final.revoked': 'The sheet changed after your confirmation \u2014 all confirmations were cancelled. Please check again.',
+  'final.revoked.mine': 'Your change cancelled every confirmation.',
+  'final.done': 'All devices confirmed. Nothing can be changed now.',
   'me.nom': 'me',
   'me.acc': 'me',
   'me.pick': 'This is me ({0})',
@@ -1300,7 +1348,17 @@ de: {
   'me.takenshort': 'Jemand anderes ist diese Person.',
   'own.person': 'Diese Person',
   'own.expense': 'Diese Ausgabe',
-  'own.confirm': '{0} wurde auf einem anderen Gerät eingetragen. Trotzdem ändern?',
+  'own.confirm': '{0} wurde auf einem anderen Ger\u00e4t eingetragen. Trotzdem \u00e4ndern?',
+  'final.btn': 'Das ist final',
+  'final.btn.undo': 'Pr\u00fcfe noch',
+  'final.status': '{0} von {1} Ger\u00e4ten best\u00e4tigt',
+  'final.status.all': 'alle haben best\u00e4tigt',
+  'final.hint': 'Gezahlt wird erst, wenn alle Ger\u00e4te best\u00e4tigt haben.',
+  'final.locked.mine': 'Du hast diese Abrechnung best\u00e4tigt. Zum \u00c4ndern auf \u201ePr\u00fcfe noch\u201c tippen.',
+  'final.someone': 'Jemand h\u00e4lt die Abrechnung f\u00fcr final. Bitte pr\u00fcfe die Zahlen und best\u00e4tige.',
+  'final.revoked': 'Nach deiner Best\u00e4tigung wurde noch etwas ge\u00e4ndert \u2014 alle Best\u00e4tigungen sind aufgehoben. Bitte noch einmal pr\u00fcfen.',
+  'final.revoked.mine': 'Deine \u00c4nderung hat alle Best\u00e4tigungen aufgehoben.',
+  'final.done': 'Alle Ger\u00e4te haben best\u00e4tigt. Jetzt ist nichts mehr \u00e4nderbar.',
   'me.nom': 'ich',
   'me.acc': 'mich',
   'me.pick': 'Das bin ich ({0})',
@@ -2204,6 +2262,22 @@ function settle(rows) {
     return out;
   }
 
+  /* "I consider this settled." One entry per device, so no two devices ever
+     write the same key — except when a change revokes them all at once, and
+     that is a broadcast the later stamp is meant to win. */
+  function mergeFinal(local, remote) {
+    var out = {}, all = {}, k;
+    for (k in (local || {})) all[k] = 1;
+    for (k in (remote || {})) all[k] = 1;
+    for (k in all) {
+      var a = (local || {})[k], b = (remote || {})[k];
+      if (!a) { out[k] = b; continue; }
+      if (!b) { out[k] = a; continue; }
+      out[k] = ((Number(b.m) || 0) > (Number(a.m) || 0)) ? b : a;
+    }
+    return out;
+  }
+
   /**
    * Merge two sheet states. Neither side is authoritative: every record is
    * resolved on its own, so two people working on different rows both keep
@@ -2219,6 +2293,7 @@ function settle(rows) {
       people: mergeList(local.people, remote.people),
       expenses: mergeList(local.expenses, remote.expenses),
       claims: mergeClaims(local.claims, remote.claims),
+      final: mergeFinal(local.final, remote.final),
     };
     /* newest expense first, the same order a single device produces */
     out.expenses.sort(function (a, b) { return (Number(b.c) || 0) - (Number(a.c) || 0); });
@@ -2238,6 +2313,9 @@ function settle(rows) {
       Object.keys(st.claims || {}).sort().map(function (k) {
         return [k, st.claims[k] && st.claims[k].d, st.claims[k] && st.claims[k].m];
       }),
+      Object.keys(st.final || {}).sort().map(function (k) {
+        return [k, st.final[k] && st.final[k].a ? 1 : 0, st.final[k] && st.final[k].m];
+      }),
     ]);
   }
 
@@ -2248,6 +2326,7 @@ function settle(rows) {
     CODE_PREFIX: CODE_PREFIX, CODE_FULL_PREFIX: CODE_FULL_PREFIX,
     ghGet: ghGet, ghPut: ghPut, ghList: ghList, ghDelete: ghDelete,
     mergeState: mergeState, mergeList: mergeList, mergeClaims: mergeClaims,
+    mergeFinal: mergeFinal,
     alive: alive, fingerprint: fingerprint,
     _b64: { bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, b64url: b64url, unb64url: unb64url },
   };
@@ -2271,7 +2350,7 @@ function emptyState(){
      tombstones of deleted records. Both only matter for shared sheets, but
      they are always kept so a local sheet can become a shared one later. */
   return { title:'', currency:'\u20ac', people:[], expenses:[], tm:0, cm:0,
-           gone:{p:{},e:{}}, claims:{} };
+           gone:{p:{},e:{}}, claims:{}, final:{} };
 }
 
 function load(){
@@ -2321,7 +2400,19 @@ function stampChanges(){
     for(var id in prev[key]) if(!seen[id]) state.gone[key][id] = now;
   });
   var after = snapshot(state);
-  if(JSON.stringify(after) !== JSON.stringify(prev)) lastLocalEdit = now;
+  if(JSON.stringify(after) !== JSON.stringify(prev)){
+    lastLocalEdit = now;
+    /* A number that moves after somebody said "this is settled" makes that
+       agreement worthless — so the change cancels every confirmation, not just
+       the ones on this device. */
+    finalNotice = null;
+    if(revokeAllFinal(now)){
+      lastFinalSeen = JSON.stringify(state.final);
+      applyFinalLock();
+      if($('finalBar')) renderFinal();
+      toast(t('final.revoked.mine'));
+    }
+  }
   lastSnap = after;
 }
 
@@ -2329,7 +2420,11 @@ function stampChanges(){
    next save would stamp every record as "just changed" and a loaded file would
    wrongly outrank everything on the server. */
 var saveTargetChosen = false;
-function adopt(st){ state = st; lastSnap = snapshot(state); saveTargetChosen = false; return state; }
+function adopt(st){
+  state = st; lastSnap = snapshot(state); saveTargetChosen = false;
+  lastFinalSeen = JSON.stringify(state.final || {});
+  return state;
+}
 
 function save(){
   stampChanges();
@@ -2351,6 +2446,13 @@ function normalize(st){
   for(var ck in cl){
     var c = cl[ck];
     if(c && typeof c === 'object') st.claims[ck] = { d: c.d ? String(c.d) : null, m: Number(c.m) || 0 };
+  }
+  /* who has said "this is settled" */
+  var fi = st.final && typeof st.final === 'object' ? st.final : {};
+  st.final = {};
+  for(var fk in fi){
+    var fv = fi[fk];
+    if(fv && typeof fv === 'object') st.final[fk] = { a: fv.a ? 1 : 0, m: Number(fv.m) || 0 };
   }
   st.people = (st.people||[]).map(function(p){
     var pn = {id:p.id||uid(), name:String(p.name||'').toUpperCase(), m:Number(p.m)||0};
@@ -2439,6 +2541,122 @@ function isReservedName(nm){
 function shownName(personId, mode){
   if(isMe(personId)) return t(mode === 'acc' ? 'me.acc' : 'me.nom');
   return personName(personId);
+}
+
+/* =================== "we are done" ===================
+   Before anybody transfers money, every phone has to agree that the sheet is
+   finished. One flag per device, kept with the sheet:
+
+     - confirming locks THIS device and tells the others
+     - confirming again unlocks it and tells them too
+     - any change to the sheet revokes EVERY confirmation, because a number
+       that moved after the fact makes the earlier agreement worthless
+     - once every device has confirmed, nothing can be edited anywhere
+
+   Who counts as a participant: the devices that have claimed a person as "me",
+   plus any device that has confirmed. A phone that opened the sheet once and
+   never claimed anybody is not waited for — and one that claimed somebody and
+   never comes back WILL hold the count open until that claim is released. */
+
+function finalRoster(){
+  var seen = {}, out = [], cl = (state && state.claims) || {}, fi = (state && state.final) || {};
+  function add(d){ if(d && !seen[d]){ seen[d] = 1; out.push(d); } }
+  for(var pid in cl){
+    var c = cl[pid];
+    if(c && c.d) add(c.d);
+  }
+  for(var dv in fi) add(dv);
+  add(deviceId);
+  return out;
+}
+function iAmFinal(){ var f = (state && state.final) || {}; return !!(f[deviceId] && f[deviceId].a); }
+function finalTally(){
+  var roster = finalRoster(), ok = 0, fi = (state && state.final) || {};
+  roster.forEach(function(d){ if(fi[d] && fi[d].a) ok++; });
+  return { ok: ok, total: roster.length };
+}
+function allFinal(){
+  var t = finalTally();
+  return t.total > 0 && t.ok === t.total;
+}
+/* the only gate the rest of the app has to ask about */
+function inputsLocked(){ return iAmFinal(); }
+
+function setFinal(on){
+  state.final[deviceId] = { a: on ? 1 : 0, m: Date.now() };
+  lastFinalSeen = JSON.stringify(state.final);
+  applyFinalLock();
+  renderAll();
+  save();
+  if(syncCfg) syncNow();
+}
+
+/* A change after somebody confirmed cancels every confirmation. Called from
+   the one place that knows a change really happened. */
+function revokeAllFinal(now){
+  var any = false;
+  for(var d in state.final) if(state.final[d] && state.final[d].a) any = true;
+  if(!any) return false;
+  for(var d2 in state.final) state.final[d2] = { a: 0, m: now };
+  return true;
+}
+
+/* What this device last saw, so it can tell somebody else's doing from its own */
+var lastFinalSeen = '{}';
+var finalNotice = null;      /* 'revoked' | 'someone' | null */
+
+function noticeFinalChange(beforeJson){
+  var before = {};
+  try{ before = JSON.parse(beforeJson == null ? lastFinalSeen : beforeJson); }catch(e){}
+  var nowSeen = state.final;
+  var wasMine = !!(before[deviceId] && before[deviceId].a);
+  var isMine = iAmFinal();
+  if(wasMine && !isMine){
+    finalNotice = 'revoked';              /* somebody changed something */
+    toast(t('final.revoked'));
+  }else{
+    var others = 0;
+    for(var d in nowSeen){
+      if(d === deviceId) continue;
+      var had = !!(before[d] && before[d].a);
+      if(nowSeen[d] && nowSeen[d].a && !had) others++;
+    }
+    if(others && !isMine){ finalNotice = 'someone'; toast(t('final.someone')); }
+  }
+  lastFinalSeen = JSON.stringify(nowSeen);
+}
+
+function applyFinalLock(){
+  var mine = iAmFinal();
+  var all = allFinal();
+  document.body.classList.toggle('await-final', mine && !all);
+  document.body.classList.toggle('all-final', all);
+}
+
+/* The confirmation bar under the transfers. Shown as soon as the sheet is
+   shared — it is the one place that says how many of the others are done. */
+function renderFinal(){
+  var bar = $('finalBar'), note = $('finalNote');
+  var show = !!syncCfg || iAmFinal();
+  bar.hidden = !show;
+  if(show){
+    var tal = finalTally(), mine = iAmFinal(), all = allFinal();
+    var btn = $('finalBtn');
+    btn.textContent = t(mine ? 'final.btn.undo' : 'final.btn');
+    btn.className = 'btn' + (mine ? '' : ' primary');
+    var st = $('finalStat');
+    st.textContent = all ? t('final.status.all') : t('final.status', tal.ok, tal.total);
+    st.className = 'finalstat' + (all ? ' all' : '');
+  }
+  var msg = '', warn = true;
+  if(finalNotice === 'revoked') msg = t('final.revoked');
+  else if(finalNotice === 'someone') msg = t('final.someone');
+  else if(show && allFinal()){ msg = t('final.done'); warn = false; }
+  else if(show && iAmFinal()){ msg = t('final.locked.mine'); warn = false; }
+  else if(show) { msg = t('final.hint'); warn = false; }
+  note.hidden = !msg;
+  note.textContent = msg;
+  note.className = 'finalnote' + (warn ? ' warn' : '');
 }
 
 /* ---------------- who put this here ----------------
@@ -3039,7 +3257,7 @@ function renderAll(){
   $('tripTitle').value = state.title;
   fitTitle();
   document.title = (state.title || '').trim() ? state.title + ' — Billing Tool' : 'Billing Tool';
-  renderPeople(); renderTable(); renderResults();
+  renderPeople(); renderTable(); renderResults(); renderFinal();
   applyGate();
 }
 
@@ -3279,6 +3497,9 @@ function initMenu(){
     if(!item) return;
     close();
     var act = item.dataset.act;
+    if(inputsLocked() && (act==='new' || act==='clear' || act==='currency')){
+      toast(t('final.locked.mine')); return;
+    }
     if(act==='save'){
       /* First save of a sheet: local file or shared on GitHub. Once the choice
          is made it is not asked again — a shared sheet syncs by itself, and
@@ -3426,6 +3647,11 @@ $('fileInput').addEventListener('change', function(){
   });
 })();
 
+$('finalBtn').addEventListener('click', function(){
+  finalNotice = null;
+  setFinal(!iAmFinal());
+});
+
 $('addRow').addEventListener('click', function(){
   if(!state.people.length){
     toast(t('expenses.needpeople'));
@@ -3561,7 +3787,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '2.1.0';
+var APP_VERSION = '3.0.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -3767,10 +3993,17 @@ function applyGate(){
     $('gateSub').textContent = t('gate.name.sub');
   }
 
+  /* Two locks, one place. The gate closes everything until the sheet has a
+     name; a confirmation closes only what can be edited, so the confirmation
+     itself stays reachable and can be taken back. */
+  var editLock = inputsLocked();
   var cards = document.querySelectorAll('.gated');
   for(var i=0;i<cards.length;i++){
-    if(locked) cards[i].setAttribute('inert',''); else cards[i].removeAttribute('inert');
+    var shut = locked || (editLock && cards[i].hasAttribute('data-edit'));
+    if(shut) cards[i].setAttribute('inert',''); else cards[i].removeAttribute('inert');
   }
+  $('tripTitle').readOnly = editLock;
+  applyFinalLock();
 }
 
 function startEmptySheet(keepTitle){
@@ -3848,7 +4081,7 @@ function forgetShared(path){
    and nothing else. */
 function toWire(st){
   var w = { title: st.title, tm: st.tm||0, currency: st.currency, cm: st.cm||0,
-            people: [], expenses: [], claims: st.claims || {} };
+            people: [], expenses: [], claims: st.claims || {}, final: st.final || {} };
   st.people.forEach(function(p){
     var r = {id:p.id, name:p.name, m:p.m||0};
     if(p.o) r.o = p.o;
@@ -3870,6 +4103,7 @@ function fromWire(w){
   st.title = String(w.title || ''); st.tm = Number(w.tm)||0;
   st.currency = w.currency || st.currency; st.cm = Number(w.cm)||0;
   st.claims = w.claims || {};
+  st.final = w.final || {};
   (w.people||[]).forEach(function(p){
     if(p.x) st.gone.p[p.id] = Number(p.m)||0; else st.people.push(p);
   });
@@ -3953,6 +4187,11 @@ function syncMenuItems(){
   });
   var sh = document.querySelector('#menu [data-act="share"]');
   if(sh) sh.hidden = !!syncCfg;
+  /* the confirmation only exists among several devices, so it comes and goes
+     with the sharing itself */
+  /* this also runs while the page is still starting up, before there is a
+     sheet to look at */
+  if(state && $('finalBar')){ renderFinal(); applyGate(); }
 }
 
 /* ---------- the sync cycle ---------- */
@@ -4033,7 +4272,9 @@ function syncNow(){
          typing in out from under them; the next round picks it up */
       if(remote && fpMerged !== Sync.fingerprint(mine) && !typingNow()){
         var spot = markSpot();
+        var beforeFinal = lastFinalSeen;
         adopt(fromWire(merged));
+        noticeFinalChange(beforeFinal);
         renderAll();
         restoreSpot(spot);
         lsSet(STORE_KEY, JSON.stringify(state));
@@ -4117,6 +4358,12 @@ function stopSync(){
   syncBusy = false; syncAgain = false;
   clearInterval(syncPoll); clearTimeout(syncTimer);
   syncCfg = null; syncKeyObj = null; syncSha = null; syncPw = null; syncSalt = null;
+  /* a confirmation only means anything among several devices — keeping it after
+     leaving would lock this one with nobody left to unlock it */
+  if(state.final && state.final[deviceId]) state.final[deviceId] = { a: 0, m: Date.now() };
+  finalNotice = null;
+  lastFinalSeen = JSON.stringify(state.final || {});
+  applyFinalLock();
   lsDel(SYNC_KEY);
   syncMenuItems();
   $('syncBar').hidden = true;
