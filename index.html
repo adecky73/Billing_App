@@ -150,13 +150,13 @@ body{
 }
 .wrap{
   max-width:1120px;margin:0 auto;
-  padding-top:calc(8px + env(safe-area-inset-top, 0px));
+  padding-top:0;
   padding-right:calc(16px + env(safe-area-inset-right, 0px));
   padding-bottom:72px;
   padding-left:calc(16px + env(safe-area-inset-left, 0px));
 }
 /* WebViews that report no inset but still draw under the status bar */
-body.inset-fallback .wrap{padding-top:34px}
+
 h1,h2,h3{margin:0;font-weight:500;letter-spacing:0}
 button{font:inherit;color:inherit}
 input,select{font:inherit;color:inherit}
@@ -167,10 +167,24 @@ input,select{font:inherit;color:inherit}
 }
 
 /* ---------- top app bar ---------- */
+/* Sticky, and no taller than it needs to be: on a phone this bar was eating
+   the first sixth of the screen and then scrolling away just when the menu was
+   wanted. The status-bar inset is carried by the bar itself now, not by the
+   page, so nothing sits under the clock and the battery. */
 header.top{
+  position:sticky;top:0;z-index:160;   /* above the fixed sync bar */
   display:flex;gap:8px;align-items:center;flex-wrap:wrap;
-  padding:12px 0 16px;min-height:64px;
+  /* Negative margins that exactly cancel the page padding, so the bar's
+     background reaches the edges without creating a wider box than the page. */
+  margin:0 calc(-16px - env(safe-area-inset-right, 0px)) 0 calc(-16px - env(safe-area-inset-left, 0px));
+  padding:calc(6px + env(safe-area-inset-top, 0px))
+          calc(16px + env(safe-area-inset-right, 0px)) 8px
+          calc(16px + env(safe-area-inset-left, 0px));
+  min-height:0;
+  background:var(--surface);
 }
+body.inset-fallback header.top{padding-top:30px}
+body.no-statusbar header.top{padding-top:6px}
 .brand{display:flex;align-items:center;gap:12px;min-width:0;flex:1 1 200px}
 .logo{width:44px;height:44px;flex:none;display:block}
 .logo svg{display:block;width:100%;height:100%}
@@ -435,11 +449,18 @@ td.ph{color:var(--on-surface-var);text-align:left;padding:24px 4px;border-bottom
 
 /* ---------- menu ---------- */
 .menu-anchor{position:relative}
+/* The bar is sticky now, so the menu is pinned to the top of the screen and
+   scrolling the page can no longer bring its last entries into reach — it has
+   to scroll inside itself. */
 .menu{
   position:absolute;right:0;top:calc(100% + 8px);z-index:50;min-width:260px;
   background:var(--surface-3);color:var(--on-surface);
   border:none;border-radius:var(--r-m);box-shadow:var(--e2);
   padding:8px 0;display:none;
+  /* ...and it must stop above the sync bar, which is fixed over everything at
+     the bottom and would otherwise swallow the last entries' taps. */
+  max-height:calc(100vh - 96px - env(safe-area-inset-top, 0px) - var(--syncbar-h, 0px));
+  overflow-y:auto;overscroll-behavior:contain;
 }
 .menu.open{display:block}
 .menu button{
@@ -502,12 +523,24 @@ footer .ver{font-size:11.5px;opacity:.8}
 .mlabel{display:none}
 @media (max-width:700px){
   .wrap{
-    padding-top:calc(4px + env(safe-area-inset-top, 0px));
+    padding-top:0;
     padding-right:calc(12px + env(safe-area-inset-right, 0px));
     padding-bottom:64px;
     padding-left:calc(12px + env(safe-area-inset-left, 0px));
   }
-  body.inset-fallback .wrap{padding-top:30px}
+  /* one line as long as it fits: logo, name, then the buttons */
+  header.top{
+    gap:6px;
+    margin:0 calc(-12px - env(safe-area-inset-right, 0px)) 0 calc(-12px - env(safe-area-inset-left, 0px));
+    padding:calc(4px + env(safe-area-inset-top, 0px))
+            calc(12px + env(safe-area-inset-right, 0px)) 6px
+            calc(12px + env(safe-area-inset-left, 0px));
+  }
+  .brand{flex:1 1 150px}
+  .logo{width:34px;height:34px}
+  #tripTitle{font-size:19px;padding:2px 6px}
+  .top-actions{gap:6px}
+  .top-actions .btn{min-height:36px;padding:0 12px;font-size:13px}
   .tablewrap{overflow:visible}
   table{min-width:0}
   table,tbody,tfoot,tr,td{display:block;width:auto}
@@ -606,8 +639,11 @@ footer .ver{font-size:11.5px;opacity:.8}
 .syncbar[data-s="busy"] .dot{background:var(--warn)}
 .syncbar[data-s="offline"] .dot{background:var(--outline)}
 .syncbar[data-s="denied"] .dot,.syncbar[data-s="badkey"] .dot{background:var(--error)}
+.syncbar[data-s="gone"] .dot{background:var(--error)}
+.syncbar[data-s="gone"] .lbl{color:var(--error);font-weight:500}
 .syncbar[data-s="denied"] .lbl,.syncbar[data-s="badkey"] .lbl{color:var(--error);font-weight:500}
 /* keep the last card clear of the bar, and off the print-out entirely */
+body.has-syncbar{--syncbar-h:76px}
 body.has-syncbar .wrap{padding-bottom:76px}
 @media print{ .syncbar{display:none} body.has-syncbar .wrap{padding-bottom:0} }
 /* the box already carries the padding; this only needs to scroll */
@@ -644,11 +680,7 @@ body.has-syncbar .wrap{padding-bottom:76px}
 .sheetdel:hover{background:var(--error-c);border-color:var(--error)}
 .sheetitem .nm{font-weight:500}
 /* the password is meant to be read off the screen and typed on another phone */
-.dlg-p.pwline{
-  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;
-  color:var(--on-surface);background:var(--surface-3);
-  padding:10px 12px;border-radius:var(--r-s);word-break:break-all;user-select:all;
-}
+.sendrow{display:flex;gap:8px;justify-content:flex-end;margin-top:-4px}
 .linkbtn{
   align-self:flex-start;background:none;border:none;padding:0;cursor:pointer;
   color:var(--primary);font:inherit;font-size:13px;text-decoration:underline;
@@ -907,6 +939,7 @@ en: {
   'th.desc': 'Expenditure',
   'th.amount': 'Amount',
   'th.pershare': 'Per share',
+  'th.pershare.rest': 'Per open share',
   'th.total': 'Total',
   'th.share.title': 'Click to include/exclude {0} in every expense',
   'row.payer.empty': '— who paid? —',
@@ -939,7 +972,10 @@ en: {
   'share.pw.new': 'New password',
   'share.pw.hint': 'This password encrypts the sheet. It is the only thing that separates it from the other sheets in the repository — and it cannot be recovered if it is lost.',
   'share.badpw': 'The password needs at least 8 characters.',
-  'code.pw.label': 'Password:',
+  'code.pw.field': 'Password',
+  'code.sent': 'Sent.',
+  'code.noshare': 'This browser has no send menu — copied instead. Paste it where you like.',
+  'code.nosharefell': 'Sending did not work — copied instead.',
   'code.warn': 'Send the code and the password in SEPARATE messages, ideally by different routes. The code alone cannot be opened, and that is the point.',
   'open.pw': 'Password',
   'open.pw.ph': 'the password for this sheet',
@@ -968,7 +1004,8 @@ en: {
   'menu.group.shared': 'Shared editing',
   'menu.share': 'Share this sheet…',
   'menu.openshared': 'Open a shared sheet…',
-  'menu.synccode': 'Show invitation code',
+  'menu.synccode': 'Invitation code / password',
+  'print.native': 'The packaged app cannot print or make a PDF — Android gives a WebView no printer. Show the summary as text instead, to copy or share?',
   'menu.syncnow': 'Sync now',
   'menu.unshare': 'Stop sharing on this device',
   'btn.cancel': 'Cancel',
@@ -978,6 +1015,8 @@ en: {
   'sync.state.offline': 'no connection',
   'sync.state.denied': 'no access',
   'sync.state.badkey': 'wrong key',
+  'sync.state.gone': 'deleted',
+  'sync.gone': 'This sheet was deleted from the repository. Your copy stays on this device — save it as a file if you want to keep it.',
   'where.save.title': 'Where should this sheet live?',
   'where.save.intro': 'A local file stays on this device. A shared sheet lives encrypted in the GitHub repository of Andreas Deckert, and everyone with the invitation code edits the same one.',
   'where.open.title': 'What would you like to open?',
@@ -1017,6 +1056,7 @@ en: {
 
   'confirm.shared.new': 'This sheet is shared. Starting a new one means this device leaves it — the sheet stays on the server and everyone else keeps working on it — and the {0} and {1} here disappear from this screen. The repository and the token stay stored, so sharing the new sheet will only ask for a password. Continue?',
   'confirm.shared.clear': 'This sheet is shared. Clearing it means this device leaves it — the sheet stays on the server and everyone else keeps working on it — and the {0} and {1} here disappear from this screen. The repository and the token stay stored, so sharing something new will only ask for a password. Continue?',
+  'confirm.switchshared': 'A shared sheet is open. Open a different one? This one stays on the server and everyone else keeps working on it — it just leaves this screen.',
   'confirm.unshare': 'Stop syncing this sheet on this device? The data stays here and stays in the repository — only the automatic exchange stops.',
   'unshared': 'Sharing stopped on this device.',
   'warn.over': '{0} {1} more fixed than the expense',
@@ -1046,7 +1086,7 @@ en: {
   'set.count': '{0} {1} (fewest possible for {2} people)',
   'word.transfer': 'transfer',
   'word.transfers': 'transfers',
-  'set.error': 'Could not compute transfers: {0}',
+  'set.error': 'The transfers cannot be worked out — the balances do not cancel out. That happens when an expense has no payer or nobody sharing it; the warning above says which.',
 
   /* saving and loading */
   'save.result': '{0} {1}, {2} {3}, {4} KB — {5}.',
@@ -1169,6 +1209,7 @@ de: {
   'th.desc': 'Ausgabe',
   'th.amount': 'Betrag',
   'th.pershare': 'Je Anteil',
+  'th.pershare.rest': 'Je offenem Anteil',
   'th.total': 'Summe',
   'th.share.title': 'Anklicken, um {0} bei allen Ausgaben ein- oder auszuschließen',
   'row.payer.empty': '— wer hat bezahlt? —',
@@ -1201,7 +1242,10 @@ de: {
   'share.pw.new': 'Neues Passwort',
   'share.pw.hint': 'Dieses Passwort verschlüsselt die Abrechnung. Es ist das Einzige, was sie von den anderen Abrechnungen im Repository trennt — und es lässt sich nicht wiederherstellen, wenn es verloren geht.',
   'share.badpw': 'Das Passwort braucht mindestens 8 Zeichen.',
-  'code.pw.label': 'Passwort:',
+  'code.pw.field': 'Passwort',
+  'code.sent': 'Gesendet.',
+  'code.noshare': 'Dieser Browser hat kein Senden-Menü — stattdessen kopiert. Füg es ein, wo du magst.',
+  'code.nosharefell': 'Senden hat nicht geklappt — stattdessen kopiert.',
   'code.warn': 'Schick Code und Passwort in GETRENNTEN Nachrichten, am besten auf verschiedenen Wegen. Der Code allein lässt sich nicht öffnen — genau darum geht es.',
   'open.pw': 'Passwort',
   'open.pw.ph': 'das Passwort dieser Abrechnung',
@@ -1210,7 +1254,7 @@ de: {
   'open.err.pw': 'Falsches Passwort für diese Abrechnung.',
   'manual.pw.intro': 'Trag das Passwort dieser Abrechnung ein.',
   'clash.title': 'Dieser Name ist schon vergeben',
-  'clash.intro': 'Im Repository liegt bereits eine Abrechnung namens „{0}". Zwei gleichnamige Abrechnungen sind der Weg, auf dem eine Gruppe mit zwei halbvollen Kopien derselben Reise endet.',
+  'clash.intro': 'Im Repository liegt bereits eine Abrechnung namens „{0}". Bei zwei gleichnamigen Abrechnungen tragen am Ende die einen in die eine und die anderen in die andere ein.',
   'clash.warn': 'Die vorhandene zu öffnen ersetzt, was gerade auf dem Bildschirm steht. Davon ist bisher nichts irgendwo gespeichert.',
   'clash.open': 'Vorhandene öffnen',
   'clash.rename': 'Anderen Namen wählen',
@@ -1230,7 +1274,8 @@ de: {
   'menu.group.shared': 'Gemeinsam bearbeiten',
   'menu.share': 'Diese Abrechnung teilen…',
   'menu.openshared': 'Geteilte Abrechnung öffnen…',
-  'menu.synccode': 'Einladungscode anzeigen',
+  'menu.synccode': 'Einladungscode / Passwort',
+  'print.native': 'Die installierte App kann nicht drucken und kein PDF erzeugen — Android gibt einer WebView keinen Drucker. Stattdessen die Zusammenfassung als Text anzeigen, zum Kopieren oder Teilen?',
   'menu.syncnow': 'Jetzt abgleichen',
   'menu.unshare': 'Teilen auf diesem Gerät beenden',
   'btn.cancel': 'Abbrechen',
@@ -1240,6 +1285,8 @@ de: {
   'sync.state.offline': 'keine Verbindung',
   'sync.state.denied': 'kein Zugriff',
   'sync.state.badkey': 'falscher Schlüssel',
+  'sync.state.gone': 'gelöscht',
+  'sync.gone': 'Diese Abrechnung wurde aus dem Repository gelöscht. Deine Kopie bleibt auf diesem Gerät — sichere sie als Datei, wenn du sie behalten willst.',
   'where.save.title': 'Wo soll diese Abrechnung liegen?',
   'where.save.intro': 'Eine lokale Datei bleibt auf diesem Gerät. Eine geteilte Abrechnung liegt verschlüsselt im GitHub-Repository von Andreas Deckert, und alle mit dem Einladungscode bearbeiten dieselbe.',
   'where.open.title': 'Was möchtest du öffnen?',
@@ -1279,6 +1326,7 @@ de: {
 
   'confirm.shared.new': 'Diese Abrechnung ist geteilt. Eine neue anzulegen heißt: dieses Gerät verlässt sie — die Abrechnung bleibt auf dem Server, alle anderen arbeiten weiter daran — und die {0} und {1} verschwinden hier vom Bildschirm. Repository und Token bleiben gespeichert, das Teilen der neuen Abrechnung fragt also nur nach einem Passwort. Fortfahren?',
   'confirm.shared.clear': 'Diese Abrechnung ist geteilt. Alles zu löschen heißt: dieses Gerät verlässt sie — die Abrechnung bleibt auf dem Server, alle anderen arbeiten weiter daran — und die {0} und {1} verschwinden hier vom Bildschirm. Repository und Token bleiben gespeichert, ein neues Teilen fragt also nur nach einem Passwort. Fortfahren?',
+  'confirm.switchshared': 'Es ist eine geteilte Abrechnung geöffnet. Eine andere öffnen? Diese bleibt auf dem Server, alle anderen arbeiten weiter daran — sie verschwindet nur von diesem Bildschirm.',
   'confirm.unshare': 'Abgleich für diese Abrechnung auf diesem Gerät beenden? Die Daten bleiben hier und bleiben im Repository — nur der automatische Austausch hört auf.',
   'unshared': 'Teilen auf diesem Gerät beendet.',
   'warn.over': 'bei {0} {1} mehr festgelegt als die Ausgabe',
@@ -1293,7 +1341,7 @@ de: {
 
   'bal.empty': 'Zuerst Personen anlegen.',
   'bal.sub': 'gezahlt {0} · Anteil {1}',
-  'bal.warn.payer': 'bei {0} {1} fehlt der Zahler',
+  'bal.warn.payer': 'bei {0} {1} fehlt die zahlende Person',
   'bal.warn.shared': '{0} {1} niemandem zugeordnet',
   'bal.warn.has': '',
   'bal.warn.have': '',
@@ -1307,7 +1355,7 @@ de: {
   'set.count': '{0} {1} (kleinstmögliche Zahl für {2} Personen)',
   'word.transfer': 'Überweisung',
   'word.transfers': 'Überweisungen',
-  'set.error': 'Überweisungen nicht berechenbar: {0}',
+  'set.error': 'Die Überweisungen lassen sich nicht ermitteln — die Salden gleichen sich nicht aus. Das passiert, wenn bei einer Ausgabe die zahlende Person fehlt oder niemand daran beteiligt ist; der Hinweis oben nennt die Fälle.',
 
   'save.result': '{0} {1}, {2} {3}, {4} KB — {5}.',
   'save.cancelled': 'Nicht gesichert — du hast den Dialog geschlossen.',
@@ -1376,8 +1424,11 @@ var lang = 'en';
 
 function t(key){
   var table = I18N[lang] || I18N.en;
-  var s = table[key];
-  if(s === undefined || s === '') s = I18N.en[key];
+  /* An empty string is a legitimate translation — German needs no auxiliary
+     verb where English does. Treating it as "missing" fell back to English and
+     put a stray "has" in the middle of a German sentence. */
+  var s = Object.prototype.hasOwnProperty.call(table, key) ? table[key] : undefined;
+  if(s === undefined) s = I18N.en[key];
   if(s === undefined) return key;
   for(var i = 1; i < arguments.length; i++){
     s = s.split('{' + (i-1) + '}').join(String(arguments[i]));
@@ -2068,6 +2119,13 @@ function snapshot(st){
   st.expenses.forEach(function(x){ s.e[x.id] = recFp(x); });
   return s;
 }
+/* When the user last touched anything. The exchange refuses to redraw the
+   screen for a few seconds afterwards: pulling the server's version into the
+   DOM while somebody is halfway through adding a person wipes the half-typed
+   row out from under them. Our own change is pushed either way — only the
+   redraw waits. */
+var lastLocalEdit = 0;
+
 function stampChanges(){
   var now = Date.now();
   var prev = lastSnap;
@@ -2085,7 +2143,9 @@ function stampChanges(){
     });
     for(var id in prev[key]) if(!seen[id]) state.gone[key][id] = now;
   });
-  lastSnap = snapshot(state);
+  var after = snapshot(state);
+  if(JSON.stringify(after) !== JSON.stringify(prev)) lastLocalEdit = now;
+  lastSnap = after;
 }
 
 /* Replacing the whole sheet is not an edit: the baseline moves with it, or the
@@ -2312,7 +2372,11 @@ function renderTable(){
 
     // per share
     var tdS = el('td','num pershare');
-    tdS.appendChild(el('span','mlabel', t('th.pershare') + ' '));
+    /* With fixed amounts in the row, this figure is what one share of the
+       REMAINDER costs — calling it "per share" invites reading it as a share
+       of the whole expense. */
+    tdS.appendChild(el('span','mlabel',
+      t(res.perExpense[ri].hasFixed ? 'th.pershare.rest' : 'th.pershare') + ' '));
     tdS.appendChild(el('span','v',''));
     tr.appendChild(tdS);
 
@@ -2595,7 +2659,7 @@ function renderResults(){
   var tb = $('transfers'); tb.innerHTML = '';
   var transfers = [];
   try{ transfers = settle(res.rows); }
-  catch(e){ tb.appendChild(el('div','note', t('set.error', e.message))); }
+  catch(e){ tb.appendChild(el('div','note', t('set.error'))); }
 
   if(!transfers.length){
     tb.appendChild(el('div','empty-note', res.total ? t('set.done') : t('set.none')));
@@ -2891,7 +2955,17 @@ function initMenu(){
       }else{ prompt(t('copy.prompt'), txt); }
     }
     else if(act==='raw'){ showRaw(slug(sheetTitle())+'.json', JSON.stringify(state, null, 2)); }
-    else if(act==='print'){ window.print(); }
+    else if(act==='print'){
+      /* An Android WebView has no print pipeline at all: window.print() is a
+         no-op there and returns without an error, so promising a PDF would be
+         a lie. The text view is the route that works everywhere. */
+      if(isNativeShell){
+        if(confirm(t('print.native'))) showRaw(slug(sheetTitle())+'.txt', summaryText());
+        return;
+      }
+      /* let the menu finish closing, or it prints itself onto the page */
+      setTimeout(function(){ window.print(); }, 120);
+    }
     else if(act==='currency'){
       var c = prompt(t('currency.prompt'), state.currency);
       if(c!=null && c.trim()){ state.currency = c.trim().slice(0,4); renderAll(); save(); }
@@ -3006,7 +3080,10 @@ $('addRow').addEventListener('click', function(){
      nobody selected, no payer. Who paid and who shares are the two things that
      genuinely differ from row to row — guessing them is more likely to be wrong
      than right, and a wrong tick is easy to miss. */
-  state.expenses.unshift({id:uid(), payerId:null, desc:'', cents:0, shares:{}});
+  /* c is the ordering key. Without it the row travels with c = 0 and comes
+     back from the exchange sorted below everything else — which is exactly the
+     "row jumps down after the first tap" that was reported. */
+  state.expenses.unshift({id:uid(), payerId:null, desc:'', cents:0, shares:{}, m:Date.now(), c:Date.now()});
   renderTable(); renderResults(); save();
   var firstRow = $('tbody').querySelector('tr');
   if(!firstRow) return;
@@ -3024,10 +3101,17 @@ $('addRow').addEventListener('click', function(){
   try{ if(sel.showPicker) sel.showPicker(); }catch(e){}
 
   if(!amt) return;
+  var desc = firstRow.querySelector('td.desc input');
   sel.addEventListener('change', function once(){
     sel.removeEventListener('change', once);
     /* the row's own change handler re-renders the results first */
     setTimeout(function(){ amt.focus(); amt.select(); }, 0);
+  });
+  /* ...and on to what it was for. `change` fires on Enter and on leaving the
+     field, which is exactly when the amount is finished. */
+  if(desc) amt.addEventListener('change', function onceAmt(){
+    amt.removeEventListener('change', onceAmt);
+    setTimeout(function(){ desc.focus(); }, 0);
   });
 });
 
@@ -3056,13 +3140,29 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '1.23.0';
+var APP_VERSION = '1.24.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
    service worker either: the files are already local, so an extra cache layer
    would only risk serving something stale inside the packaged app. */
 var isNativeShell = !!(window.Capacitor || window.cordova);
+
+/* In the packaged app the status bar was costing a strip of screen and putting
+   the clock and battery right where the menu button is. Hide it if the shell
+   ships the plugin; if it does not, nothing happens and the inset padding
+   stays, which is the correct behaviour for a status bar that is still there. */
+(function hideStatusBar(){
+  if(!isNativeShell) return;
+  var P = window.Capacitor && window.Capacitor.Plugins;
+  if(!P || !P.StatusBar) return;
+  Promise.resolve()
+    .then(function(){ return P.StatusBar.setOverlaysWebView && P.StatusBar.setOverlaysWebView({overlay:false}); })
+    .then(function(){ return P.StatusBar.hide(); })
+    .then(function(){ document.body.classList.remove('inset-fallback');
+                      document.body.classList.add('no-statusbar'); })
+    .catch(function(){});
+})();
 var isStandalone = isNativeShell ||
                    (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ||
                    navigator.standalone === true;
@@ -3305,11 +3405,14 @@ function updatePrivacyNote(){
 
 function setSyncStatus(kind, detail){
   var bar = $('syncBar');
-  bar.hidden = !syncCfg;
+  /* "deleted" is the one state worth keeping on screen after the sharing has
+     ended — otherwise the bar would simply vanish and nobody would learn why */
+  var show = !!syncCfg || kind === 'gone';
+  bar.hidden = !show;
   updatePrivacyNote();
   /* the bar covers the last few lines of the page unless the body makes room */
-  document.body.classList.toggle('has-syncbar', !!syncCfg);
-  if(!syncCfg) return;
+  document.body.classList.toggle('has-syncbar', show);
+  if(!show) return;
   bar.dataset.s = kind;
   $('syncLbl').textContent = t('sync.state.' + kind);
   bar.title = detail || t('sync.state.' + kind);
@@ -3330,9 +3433,41 @@ function syncSoon(){
   syncTimer = setTimeout(function(){ syncNow(); }, 1500);
 }
 
+var EDIT_GRACE = 2500;
+/* Where the cursor was, in terms that survive the whole table being rebuilt:
+   which expense row, which kind of cell, and how far into the text. */
+function markSpot(){
+  var a = document.activeElement;
+  if(!a || !a.closest) return null;
+  var td = a.closest('td');
+  var tr = a.closest('tr[data-eid]');
+  var spot = { start: a.selectionStart, end: a.selectionEnd };
+  if(tr && td){ spot.eid = tr.dataset.eid; spot.cell = td.className.split(' ')[0]; return spot; }
+  if(a.id){ spot.id = a.id; return spot; }
+  return null;
+}
+function restoreSpot(spot){
+  if(!spot) return;
+  var node = null;
+  if(spot.eid){
+    var tr = $('tbody').querySelector('tr[data-eid="' + spot.eid + '"]');
+    if(tr) node = tr.querySelector('td.' + spot.cell + ' input, td.' + spot.cell + ' select');
+  } else if(spot.id){
+    node = $(spot.id);
+  }
+  if(!node) return;
+  try{
+    node.focus();
+    if(spot.start != null && node.setSelectionRange) node.setSelectionRange(spot.start, spot.end);
+  }catch(e){}
+}
+
 function typingNow(){
   var a = document.activeElement;
-  return !!(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT'));
+  if(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.tagName === 'SELECT')) return true;
+  /* focus() does not always take on iOS Safari, so the focused-element test
+     alone is not enough to tell that somebody is in the middle of something. */
+  return (Date.now() - lastLocalEdit) < EDIT_GRACE;
 }
 
 function syncNow(){
@@ -3346,7 +3481,16 @@ function syncNow(){
   return Sync.ghGet(syncCfg)
     .then(function(r){
       if(stale()) return null;
-      if(r.missing){ syncSha = null; return null; }
+      /* The file is always created before sharing starts, so "not there" can
+         only mean somebody deleted it. Pushing our copy back would undo their
+         deletion — and did: a sheet deleted on one phone reappeared seconds
+         later, written by another that still had it open. */
+      if(r.missing){
+        stopSync();
+        setSyncStatus('gone');
+        toast(t('sync.gone'));
+        return null;
+      }
       syncSha = r.sha;
       return Sync.unseal(syncKeyObj, r.text);
     })
@@ -3359,13 +3503,18 @@ function syncNow(){
       /* take what the others changed — but never yank the field the user is
          typing in out from under them; the next round picks it up */
       if(remote && fpMerged !== Sync.fingerprint(mine) && !typingNow()){
+        var spot = markSpot();
         adopt(fromWire(merged));
         renderAll();
+        restoreSpot(spot);
         lsSet(STORE_KEY, JSON.stringify(state));
       }
       if(remote && fpMerged === Sync.fingerprint(remote)) return { sha: syncSha };
 
       return Sync.seal(syncKeyObj, syncSalt, merged, merged.title).then(function(text){
+        /* sealing is a key operation and takes a moment; the sheet may have
+           been left or deleted in the meantime */
+        if(stale()) return { sha: syncSha };
         return Sync.ghPut(syncCfg, text, syncSha, 'billing-tool: ' + Sync.randomId(4));
       });
     })
@@ -3637,14 +3786,18 @@ function showCode(fresh){
   if(!syncCfg || !syncPw) return Promise.resolve();
   var one = codeOneMessage();
   return Sync.makeCode(syncCfg, syncPw, one).then(function(code){
-    var ta;
     dlgOpen(t(fresh ? 'code.title.new' : 'code.title'), function(b){
       note(b, t(one ? 'code.intro.one' : 'code.intro'));
-      ta = field(b, t('code.field'), {area:true, value:code, mono:true, ro:true});
-      if(!one) note(b, t('code.pw.label') + ' ' + syncPw, 'pwline');
+
+      var ta = field(b, t('code.field'), {area:true, value:code, mono:true, ro:true});
+      sendCopyRow(b, code, t('code.field'));
+
+      if(!one){
+        var pw = field(b, t('code.pw.field'), {value:syncPw, mono:true, ro:true});
+        sendCopyRow(b, syncPw, t('code.pw.field'));
+      }
       note(b, t(one ? 'code.warn.one' : 'code.warn'), 'warnp');
-      /* The convenient shape is one click away, and what it costs is written
-         on the switch itself rather than buried in a document. */
+
       var sw = el('button','linkbtn', t(one ? 'code.split' : 'code.merge'));
       sw.addEventListener('click', function(){
         lsSet('billing-tool.onecode', one ? '0' : '1');
@@ -3654,21 +3807,67 @@ function showCode(fresh){
       b.appendChild(sw);
     }, [
       { label: t('btn.close'), act:'close', onClick: dlgClose },
-      { label: t('code.share'), act:'send', onClick: function(){
-          if(navigator.share){ navigator.share({title: sheetTitle(), text: code}).catch(function(){}); }
-          else { ta.focus(); ta.select(); toast(t('code.selected')); }
-        } },
-      { label: t('code.copy'), act:'copy', primary: true, onClick: function(){
-          ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
-          var ok = false;
-          try{ ok = document.execCommand('copy'); }catch(e){}
-          if(ok){ toast(t('raw.copied')); return; }
-          if(navigator.clipboard) navigator.clipboard.writeText(code).then(
-            function(){ toast(t('raw.copied')); }, function(){ toast(t('raw.copyfail')); });
-          else toast(t('raw.copyfail'));
-        } },
     ]);
   });
+}
+
+/* Send and copy, right under the thing they act on — the code and the password
+   are meant to travel apart, so one shared pair of buttons at the bottom was
+   the wrong shape. */
+function sendCopyRow(parent, text, what){
+  var row = el('div','sendrow');
+
+  var send = el('button','btn sm', t('code.share'));
+  send.dataset.b = 'send';
+  send.addEventListener('click', function(){ shareText(text, what); });
+  row.appendChild(send);
+
+  var copy = el('button','btn sm primary', t('code.copy'));
+  copy.dataset.b = 'copy';
+  copy.addEventListener('click', function(){ copyText(text); });
+  row.appendChild(copy);
+
+  parent.appendChild(row);
+}
+
+function copyText(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ toast(t('raw.copied')); },
+                                            function(){ copyFallback(text); });
+    return;
+  }
+  copyFallback(text);
+}
+/* execCommand needs a real selection in the document to work at all */
+function copyFallback(text){
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.setAttribute('readonly','');
+  ta.style.position = 'fixed'; ta.style.top = '-1000px';
+  document.body.appendChild(ta);
+  ta.select(); ta.setSelectionRange(0, text.length);
+  var ok = false;
+  try{ ok = document.execCommand('copy'); }catch(e){}
+  ta.remove();
+  toast(ok ? t('raw.copied') : t('raw.copyfail'));
+}
+
+/* navigator.share only exists on phones and in a few desktop builds, and it
+   rejects for reasons worth telling the user about. Swallowing that was why
+   "Send" looked like it did nothing at all. */
+function shareText(text, what){
+  if(navigator.share){
+    navigator.share({ title: sheetTitle() + ' — ' + what, text: text })
+      .then(function(){ toast(t('code.sent')); })
+      .catch(function(err){
+        if(err && err.name === 'AbortError') return;      /* user closed it */
+        copyText(text);
+        toast(t('code.nosharefell'));
+      });
+    return;
+  }
+  copyText(text);
+  toast(t('code.noshare'));
 }
 
 /* ---------- open a shared sheet ---------- */
@@ -3676,6 +3875,9 @@ function showCode(fresh){
    already knows, an invitation code somebody sent, or — with neither — the
    location typed by hand. None of them ever puts a path on screen. */
 function openShared(){
+  /* Switching sheets is not obviously destructive — the current one stays on
+     the server — but it does clear the screen, so it gets asked once. */
+  if(syncCfg && !confirm(t('confirm.switchshared'))) return;
   var codeIn, pwIn;
   dlgOpen(t('open.title'), function(b){
     var list = knownShared();
@@ -3801,11 +4003,14 @@ function showShelf(base, items){
         if(!confirm(t('shelf.delete.confirm', it.label || t('open.untitled')))) return;
         dlgClose();
         toast(t('sync.state.busy'));
+        /* Leave the sheet FIRST. Doing it afterwards left a window in which
+           this device's own exchange — already under way — wrote the file
+           straight back, and the sheet reappeared seconds after being
+           deleted. */
+        if(syncCfg && syncCfg.path === it.cfg.path) stopSync();
+        forgetShared(it.cfg.path);
         Sync.ghDelete(it.cfg, it.sha, 'billing-tool: remove sheet').then(function(res){
           if(res.conflict) throw new Error('conflict');
-          /* if the deleted one was open here, this device is now sharing nothing */
-          if(syncCfg && syncCfg.path === it.cfg.path){ stopSync(); forgetShared(it.cfg.path); }
-          forgetShared(it.cfg.path);
           toast(t('shelf.deleted', it.label || t('open.untitled')));
           return readShelf(base).then(function(rest){
             if(rest.length) showShelf(base, rest);
