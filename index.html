@@ -470,14 +470,22 @@ td.ph{color:var(--on-surface-var);text-align:left;padding:24px 4px;border-bottom
 .hint{color:var(--on-surface-var);font-size:13px}
 
 /* Changed after this device had confirmed: the message says so, this says
-   where. It goes away with the next confirmation or the next own edit. */
-tbody tr.changed td{border-top:2px dashed var(--error);border-bottom:2px dashed var(--error)}
-tbody tr.changed td:first-child{border-left:2px dashed var(--error)}
-tbody tr.changed td:last-child{border-right:2px dashed var(--error)}
-.chip.changed{border:2px dashed var(--error)}
+   where — and once the card is open, exactly which field moved rather than
+   "somewhere in this row". It goes away with the next confirmation or the
+   next own edit. */
+td.chg,.exact-cell.chg,.rowex.chg{
+  outline:3px dashed var(--error);outline-offset:-2px;border-radius:var(--r-s);
+}
+.chip.changed{outline:3px dashed var(--error);outline-offset:1px}
+/* a row that is wholly new has no single field to point at */
+tbody tr.changed.whole td{border-top:3px dashed var(--error);border-bottom:3px dashed var(--error)}
+tbody tr.changed.whole td:first-child{border-left:3px dashed var(--error)}
+tbody tr.changed.whole td:last-child{border-right:3px dashed var(--error)}
 @media (max-width:700px){
-  tbody tr.changed{border:2px dashed var(--error);border-radius:var(--r-m)}
-  tbody tr.changed td{border:none}
+  tbody tr.changed.whole td{border:none}
+  /* closed, the whole line is the mark; open, the fields inside carry it */
+  tbody tr.changed.folded{border:3px dashed var(--error);border-radius:var(--r-m)}
+  tbody tr.changed.whole:not(.folded){border:3px dashed var(--error)}
 }
 
 /* ---- "we are done": one confirmation per device ------------------------- */
@@ -2924,13 +2932,50 @@ function marksShown(){
   for(var b in changedMark.e) return true;
   return false;
 }
+/* Which FIELD moved, not merely which row. A dashed frame around a whole card
+   says "something in here"; a frame around the amount says what to look at.
+   The snapshot keeps each record as the JSON it was, so the two versions can
+   simply be compared key by key. */
+function fieldsOf(a, b){
+  var out = {}, k;
+  if(a.payerId !== b.payerId) out.payer = 1;
+  if((a.desc || '') !== (b.desc || '')) out.desc = 1;
+  if((Number(a.cents) || 0) !== (Number(b.cents) || 0)) out.amt = 1;
+  if((a.name || '') !== (b.name || '')) out.name = 1;
+  var sa = a.shares || {}, sb = b.shares || {}, seen = {};
+  for(k in sa) seen[k] = 1;
+  for(k in sb) seen[k] = 1;
+  for(k in seen) if((Number(sa[k]) || 0) !== (Number(sb[k]) || 0)) out['share:' + k] = 1;
+  var fa = a.fixed || {}, fb = b.fixed || {}, seenF = {};
+  for(k in fa) seenF[k] = 1;
+  for(k in fb) seenF[k] = 1;
+  for(k in seenF) if((Number(fa[k]) || 0) !== (Number(fb[k]) || 0)) out['fixed:' + k] = 1;
+  return out;
+}
 function diffSnaps(prev, now){
   var out = { p: {}, e: {} };
   if(!prev || !now) return out;
   ['p','e'].forEach(function(k){
-    for(var id in now[k]) if(prev[k][id] !== now[k][id]) out[k][id] = 1;
+    for(var id in now[k]){
+      if(prev[k][id] === now[k][id]) continue;
+      if(!prev[k][id]){ out[k][id] = { added: 1 }; continue; }   /* wholly new */
+      var was = null, is = null;
+      try{ was = JSON.parse(prev[k][id]); is = JSON.parse(now[k][id]); }catch(e){}
+      out[k][id] = (was && is) ? fieldsOf(was, is) : { added: 1 };
+    }
   });
   return out;
+}
+/* did this one field move? */
+function chg(kind, id, field){
+  var rec = changedMark[kind][id];
+  if(!rec) return false;
+  return !!(rec.added || rec[field]);
+}
+/* nothing but a whole new record marks the card as a whole */
+function chgWhole(kind, id){
+  var rec = changedMark[kind][id];
+  return !!(rec && rec.added);
 }
 
 /* The mark on the row and the sentence about it belong together — the message
@@ -3460,6 +3505,7 @@ function renderTable(){
     if(res.perExpense[ri].unassigned) tr.className = 'unassigned';
     /* somebody changed this after this device had said "final" */
     if(changedMark.e[ex.id]) tr.classList.add('changed');
+    if(chgWhole('e', ex.id)) tr.classList.add('whole');
     if(isFolded(ex.id)) tr.classList.add('folded');
     /* The open card is lifted to the top of the list, so it is where the eye
        already is and the list of the others stays whole underneath it. It goes
@@ -3486,6 +3532,7 @@ function renderTable(){
       sel.className = ex.payerId ? '' : 'empty';
       renderResults(); save();
     });
+    if(chg('e', ex.id, 'payer')) tdP.classList.add('chg');
     tdP.appendChild(sel); tr.appendChild(tdP);
 
     // description
@@ -3496,6 +3543,7 @@ function renderTable(){
       if(!mayEdit(ex, 'own.expense')){ inD.value = ex.desc; return; }
       ex.desc = inD.value; save();
     });
+    if(chg('e', ex.id, 'desc')) tdD.classList.add('chg');
     tdD.appendChild(inD); tr.appendChild(tdD);
 
     // amount
@@ -3513,11 +3561,13 @@ function renderTable(){
     });
     inA.addEventListener('blur', function(){ inA.value = ex.cents ? formatCents(ex.cents) : ''; });
     inA.addEventListener('focus', function(){ inA.select(); });
+    if(chg('e', ex.id, 'amt')) tdA.classList.add('chg');
     tdA.appendChild(inA); tr.appendChild(tdA);
 
     // shares
     state.people.forEach(function(p){
       var td = el('td','share');
+      if(chg('e', ex.id, 'share:' + p.id)) td.classList.add('chg');
       td.appendChild(el('span', isMe(p.id) ? 'mlabel isme' : 'mlabel', shownName(p.id)));
       var b = el('button','sharebtn');
       var n = ex.shares[p.id] || 0;
@@ -3582,6 +3632,9 @@ function renderTable(){
       closeExactRows();
       if(!open) openExactRow(tr, ex);
     });
+    var fixedMoved = false;
+    state.people.forEach(function(p){ if(chg('e', ex.id, 'fixed:' + p.id)) fixedMoved = true; });
+    if(fixedMoved) exBtn.classList.add('chg');
     tdX.appendChild(exBtn);
     var del = el('button','rowdel','×');
     del.title = t('row.delete');
@@ -3643,6 +3696,7 @@ function openExactRow(afterTr, ex){
   var inputs = [];
   state.people.forEach(function(p){
     var cell = el('label','exact-cell');
+    if(chg('e', ex.id, 'fixed:' + p.id)) cell.classList.add('chg');
     cell.appendChild(el('span','exact-nm', shownName(p.id)));
     var inp = document.createElement('input');
     inp.inputMode = 'decimal';
@@ -4445,7 +4499,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '4.1.0';
+var APP_VERSION = '4.2.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
