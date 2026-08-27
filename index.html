@@ -701,12 +701,22 @@ td.sum,.rowfold,.foldall,.foldbtn{display:none}
   .sumline .schev .arw.chev{width:17px;height:17px;margin:0;vertical-align:0}
   .sumline:focus-visible{outline:2px solid var(--focus);outline-offset:-2px;border-radius:var(--r-l)}
   /* the way back out of an open card, next to the delete button */
+  /* the way out of the open card, at its bottom right */
   .rowfold{
-    display:grid;place-items:center;width:34px;height:34px;
-    border:none;border-radius:var(--r-full);cursor:pointer;
-    background:transparent;color:var(--on-surface-var);
+    display:inline-flex;align-items:center;gap:4px;margin-left:auto;
+    border:1px solid var(--outline-var);border-radius:var(--r-full);
+    padding:6px 12px 6px 9px;cursor:pointer;font:inherit;font-size:13px;
+    background:var(--surface);color:var(--on-surface-var);
   }
-  .rowfold .arw.chev{width:18px;height:18px;margin:0;vertical-align:0}
+  .rowfold:hover{background:var(--surface-3)}
+  .rowfold .arw.chev{width:15px;height:15px;margin:0;vertical-align:0}
+  td.pershare{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  /* the lifted card says so: it sits on the page rather than in the list */
+  tbody tr.hoist{
+    border-color:var(--primary);box-shadow:var(--e2);
+    background:var(--surface-1);
+  }
+  tbody tr.hoist.unassigned{background:var(--warn-c)}
   .rowfold:hover{background:var(--surface-3)}
 
   .wrap{
@@ -730,7 +740,13 @@ td.sum,.rowfold,.foldall,.foldbtn{display:none}
   .top-actions .btn{min-height:36px;padding:0 12px;font-size:13px}
   .tablewrap{overflow:visible}
   table{min-width:0}
-  table,tbody,tfoot,tr,td{display:block;width:auto}
+  table,tfoot,tr,td{display:block;width:auto}
+  /* a column of cards, so the open one can be lifted to the top of it without
+     touching the row order the rest of the app reads */
+  tbody{display:flex;flex-direction:column;width:auto}
+  tbody > tr{order:0}
+  tbody > tr.hoist{order:-2}
+  tbody > tr.exactrow.hoist{order:-1}
   thead{display:none}
   tbody tr{
     display:flex;flex-wrap:wrap;align-items:center;
@@ -1211,6 +1227,7 @@ en: {
   'row.sum.nodesc': 'no description',
   'row.sum.nopayer': 'payer missing',
   'row.all': 'all',
+  'row.fold': 'close',
   'card.balance.open': 'Show the balance',
   'card.balance.fold': 'Fold the balance away',
   'bal.mine': 'me: {0}',
@@ -1543,6 +1560,7 @@ de: {
   'row.sum.nodesc': 'ohne Beschreibung',
   'row.sum.nopayer': 'Zahler fehlt',
   'row.all': 'alle',
+  'row.fold': 'zuklappen',
   'card.balance.open': 'Bilanz anzeigen',
   'card.balance.fold': 'Bilanz zuklappen',
   'bal.mine': 'ich: {0}',
@@ -3366,6 +3384,10 @@ var balOpen = lsGet('billing-tool.balopen') === '1';
 function isFolded(id){
   return !(expandAll || inputsLocked()) && openExpense !== id;
 }
+/* the one open card, and only while it is the only one */
+function hoists(id){
+  return openExpense === id && !expandAll && !inputsLocked();
+}
 
 /* Everything open at once, for reading the whole list through — and back to
    the plain list of lines the app starts with, nothing open. */
@@ -3381,6 +3403,9 @@ function foldExpense(id){
   closeExactRows();
   openExpense = id;
   renderTable(); renderResults();
+  /* the card has just moved to the top of the list — follow it there */
+  var row = $('tbody').querySelector('tr[data-eid="' + id + '"]');
+  if(row && row.scrollIntoView) row.scrollIntoView({block:'nearest'});
 }
 
 /* the closed line: enough to find the expense again, nothing more */
@@ -3436,6 +3461,12 @@ function renderTable(){
     /* somebody changed this after this device had said "final" */
     if(changedMark.e[ex.id]) tr.classList.add('changed');
     if(isFolded(ex.id)) tr.classList.add('folded');
+    /* The open card is lifted to the top of the list, so it is where the eye
+       already is and the list of the others stays whole underneath it. It goes
+       back to its own place the moment it is closed. Only the stylesheet moves
+       it — the row keeps its place in the table, which is what printing, CSV
+       and the desktop layout read. */
+    else if(hoists(ex.id)) tr.classList.add('hoist');
 
     // the closed line — hidden by the stylesheet on anything wider than a phone
     tr.appendChild(sumCell(ex, res.perExpense[ri]));
@@ -3522,6 +3553,19 @@ function renderTable(){
     tdS.appendChild(el('span','mlabel',
       t(res.perExpense[ri].hasFixed ? 'th.pershare.rest' : 'th.pershare') + ' '));
     tdS.appendChild(el('span','v',''));
+    /* bottom right of the open card: the place a thumb lands after reading the
+       row from the top down */
+    var fold = el('button','rowfold');
+    fold.appendChild(chevronSVG('up'));
+    fold.appendChild(document.createTextNode(t('row.fold')));
+    fold.title = t('row.sum.fold');
+    fold.addEventListener('click', function(){
+      closeExactRows();
+      if(expandAll){ setExpandAll(false); return; }
+      openExpense = null;
+      renderTable(); renderResults();
+    });
+    tdS.appendChild(fold);
     tr.appendChild(tdS);
 
     // exact amounts + delete
@@ -3546,17 +3590,6 @@ function renderTable(){
       state.expenses = state.expenses.filter(function(e){ return e.id !== ex.id; });
       renderTable(); renderResults(); save();
     });
-    var fold = el('button','rowfold');
-    fold.appendChild(chevronSVG('up'));
-    fold.title = t('row.sum.fold');
-    fold.setAttribute('aria-label', t('row.sum.fold'));
-    fold.addEventListener('click', function(){
-      closeExactRows();
-      if(expandAll){ setExpandAll(false); return; }
-      openExpense = null;
-      renderTable(); renderResults();
-    });
-    tdX.appendChild(fold);
     tdX.appendChild(del); tr.appendChild(tdX);
 
     body.appendChild(tr);
@@ -3600,7 +3633,7 @@ function openExactRow(afterTr, ex){
   if(btn) btn.classList.add('active');
   afterTr.classList.add('hasexact');
   var tr = document.createElement('tr');
-  tr.className = 'exactrow';
+  tr.className = 'exactrow' + (afterTr.classList.contains('hoist') ? ' hoist' : '');
   var td = document.createElement('td');
   td.colSpan = state.people.length + 6;
   var box = el('div','exact');
@@ -4412,7 +4445,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '4.0.2';
+var APP_VERSION = '4.1.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
