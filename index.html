@@ -231,6 +231,7 @@ header.top.stacked #tripTitle{flex:1 1 auto}
   resize:none;overflow:hidden;font-family:inherit;display:block;
   overflow-wrap:break-word;word-break:normal;
 }
+#langLbl{white-space:nowrap;letter-spacing:.02em}
 #tripTitle:hover{background:var(--surface-2)}
 #tripTitle:focus{outline:2px solid var(--focus);outline-offset:-2px;background:var(--surface-1)}
 .top-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -457,6 +458,17 @@ td.ph{color:var(--on-surface-var);text-align:left;padding:24px 4px;border-bottom
 }
 .hint{color:var(--on-surface-var);font-size:13px}
 
+/* Changed after this device had confirmed: the message says so, this says
+   where. It goes away with the next confirmation or the next own edit. */
+tbody tr.changed td{border-top:2px dashed var(--error);border-bottom:2px dashed var(--error)}
+tbody tr.changed td:first-child{border-left:2px dashed var(--error)}
+tbody tr.changed td:last-child{border-right:2px dashed var(--error)}
+.chip.changed{border:2px dashed var(--error)}
+@media (max-width:700px){
+  tbody tr.changed{border:2px dashed var(--error);border-radius:var(--r-m)}
+  tbody tr.changed td{border:none}
+}
+
 /* ---- "we are done": one confirmation per device ------------------------- */
 /* ---- the confirmation, under the transfers it confirms ---- */
 .finalbar{
@@ -607,13 +619,16 @@ footer{
 footer .ver{font-size:11.5px;opacity:.8}
 
 .toast{
-  position:fixed;left:50%;transform:translateX(-50%);bottom:24px;z-index:100;
+  position:fixed;left:50%;top:50%;transform:translate(-50%,-46%);
+  z-index:400;                    /* above the sync bar and the sticky header */
   background:var(--surface-3);color:var(--on-surface);
-  padding:14px 16px;border-radius:var(--r-xs);box-shadow:var(--e2);
-  font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,bottom .2s;
-  max-width:calc(100vw - 32px);
+  padding:16px 18px;border-radius:var(--r-m);box-shadow:var(--e2);
+  border:1px solid var(--outline-var);
+  font-size:15px;line-height:1.45;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
+  width:max-content;max-width:min(92vw, 420px);
 }
-.toast.show{opacity:1;bottom:34px}
+.toast.show{opacity:1;transform:translate(-50%,-50%)}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
 /* ---------- phone layout: one card per expense ---------- */
@@ -831,6 +846,10 @@ body.has-syncbar .wrap{padding-bottom:76px}
 .mebtn:hover{text-decoration:underline}
 /* the substitution stays recognisable wherever it appears */
 .balrow .nm.isme,.tr .from.isme,.tr .to.isme{color:var(--me);font-weight:600}
+/* the same everywhere the name stands in for this device: lower case, dark red */
+th.share .pname.isme,td.share .mlabel.isme{
+  color:var(--me);font-weight:700;text-transform:none;letter-spacing:0;
+}
 
 </style>
 </head>
@@ -1072,12 +1091,14 @@ en: {
   'own.expense': 'this expense',
   'own.confirm': '{0} was entered on another device. Change it anyway?',
   'final.btn': 'Finalise',
-  'final.btn.undo': 'final \u00bb change again?',
+  'final.btn.undo': 'final \u2192 change again?',
   'final.status': '{0} of {1} devices confirmed',
   'final.status.all': 'everybody confirmed',
   'final.hint': 'Money only moves once every device has confirmed.',
   'final.locked.mine': 'You have finalised this sheet. Tap the button again to edit.',
-  'final.someone': 'Somebody considers the sheet settled. Please check the numbers and confirm \u2014 staying silent counts as a confirmation after 48 hours.',
+  'final.someone': '{0} considers the sheet settled. Please check the numbers and confirm.',
+  'final.someone.n': '{0} people consider the sheet settled. Please check the numbers and confirm.',
+  'final.someone.who': 'Somebody',
   'final.status.auto': '(incl. {0} after 48 h)',
   'final.mini': '{0} of {1} final',
   'final.mini.all': 'all final',
@@ -1086,11 +1107,12 @@ en: {
   'time.min': '{0} min',
   'gate.mebtn': 'Say who I am',
   'gate.me.head': 'Which one are you?',
-  'gate.me.sub': 'On a shared sheet every device says who it is first: tap the hand next to your name. Only then can expenses be entered \u2014 that is what makes \u201cme\u201d and the confirmations work.',
+  'gate.me.sub': 'On a shared sheet every device says who it is first: tap the hand next to your name. Names without a hand are already taken by another device. Only then can expenses be entered \u2014 that is what makes \u201cme\u201d and the confirmations work.',
   'gate.me.sub.empty': 'On a shared sheet every device says who it is first. Add your name to the list above, then tap the hand next to it.',
   'gate.me.hint': 'First say which person you are \u2014 tap the hand next to your name.',
   'final.revoked': 'The sheet changed after your confirmation \u2014 all confirmations were cancelled. Please check again.',
   'final.revoked.mine': 'Your change cancelled every confirmation.',
+  'final.marked': 'What changed is outlined in red.',
   'final.done': 'All devices confirmed. Nothing can be changed now.',
   'me.nom': 'me',
   'me.acc': 'me',
@@ -1390,12 +1412,14 @@ de: {
   'own.expense': 'Diese Ausgabe',
   'own.confirm': '{0} wurde auf einem anderen Ger\u00e4t eingetragen. Trotzdem \u00e4ndern?',
   'final.btn': 'Finalisieren',
-  'final.btn.undo': 'final \u00bb nochmal \u00e4ndern?',
+  'final.btn.undo': 'final \u2192 nochmal \u00e4ndern?',
   'final.status': '{0} von {1} Ger\u00e4ten best\u00e4tigt',
   'final.status.all': 'alle haben best\u00e4tigt',
   'final.hint': 'Gezahlt wird erst, wenn alle Ger\u00e4te best\u00e4tigt haben.',
   'final.locked.mine': 'Du hast diese Abrechnung finalisiert. Zum \u00c4ndern noch einmal auf den Knopf tippen.',
-  'final.someone': 'Jemand h\u00e4lt die Abrechnung f\u00fcr final. Bitte pr\u00fcfe die Zahlen und best\u00e4tige \u2014 keine Reaktion gilt nach 48 Stunden als Best\u00e4tigung.',
+  'final.someone': '{0} h\u00e4lt die Abrechnung f\u00fcr final. Bitte pr\u00fcfe die Zahlen und best\u00e4tige.',
+  'final.someone.n': '{0} Personen halten die Abrechnung f\u00fcr final. Bitte pr\u00fcfe die Zahlen und best\u00e4tige.',
+  'final.someone.who': 'Jemand',
   'final.status.auto': '(davon {0} nach 48 h)',
   'final.mini': '{0} von {1} final',
   'final.mini.all': 'alle final',
@@ -1404,11 +1428,12 @@ de: {
   'time.min': '{0} Min.',
   'gate.mebtn': 'Ich bin \u2026',
   'gate.me.head': 'Wer bist du?',
-  'gate.me.sub': 'Bei einer geteilten Abrechnung sagt jedes Ger\u00e4t zuerst, wer es ist: tippe auf die Hand neben deinem Namen. Erst danach lassen sich Ausgaben eintragen \u2014 daran h\u00e4ngen \u201eich\u201c und die Best\u00e4tigungen.',
+  'gate.me.sub': 'Bei einer geteilten Abrechnung sagt jedes Ger\u00e4t zuerst, wer es ist: tippe auf die Hand neben deinem Namen. Namen ohne Hand sind schon von einem anderen Ger\u00e4t belegt. Erst danach lassen sich Ausgaben eintragen \u2014 daran h\u00e4ngen \u201eich\u201c und die Best\u00e4tigungen.',
   'gate.me.sub.empty': 'Bei einer geteilten Abrechnung sagt jedes Ger\u00e4t zuerst, wer es ist. Trage deinen Namen oben ein und tippe dann auf die Hand daneben.',
   'gate.me.hint': 'Sag zuerst, welche Person du bist \u2014 tippe auf die Hand neben deinem Namen.',
   'final.revoked': 'Nach deiner Best\u00e4tigung wurde noch etwas ge\u00e4ndert \u2014 alle Best\u00e4tigungen sind aufgehoben. Bitte noch einmal pr\u00fcfen.',
   'final.revoked.mine': 'Deine \u00c4nderung hat alle Best\u00e4tigungen aufgehoben.',
+  'final.marked': 'Was sich ge\u00e4ndert hat, ist rot umrandet.',
   'final.done': 'Alle Ger\u00e4te haben best\u00e4tigt. Jetzt ist nichts mehr \u00e4nderbar.',
   'me.nom': 'ich',
   'me.acc': 'mich',
@@ -2505,7 +2530,7 @@ function stampChanges(){
     /* A number that moves after somebody said "this is settled" makes that
        agreement worthless — so the change cancels every confirmation, not just
        the ones on this device. */
-    finalNotice = null;
+    finalNotice = null; clearMarks();
     if(revokeAllFinal(now)){
       lastFinalSeen = JSON.stringify(state.final);
       applyFinalLock();
@@ -2671,6 +2696,33 @@ function finalRoster(){
 }
 function iAmFinal(){ var f = (state && state.final) || {}; return !!(f[deviceId] && f[deviceId].a); }
 
+/* Which people have said "final" — by name, because "somebody" is no use when
+   you are trying to work out who still has to look. A device without a claimed
+   person cannot normally exist on a shared sheet any more, but an old sheet may
+   still carry one, so the count falls back to the anonymous wording. */
+function finalNames(exceptMe){
+  var fi = (state && state.final) || {}, out = [], anon = 0;
+  for(var d in fi){
+    if(!(fi[d] && fi[d].a)) continue;
+    if(exceptMe && d === deviceId) continue;
+    var who = null;
+    for(var pid in state.claims){
+      var c = state.claims[pid];
+      if(c && c.d === d){ who = pid; break; }
+    }
+    if(who) out.push(personName(who) || t('final.someone.who'));
+    else anon++;
+  }
+  return { names: out, anon: anon, total: out.length + anon };
+}
+/* one name, or a count once several agree */
+function finalSomeoneText(){
+  var f = finalNames(true);
+  if(!f.total) return '';
+  if(f.total === 1) return t('final.someone', f.names[0] || t('final.someone.who'));
+  return t('final.someone.n', f.total);
+}
+
 /* Somebody has to be allowed to go on holiday. Once the first device confirms,
    a clock starts: a device that neither confirms nor objects within two days
    counts as confirmed, so one silent phone cannot hold the group hostage. The
@@ -2713,7 +2765,26 @@ function revokeAllFinal(now){
 var lastFinalSeen = '{}';
 var finalNotice = null;      /* 'revoked' | 'someone' | null */
 
-function noticeFinalChange(beforeJson){
+/* Which records the last exchange brought in different from what was here.
+   A message saying "something changed" is not much use on a sheet with twenty
+   rows — the point is to show WHICH one, so it can be checked in a second. */
+var changedMark = { p: {}, e: {} };
+function clearMarks(){ changedMark = { p: {}, e: {} }; }
+function marksShown(){
+  for(var a in changedMark.p) return true;
+  for(var b in changedMark.e) return true;
+  return false;
+}
+function diffSnaps(prev, now){
+  var out = { p: {}, e: {} };
+  if(!prev || !now) return out;
+  ['p','e'].forEach(function(k){
+    for(var id in now[k]) if(prev[k][id] !== now[k][id]) out[k][id] = 1;
+  });
+  return out;
+}
+
+function noticeFinalChange(beforeJson, prevSnap){
   var before = {};
   try{ before = JSON.parse(beforeJson == null ? lastFinalSeen : beforeJson); }catch(e){}
   var nowSeen = state.final;
@@ -2721,6 +2792,9 @@ function noticeFinalChange(beforeJson){
   var isMine = iAmFinal();
   if(wasMine && !isMine){
     finalNotice = 'revoked';              /* somebody changed something */
+    /* the device that had confirmed is the one that has to re-check, so it is
+       the one that gets the changed rows marked */
+    changedMark = diffSnaps(prevSnap, snapshot(state));
     toast(t('final.revoked'));
   }else{
     var others = 0;
@@ -2729,7 +2803,10 @@ function noticeFinalChange(beforeJson){
       var had = !!(before[d] && before[d].a);
       if(nowSeen[d] && nowSeen[d].a && !had) others++;
     }
-    if(others && !isMine){ finalNotice = 'someone'; toast(t('final.someone')); }
+    if(others && !isMine){
+      finalNotice = 'someone';
+      toast(finalSomeoneText() || t('final.someone', t('final.someone.who')));
+    }
   }
   lastFinalSeen = JSON.stringify(nowSeen);
 }
@@ -2773,8 +2850,11 @@ function renderFinal(){
     }
   }
   var msg = '', warn = true;
-  if(finalNotice === 'revoked') msg = t('final.revoked');
-  else if(finalNotice === 'someone') msg = t('final.someone');
+  if(finalNotice === 'revoked'){
+    msg = t('final.revoked');
+    if(marksShown()) msg += ' ' + t('final.marked');
+  }
+  else if(finalNotice === 'someone') msg = finalSomeoneText() || t('final.someone', t('final.someone.who'));
   else if(show && all){ msg = t('final.done'); warn = false; }
   else if(show && iAmFinal()){ msg = t('final.locked.mine'); warn = false; }
   else if(show) { msg = t('final.hint'); warn = false; }
@@ -2856,6 +2936,7 @@ function renderPeople(){
   state.people.forEach(function(p){
     var chip = el('div','chip');
     if(isMe(p.id)) chip.classList.add('me');
+    if(changedMark.p[p.id]) chip.classList.add('changed');
 
     if(isMe(p.id)){
       /* The claim is itself the control: pressing it hands the name back. The
@@ -3017,7 +3098,11 @@ function addPersonRow(){
 
 function updateHeaderNames(){
   var ths = $('thead').querySelectorAll('th.share .pname');
-  for(var i=0;i<ths.length && i<state.people.length;i++) ths[i].textContent = state.people[i].name;
+  for(var i=0;i<ths.length && i<state.people.length;i++){
+    var pi = state.people[i];
+    ths[i].textContent = shownName(pi.id);
+    ths[i].classList.toggle('isme', isMe(pi.id));
+  }
   var sels = $('tbody').querySelectorAll('td.payer select');
   for(var j=0;j<sels.length;j++){
     var opts = sels[j].options;
@@ -3028,7 +3113,11 @@ function updateHeaderNames(){
   var rows = $('tbody').children;
   for(var r=0;r<rows.length;r++){
     var labels = rows[r].querySelectorAll('td.share .mlabel');
-    for(var m=0;m<labels.length && m<state.people.length;m++) labels[m].textContent = state.people[m].name;
+    for(var m=0;m<labels.length && m<state.people.length;m++){
+      var pm = state.people[m];
+      labels[m].textContent = shownName(pm.id);
+      labels[m].classList.toggle('isme', isMe(pm.id));
+    }
   }
 }
 
@@ -3039,7 +3128,7 @@ function renderTable(){
   var thA = el('th','num',t('th.amount')); head.appendChild(thA);
   state.people.forEach(function(p, i){
     var th = el('th','share');
-    var span = el('span','pname', shownName(p.id));
+    var span = el('span', isMe(p.id) ? 'pname isme' : 'pname', shownName(p.id));
     th.appendChild(span);
     th.title = t('th.share.title', shownName(p.id));
     th.addEventListener('click', function(){
@@ -3059,6 +3148,8 @@ function renderTable(){
     var tr = document.createElement('tr');
     tr.dataset.eid = ex.id;
     if(res.perExpense[ri].unassigned) tr.className = 'unassigned';
+    /* somebody changed this after this device had said "final" */
+    if(changedMark.e[ex.id]) tr.classList.add('changed');
 
     // payer
     var tdP = el('td','payer');
@@ -3107,7 +3198,7 @@ function renderTable(){
     // shares
     state.people.forEach(function(p){
       var td = el('td','share');
-      td.appendChild(el('span','mlabel', shownName(p.id)));
+      td.appendChild(el('span', isMe(p.id) ? 'mlabel isme' : 'mlabel', shownName(p.id)));
       var b = el('button','sharebtn');
       var n = ex.shares[p.id] || 0;
       var pe0 = res.perExpense[ri];
@@ -3375,9 +3466,13 @@ function updatePerShare(){
       v.textContent = pe.totalShares > 0 ? formatCents(Math.round(pe.perShare)) + ' ' + state.currency : '—';
       v.style.color = pe.totalShares > 0 ? '' : 'var(--warn)';
     }
+    /* this rewrites the row's classes wholesale, so anything else the row is
+       currently wearing has to be put back on */
     var joined = rows[i].classList.contains('hasexact');
+    var marked = rows[i].classList.contains('changed');
     rows[i].className = (pe.unassigned || pe.overfixed || pe.shortfixed) ? 'unassigned' : '';
     if(joined) rows[i].classList.add('hasexact');
+    if(marked) rows[i].classList.add('changed');
 
     var spent = pe.hasFixed && pe.rest === 0 && (ex.cents||0) !== 0;
     var btns = rows[i].querySelectorAll('td.share .sharebtn');
@@ -3844,8 +3939,8 @@ $('fileInput').addEventListener('change', function(){
 })();
 
 $('finalBtn').addEventListener('click', function(){
-  finalNotice = null;
-  setFinal(!iAmFinal());
+  finalNotice = null; clearMarks();
+  setFinal(!inputsLocked());
 });
 
 $('addRow').addEventListener('click', function(){
@@ -3999,7 +4094,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '3.1.0';
+var APP_VERSION = '3.2.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -4536,9 +4631,9 @@ function syncNow(){
          typing in out from under them; the next round picks it up */
       if(remote && fpMerged !== Sync.fingerprint(mine) && !typingNow()){
         var spot = markSpot();
-        var beforeFinal = lastFinalSeen;
+        var beforeFinal = lastFinalSeen, beforeSnap = lastSnap;
         adopt(fromWire(merged));
-        noticeFinalChange(beforeFinal);
+        noticeFinalChange(beforeFinal, beforeSnap);
         renderAll();
         restoreSpot(spot);
         lsSet(STORE_KEY, JSON.stringify(state));
@@ -5168,7 +5263,9 @@ window.addEventListener('focus', function(){ if(syncCfg) syncNow(); });
 function setLang(next, announce){
   lang = next;
   try{ localStorage.setItem('billing-tool.lang', lang); }catch(e){}
-  $('langLbl').textContent = lang === 'de' ? 'EN' : 'DE';
+  /* an arrow in front, so the code reads as "switch to" rather than as a badge
+     saying which language is on */
+  $('langLbl').textContent = '\u2192 ' + (lang === 'de' ? 'EN' : 'DE');
   applyStaticI18n();
   /* the menu entry and the install hint are written by script, so they only
      follow the language if we redraw them here */
