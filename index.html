@@ -650,7 +650,58 @@ footer .ver{font-size:11.5px;opacity:.8}
 
 /* ---------- phone layout: one card per expense ---------- */
 .mlabel{display:none}
+/* the folded line and the controls that go with it belong to the phone layout
+   alone — on a desktop the table already shows everything at once */
+td.sum,.rowfold,.foldall{display:none}
+
+/* A folded card keeps its heading, its summary line and any warning — a
+   warning that folds away with the numbers it is about is worse than none. */
+.foldbtn{min-width:38px;padding:6px 10px;font-size:13px;line-height:1}
+.card.folded > .card-b{padding-top:0;padding-bottom:14px}
+.card.folded > .card-b > *:not(.note){display:none}
+.card.folded > .card-b:empty{display:none}
+
 @media (max-width:700px){
+  /* ---------- one line per expense, one card open ---------- */
+  .foldall{display:inline-flex;align-items:center}
+  .foldall[hidden]{display:none}
+  tbody tr.folded{
+    padding:0;background:var(--surface);border-color:var(--outline-var);
+    overflow:hidden;
+  }
+  tbody tr.folded.unassigned{background:var(--warn-c)}
+  tbody tr.folded > td:not(.sum){display:none}
+  tbody tr:not(.folded) > td.sum{display:none}
+  tbody tr.folded > td.sum{display:block;padding:0;width:100%}
+  .sumline{
+    display:flex;align-items:center;gap:9px;width:100%;min-width:0;
+    font:inherit;text-align:left;color:inherit;background:transparent;
+    border:none;padding:13px 12px;cursor:pointer;min-height:48px;
+  }
+  .sumline .flag{width:8px;height:8px;border-radius:50%;background:var(--warn);flex:0 0 auto}
+  tbody tr.folded.unassigned .sumline .flag{background:var(--on-warn-c)}
+  .sumline .sdesc{
+    font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
+  }
+  .sumline .sdesc.none{font-weight:400;font-style:italic;color:var(--on-surface-var)}
+  .sumline .swho{
+    font-size:12.5px;color:var(--on-surface-var);white-space:nowrap;
+    flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;
+  }
+  tbody tr.folded.unassigned .sumline .swho{color:var(--on-warn-c)}
+  .sumline .samt{
+    margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .sumline .schev{color:var(--on-surface-var);font-size:12px;flex:0 0 auto}
+  .sumline:focus-visible{outline:2px solid var(--focus);outline-offset:-2px;border-radius:var(--r-l)}
+  /* the way back out of an open card, next to the delete button */
+  .rowfold{
+    display:grid;place-items:center;width:34px;height:34px;
+    border:none;border-radius:var(--r-full);cursor:pointer;
+    background:transparent;color:var(--on-surface-var);font-size:15px;
+  }
+  .rowfold:hover{background:var(--surface-3)}
+
   .wrap{
     padding-top:0;
     padding-right:calc(12px + env(safe-area-inset-right, 0px));
@@ -744,7 +795,10 @@ footer .ver{font-size:11.5px;opacity:.8}
 
 @media print{
   body{background:#fff;color:#000}
-  .top-actions,.rowdel,.card-h .btn,.addperson,.chip .x,.iosbar,footer .noprint{display:none!important}
+  .top-actions,.rowdel,.rowfold,.foldall,.card-h .btn,.addperson,.chip .x,.iosbar,footer .noprint{display:none!important}
+  /* a folded row on screen is still a full row on paper */
+  tbody tr > td.sum{display:none!important}
+  tbody tr.folded > td:not(.sum){display:table-cell!important}
   .card{background:#fff;border:1px solid #ccc;break-inside:avoid;margin-bottom:12px}
   .tablewrap{overflow:visible}
   tbody tr{background:#fff!important}
@@ -992,6 +1046,8 @@ th.share .pname.isme,td.share .mlabel.isme{
       <h2 data-i18n="card.expenses">Expenses</h2>
       <span class="spacer"></span>
       <span class="hint" data-i18n="expenses.hint">…</span>
+      <!-- only a phone folds its expenses, so only a phone shows this -->
+      <button class="btn sm foldall" id="foldAll">…</button>
       <button class="btn sm primary" id="addRow" data-i18n="expenses.add">…</button>
     </div>
     <div class="tablewrap">
@@ -1004,8 +1060,13 @@ th.share .pname.isme,td.share .mlabel.isme{
   </div>
 
   <div class="grid2 gated">
-    <div class="card">
-      <div class="card-h"><h2 data-i18n="card.balance">Balance</h2></div>
+    <div class="card" id="balCard">
+      <div class="card-h">
+        <h2 data-i18n="card.balance">Balance</h2>
+        <span class="hint" id="balHint"></span>
+        <span class="spacer"></span>
+        <button class="btn sm foldbtn" id="balFold">…</button>
+      </div>
       <div class="card-b" id="balances"></div>
     </div>
     <div class="card">
@@ -1130,6 +1191,17 @@ en: {
   'final.unfinal': '{0} is checking again \u2014 the sheet is no longer final.',
   'final.unfinal.n': '{0} people are checking again \u2014 the sheet is no longer final.',
   'btn.ok': 'OK',
+  'row.sum.open': 'Open this expense',
+  'row.sum.fold': 'Close this expense',
+  'row.sum.nodesc': 'no description',
+  'row.sum.nopayer': 'payer missing',
+  'row.openall': '\u25be all',
+  'row.open.this': '\u25be',
+  'row.fold.this': '\u25b4',
+  'card.balance.open': 'Show the balance',
+  'card.balance.fold': 'Fold the balance away',
+  'bal.mine': 'me: {0}',
+  'row.foldall': '\u25b4 all',
   'final.status.auto': '(incl. {0} after 48 h)',
   'final.mini': '{0} of {1} final',
   'final.mini.all': 'all final',
@@ -1454,6 +1526,17 @@ de: {
   'final.unfinal': '{0} pr\u00fcft noch einmal \u2014 die Abrechnung ist nicht mehr final.',
   'final.unfinal.n': '{0} Personen pr\u00fcfen noch einmal \u2014 die Abrechnung ist nicht mehr final.',
   'btn.ok': 'OK',
+  'row.sum.open': 'Diese Ausgabe \u00f6ffnen',
+  'row.sum.fold': 'Diese Ausgabe zuklappen',
+  'row.sum.nodesc': 'ohne Beschreibung',
+  'row.sum.nopayer': 'Zahler fehlt',
+  'row.openall': '\u25be alle',
+  'row.open.this': '\u25be',
+  'row.fold.this': '\u25b4',
+  'card.balance.open': 'Bilanz anzeigen',
+  'card.balance.fold': 'Bilanz zuklappen',
+  'bal.mine': 'ich: {0}',
+  'row.foldall': '\u25b4 alle',
   'final.status.auto': '(davon {0} nach 48 h)',
   'final.mini': '{0} von {1} final',
   'final.mini.all': 'alle final',
@@ -2898,6 +2981,15 @@ function fmtLeft(ms){
   return mins >= 120 ? t('time.h', Math.round(mins / 60)) : t('time.min', mins);
 }
 
+function renderBalanceFold(){
+  var card = $('balCard'), btn = $('balFold');
+  if(!card || !btn) return;
+  card.classList.toggle('folded', !balOpen);
+  btn.textContent = t(balOpen ? 'row.fold.this' : 'row.open.this');
+  btn.setAttribute('aria-expanded', String(balOpen));
+  btn.title = t(balOpen ? 'card.balance.fold' : 'card.balance.open');
+}
+
 function renderFinal(){
   var bar = $('finalBar'), note = $('finalNote');
   var show = !!syncCfg;
@@ -3230,7 +3322,68 @@ function updateHeaderNames(){
   }
 }
 
+/* On a phone every expense is a card, and twenty cards are a long scroll with
+   nothing to scan. So a phone shows one line per expense — what it was, who
+   paid, how much — and opens exactly one of them into the full card. The table
+   itself is unchanged: the same rows, the same cells, the same DOM. Only the
+   phone stylesheet decides which cells are on screen, which keeps printing,
+   CSV and the desktop layout exactly as they were.
+   The open one is remembered by id, so a redraw (or an exchange with the other
+   phones) does not close what somebody is filling in. */
+var openExpense = null;
+var expandAll = false;
+/* The balance is what you read once the entering is done. Until then it is a
+   third of the screen showing numbers that are still moving, so it starts
+   folded — and stays however this device last left it. */
+var balOpen = lsGet('billing-tool.balopen') === '1';
+
+/* A confirmed device cannot edit, so it cannot tap a line open either — the
+   card is inert as a whole. Then folding would hide the very numbers it is
+   being asked to check, so a locked sheet simply shows everything. */
+function isFolded(id){
+  return !(expandAll || inputsLocked()) && openExpense !== id;
+}
+
+/* Everything open at once, for reading the whole list through — and back to
+   one, which keeps the first expense open because a card list with nothing
+   open at all looks like something went wrong. */
+function setExpandAll(on){
+  closeExactRows();
+  expandAll = !!on;
+  if(!expandAll) openExpense = state.expenses.length ? state.expenses[0].id : null;
+  renderTable(); renderResults();
+}
+
+function foldExpense(id){
+  if(openExpense === id) return;
+  closeExactRows();
+  openExpense = id;
+  renderTable(); renderResults();
+}
+
+/* the closed line: enough to find the expense again, nothing more */
+function sumCell(ex, pe){
+  var td = el('td','sum');
+  var btn = el('button','sumline');
+  btn.title = t('row.sum.open');
+  var bad = !ex.payerId || (pe && (pe.unassigned || pe.overfixed || pe.shortfixed));
+  if(bad) btn.appendChild(el('span','flag'));
+  var d = (ex.desc || '').trim();
+  btn.appendChild(el('span', d ? 'sdesc' : 'sdesc none', d || t('row.sum.nodesc')));
+  btn.appendChild(el('span','swho', ex.payerId ? shownName(ex.payerId) : t('row.sum.nopayer')));
+  btn.appendChild(el('span','samt', ex.cents ? money(ex.cents) : money(0)));
+  btn.appendChild(el('span','schev','\u25be'));
+  btn.addEventListener('click', function(){ foldExpense(ex.id); });
+  td.appendChild(btn);
+  return td;
+}
+
 function renderTable(){
+  var fa = $('foldAll');
+  if(fa){
+    fa.textContent = t(expandAll ? 'row.foldall' : 'row.openall');
+    fa.hidden = state.expenses.length < 2;
+  }
   var head = $('thead'); head.innerHTML = '';
   head.appendChild(el('th', null, t('th.payer')));
   head.appendChild(el('th', null, t('th.desc')));
@@ -3259,6 +3412,10 @@ function renderTable(){
     if(res.perExpense[ri].unassigned) tr.className = 'unassigned';
     /* somebody changed this after this device had said "final" */
     if(changedMark.e[ex.id]) tr.classList.add('changed');
+    if(isFolded(ex.id)) tr.classList.add('folded');
+
+    // the closed line — hidden by the stylesheet on anything wider than a phone
+    tr.appendChild(sumCell(ex, res.perExpense[ri]));
 
     // payer
     var tdP = el('td','payer');
@@ -3366,6 +3523,16 @@ function renderTable(){
       state.expenses = state.expenses.filter(function(e){ return e.id !== ex.id; });
       renderTable(); renderResults(); save();
     });
+    var fold = el('button','rowfold','\u25b4');
+    fold.title = t('row.sum.fold');
+    fold.setAttribute('aria-label', t('row.sum.fold'));
+    fold.addEventListener('click', function(){
+      closeExactRows();
+      if(expandAll){ setExpandAll(false); return; }
+      openExpense = null;
+      renderTable(); renderResults();
+    });
+    tdX.appendChild(fold);
     tdX.appendChild(del); tr.appendChild(tdX);
 
     body.appendChild(tr);
@@ -3575,13 +3742,12 @@ function updatePerShare(){
       v.textContent = pe.totalShares > 0 ? formatCents(Math.round(pe.perShare)) + ' ' + state.currency : '—';
       v.style.color = pe.totalShares > 0 ? '' : 'var(--warn)';
     }
-    /* this rewrites the row's classes wholesale, so anything else the row is
-       currently wearing has to be put back on */
-    var joined = rows[i].classList.contains('hasexact');
-    var marked = rows[i].classList.contains('changed');
-    rows[i].className = (pe.unassigned || pe.overfixed || pe.shortfixed) ? 'unassigned' : '';
-    if(joined) rows[i].classList.add('hasexact');
-    if(marked) rows[i].classList.add('changed');
+    /* Toggle the one class this function owns. It used to rewrite className
+       outright, which silently stripped whatever else the row was wearing —
+       that cost us the exact-amount join once and the change mark once, and
+       would have cost the folded state a third time. */
+    rows[i].classList.toggle('unassigned',
+      !!(pe.unassigned || pe.overfixed || pe.shortfixed));
 
     var spent = pe.hasFixed && pe.rest === 0 && (ex.cents||0) !== 0;
     var btns = rows[i].querySelectorAll('td.share .sharebtn');
@@ -3601,6 +3767,14 @@ function renderResults(){
   var rows = res.rows.slice().sort(function(a,b){ return b.balance - a.balance || a.name.localeCompare(b.name); });
 
   var bb = $('balances'); bb.innerHTML = '';
+  /* folded, the card still has to be worth a glance: the one figure that is
+     actually about the person holding the phone */
+  var mine = meId();
+  var myRow = mine && rows.filter(function(r){ return r.id === mine; })[0];
+  $('balHint').textContent = myRow
+    ? t('bal.mine', (myRow.balance > 0 ? '+' : '') + money(myRow.balance))
+    : nPeople(rows.length);
+  renderBalanceFold();
   var unassigned = res.perExpense.filter(function(p){ return p.unassigned; }).length;
   var overfixed = res.perExpense.filter(function(p){ return p.overfixed; }).length;
   var shortfixed = res.perExpense.filter(function(p){ return p.shortfixed; }).length;
@@ -4048,6 +4222,13 @@ $('fileInput').addEventListener('change', function(){
   });
 })();
 
+$('foldAll').addEventListener('click', function(){ setExpandAll(!expandAll); });
+$('balFold').addEventListener('click', function(){
+  balOpen = !balOpen;
+  lsSet('billing-tool.balopen', balOpen ? '1' : '0');
+  renderBalanceFold();
+});
+
 $('finalBtn').addEventListener('click', function(){
   finalNotice = null; clearMarks();
   setFinal(!inputsLocked());
@@ -4066,8 +4247,11 @@ $('addRow').addEventListener('click', function(){
   /* c is the ordering key. Without it the row travels with c = 0 and comes
      back from the exchange sorted below everything else — which is exactly the
      "row jumps down after the first tap" that was reported. */
-  state.expenses.unshift({id:uid(), payerId:null, desc:'', cents:0, shares:{},
-                          m:Date.now(), c:Date.now(), o:deviceId});
+  var fresh = {id:uid(), payerId:null, desc:'', cents:0, shares:{},
+               m:Date.now(), c:Date.now(), o:deviceId};
+  state.expenses.unshift(fresh);
+  /* a new expense is there to be filled in, so it opens */
+  openExpense = fresh.id;
   renderTable(); renderResults(); save();
   var firstRow = $('tbody').querySelector('tr');
   if(!firstRow) return;
@@ -4204,7 +4388,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '3.3.1';
+var APP_VERSION = '4.0.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
