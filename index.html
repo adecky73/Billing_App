@@ -622,13 +622,17 @@ footer .ver{font-size:11.5px;opacity:.8}
   position:fixed;left:50%;top:50%;transform:translate(-50%,-46%);
   z-index:400;                    /* above the sync bar and the sticky header */
   background:var(--surface-3);color:var(--on-surface);
-  padding:16px 18px;border-radius:var(--r-m);box-shadow:var(--e2);
+  padding:18px;border-radius:var(--r-m);box-shadow:var(--e2);
   border:1px solid var(--outline-var);
   font-size:15px;line-height:1.45;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
   opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;
   width:max-content;max-width:min(92vw, 420px);
 }
-.toast.show{opacity:1;transform:translate(-50%,-50%)}
+.toast.show{opacity:1;transform:translate(-50%,-50%);pointer-events:auto}
+.toast.brief{pointer-events:none}
+#toastOk{min-width:96px}
+#toastOk[hidden]{display:none}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 
 /* ---------- phone layout: one card per expense ---------- */
@@ -846,6 +850,12 @@ body.has-syncbar .wrap{padding-bottom:76px}
 .mebtn:hover{text-decoration:underline}
 /* the substitution stays recognisable wherever it appears */
 .balrow .nm.isme,.tr .from.isme,.tr .to.isme{color:var(--me);font-weight:600}
+/* the drawn arrow: sized to the text it stands in, solid head at any size */
+.arw{width:1.55em;height:.84em;vertical-align:-.06em;flex:0 0 auto;display:inline-block}
+/* the switch arrow only has to be legible, not loud — the header row is the
+   tightest space in the app */
+#langLbl .arw{width:.95em;height:.62em;margin-right:1px}
+.btn .arw{margin:0 1px}
 /* the same everywhere the name stands in for this device: lower case, dark red */
 th.share .pname.isme,td.share .mlabel.isme{
   color:var(--me);font-weight:700;text-transform:none;letter-spacing:0;
@@ -1049,7 +1059,12 @@ th.share .pname.isme,td.share .mlabel.isme{
     <div class="dlg-f" id="shareFoot"></div>
   </div>
 </div>
-<div class="toast" id="toast"></div>
+<!-- A message that vanishes after two seconds is a message nobody read. This
+     one waits for an OK; only pure confirmations ("copied") fade by themselves. -->
+<div class="toast" id="toast" role="status" aria-live="polite">
+  <span id="toastTxt"></span>
+  <button class="btn sm primary" id="toastOk" data-i18n="btn.ok">OK</button>
+</div>
 
 <script>
 /* ============================================================
@@ -1099,6 +1114,9 @@ en: {
   'final.someone': '{0} considers the sheet settled. Please check the numbers and confirm.',
   'final.someone.n': '{0} people consider the sheet settled. Please check the numbers and confirm.',
   'final.someone.who': 'Somebody',
+  'final.unfinal': '{0} is checking again \u2014 the sheet is no longer final.',
+  'final.unfinal.n': '{0} people are checking again \u2014 the sheet is no longer final.',
+  'btn.ok': 'OK',
   'final.status.auto': '(incl. {0} after 48 h)',
   'final.mini': '{0} of {1} final',
   'final.mini.all': 'all final',
@@ -1420,6 +1438,9 @@ de: {
   'final.someone': '{0} h\u00e4lt die Abrechnung f\u00fcr final. Bitte pr\u00fcfe die Zahlen und best\u00e4tige.',
   'final.someone.n': '{0} Personen halten die Abrechnung f\u00fcr final. Bitte pr\u00fcfe die Zahlen und best\u00e4tige.',
   'final.someone.who': 'Jemand',
+  'final.unfinal': '{0} pr\u00fcft noch einmal \u2014 die Abrechnung ist nicht mehr final.',
+  'final.unfinal.n': '{0} Personen pr\u00fcfen noch einmal \u2014 die Abrechnung ist nicht mehr final.',
+  'btn.ok': 'OK',
   'final.status.auto': '(davon {0} nach 48 h)',
   'final.mini': '{0} von {1} final',
   'final.mini.all': 'alle final',
@@ -2700,27 +2721,32 @@ function iAmFinal(){ var f = (state && state.final) || {}; return !!(f[deviceId]
    you are trying to work out who still has to look. A device without a claimed
    person cannot normally exist on a shared sheet any more, but an old sheet may
    still carry one, so the count falls back to the anonymous wording. */
+function personOfDevice(d){
+  for(var pid in state.claims){
+    var c = state.claims[pid];
+    if(c && c.d === d) return pid;
+  }
+  return null;
+}
+/* one name, or a count once several are involved */
+function whoText(devices, one, many){
+  if(!devices.length) return '';
+  if(devices.length > 1) return t(many, devices.length);
+  var pid = personOfDevice(devices[0]);
+  return t(one, (pid && personName(pid)) || t('final.someone.who'));
+}
 function finalNames(exceptMe){
-  var fi = (state && state.final) || {}, out = [], anon = 0;
+  var fi = (state && state.final) || {}, out = [];
   for(var d in fi){
     if(!(fi[d] && fi[d].a)) continue;
     if(exceptMe && d === deviceId) continue;
-    var who = null;
-    for(var pid in state.claims){
-      var c = state.claims[pid];
-      if(c && c.d === d){ who = pid; break; }
-    }
-    if(who) out.push(personName(who) || t('final.someone.who'));
-    else anon++;
+    out.push(d);
   }
-  return { names: out, anon: anon, total: out.length + anon };
+  return { devices: out, total: out.length };
 }
 /* one name, or a count once several agree */
 function finalSomeoneText(){
-  var f = finalNames(true);
-  if(!f.total) return '';
-  if(f.total === 1) return t('final.someone', f.names[0] || t('final.someone.who'));
-  return t('final.someone.n', f.total);
+  return whoText(finalNames(true).devices, 'final.someone', 'final.someone.n');
 }
 
 /* Somebody has to be allowed to go on holiday. Once the first device confirms,
@@ -2788,28 +2814,56 @@ function noticeFinalChange(beforeJson, prevSnap){
   var before = {};
   try{ before = JSON.parse(beforeJson == null ? lastFinalSeen : beforeJson); }catch(e){}
   var nowSeen = state.final;
+  var diff = diffSnaps(prevSnap, snapshot(state));
+  var dataMoved = false;
+  for(var k1 in diff.p) dataMoved = true;
+  for(var k2 in diff.e) dataMoved = true;
+
+  /* Who changed their mind, and in which direction. A confirmation that is
+     taken back and given again is a NEW confirmation even though the flag reads
+     the same as before — which is why the timestamp is compared too, and not
+     just the flag. */
+  var seen = {}, gained = [], lost = [], d;
+  for(d in before) seen[d] = 1;
+  for(d in nowSeen) seen[d] = 1;
+  for(d in seen){
+    if(d === deviceId) continue;
+    var a0 = !!(before[d] && before[d].a), m0 = Number(before[d] && before[d].m) || 0;
+    var a1 = !!(nowSeen[d] && nowSeen[d].a), m1 = Number(nowSeen[d] && nowSeen[d].m) || 0;
+    if(a1 && (!a0 || m1 > m0)) gained.push(d);
+    else if(a0 && !a1) lost.push(d);
+  }
+
   var wasMine = !!(before[deviceId] && before[deviceId].a);
   var isMine = iAmFinal();
+
   if(wasMine && !isMine){
-    finalNotice = 'revoked';              /* somebody changed something */
+    /* my own confirmation was cancelled — only a change to the sheet does that */
+    finalNotice = 'revoked';
     /* the device that had confirmed is the one that has to re-check, so it is
        the one that gets the changed rows marked */
-    changedMark = diffSnaps(prevSnap, snapshot(state));
+    changedMark = diff;
     toast(t('final.revoked'));
-  }else{
-    var others = 0;
-    for(var d in nowSeen){
-      if(d === deviceId) continue;
-      var had = !!(before[d] && before[d].a);
-      if(nowSeen[d] && nowSeen[d].a && !had) others++;
-    }
-    if(others && !isMine){
-      finalNotice = 'someone';
-      toast(finalSomeoneText() || t('final.someone', t('final.someone.who')));
-    }
+  }else if(lost.length && dataMoved){
+    /* somebody's edit cancelled the others' confirmations; this device had none
+       to lose, but the sheet moved and the mark is still worth having */
+    finalNotice = 'revoked';
+    changedMark = diff;
+    toast(t('final.revoked'));
+  }else if(lost.length){
+    /* no edit, so somebody simply took their word back */
+    finalNotice = 'unfinal';
+    lastUnfinal = lost;
+    toast(whoText(lost, 'final.unfinal', 'final.unfinal.n'));
+  }else if(gained.length && !isMine){
+    finalNotice = 'someone';
+    toast(finalSomeoneText() || t('final.someone', t('final.someone.who')));
   }
   lastFinalSeen = JSON.stringify(nowSeen);
 }
+
+/* what the banner says about somebody else taking their confirmation back */
+var lastUnfinal = [];
 
 function applyFinalLock(){
   var mine = iAmFinal();
@@ -2833,7 +2887,8 @@ function renderFinal(){
   if(show){
     var tal = finalTally();
     var btn = $('finalBtn');
-    btn.textContent = t(lock ? 'final.btn.undo' : 'final.btn');
+    setTextArrows(btn, t(lock ? 'final.btn.undo' : 'final.btn'));
+    btn.setAttribute('aria-label', t(lock ? 'final.btn.undo' : 'final.btn').replace('\u2192','-'));
     btn.className = 'btn finalbtn' + (lock ? ' open' : ' seal');
     var st = $('finalStat');
     st.textContent = all ? t('final.status.all') : t('final.status', tal.ok, tal.total);
@@ -2854,6 +2909,7 @@ function renderFinal(){
     msg = t('final.revoked');
     if(marksShown()) msg += ' ' + t('final.marked');
   }
+  else if(finalNotice === 'unfinal') msg = whoText(lastUnfinal, 'final.unfinal', 'final.unfinal.n');
   else if(finalNotice === 'someone') msg = finalSomeoneText() || t('final.someone', t('final.someone.who'));
   else if(show && all){ msg = t('final.done'); warn = false; }
   else if(show && iAmFinal()){ msg = t('final.locked.mine'); warn = false; }
@@ -2909,11 +2965,48 @@ function el(tag, cls, txt){
   return n;
 }
 function $(id){ return document.getElementById(id); }
-var toastTimer;
-function toast(msg){
-  var box = $('toast'); box.textContent = msg; box.classList.add('show');
-  clearTimeout(toastTimer); toastTimer = setTimeout(function(){ box.classList.remove('show'); }, 2200);
+
+/* The arrow characters a font offers have a hairline head that all but
+   disappears at 13px on a phone, and which head you get depends on the font the
+   device happens to use. Drawn here, it is the same solid arrow everywhere. */
+function arrowSVG(){
+  var ns = 'http://www.w3.org/2000/svg';
+  var svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('class','arw');
+  svg.setAttribute('viewBox','0 0 26 14');
+  svg.setAttribute('aria-hidden','true');
+  svg.setAttribute('focusable','false');
+  var shaft = document.createElementNS(ns, 'path');
+  shaft.setAttribute('d','M2 7h13');
+  shaft.setAttribute('stroke','currentColor');
+  shaft.setAttribute('stroke-width','2.6');
+  shaft.setAttribute('stroke-linecap','round');
+  shaft.setAttribute('fill','none');
+  var head = document.createElementNS(ns, 'path');
+  head.setAttribute('d','M14 1.2 24.5 7 14 12.8z');
+  head.setAttribute('fill','currentColor');
+  svg.appendChild(shaft); svg.appendChild(head);
+  return svg;
 }
+/* Put a translated string into a node, drawing every arrow in it. */
+function setTextArrows(node, str){
+  node.textContent = '';
+  String(str).split('\u2192').forEach(function(part, i){
+    if(i) node.appendChild(arrowSVG());
+    if(part) node.appendChild(document.createTextNode(part));
+  });
+}
+var toastTimer;
+function toast(msg, brief){
+  var box = $('toast');
+  $('toastTxt').textContent = msg;
+  $('toastOk').hidden = !!brief;
+  box.classList.toggle('brief', !!brief);
+  box.classList.add('show');
+  clearTimeout(toastTimer);
+  if(brief) toastTimer = setTimeout(hideToast, 4000);
+}
+function hideToast(){ $('toast').classList.remove('show'); }
 function personName(id){
   for(var i=0;i<state.people.length;i++) if(state.people[i].id===id) return state.people[i].name;
   return '';
@@ -3529,7 +3622,8 @@ function renderResults(){
     transfers.forEach(function(x){
       var d = el('div','tr');
       d.appendChild(el('span', isMe(x.fromId) ? 'from isme' : 'from', shownName(x.fromId)));
-      d.appendChild(el('span','arrow','→'));
+      var arw = el('span','arrow'); arw.appendChild(arrowSVG());
+      d.appendChild(arw);
       /* the verb follows the person: somebody else "pays", but I "pay" — a
          third-person verb next to "me" reads as a mistake */
       d.appendChild(el('span',null,t(isMe(x.fromId) ? 'set.pays.me' : 'set.pays')));
@@ -3802,7 +3896,7 @@ function initMenu(){
     else if(act==='share'){ shareSetup(); }
     else if(act==='openshared'){ openShared(); }
     else if(act==='synccode'){ showCode(false); }
-    else if(act==='syncnow'){ toast(t('sync.state.busy')); syncNow(); }
+    else if(act==='syncnow'){ toast(t('sync.state.busy'), true); syncNow(); }
     else if(act==='unshare'){
       if(confirm(t('confirm.unshare'))){
         var gonePath = syncCfg && syncCfg.path;
@@ -3817,7 +3911,7 @@ function initMenu(){
       if(navigator.share && /Mobi|Android|iPhone|iPad/.test(navigator.userAgent)){
         navigator.share({title:sheetTitle(), text:txt}).catch(function(){});
       }else if(navigator.clipboard){
-        navigator.clipboard.writeText(txt).then(function(){ toast(t('copy.done')); },
+        navigator.clipboard.writeText(txt).then(function(){ toast(t('copy.done'), true); },
           function(){ prompt(t('copy.prompt'), txt); });
       }else{ prompt(t('copy.prompt'), txt); }
     }
@@ -3846,7 +3940,7 @@ function initMenu(){
         alert(t('update.native', APP_VERSION));
         return;
       }
-      toast(t('update.looking'));
+      toast(t('update.looking'), true);
       var done = function(){ setTimeout(function(){ location.reload(); }, 600); };
       if('serviceWorker' in navigator){
         navigator.serviceWorker.getRegistrations().then(function(rs){
@@ -3927,10 +4021,10 @@ $('fileInput').addEventListener('change', function(){
     ta.focus(); ta.select(); ta.setSelectionRange(0, ta.value.length);
     var ok = false;
     try{ ok = document.execCommand('copy'); }catch(e){}
-    if(ok){ toast(t('raw.copied')); return; }
+    if(ok){ toast(t('raw.copied'), true); return; }
     if(navigator.clipboard){
       navigator.clipboard.writeText(ta.value).then(
-        function(){ toast(t('raw.copied')); },
+        function(){ toast(t('raw.copied'), true); },
         function(){ toast(t('raw.copyfail')); });
     } else {
       toast(t('raw.copyfail'));
@@ -4094,7 +4188,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '3.2.0';
+var APP_VERSION = '3.3.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -4370,6 +4464,9 @@ function startEmptySheet(keepTitle){
   else { var np = $('newPerson'); if(np) np.focus(); }
 }
 
+$('toastOk').addEventListener('click', hideToast);
+$('toast').addEventListener('click', hideToast);
+
 $('gateName').addEventListener('click', function(){ $('tripTitle').focus(); });
 /* "who am I" is answered in the people list, so send the user there rather than
    leaving them to find it */
@@ -4488,7 +4585,7 @@ function claimPerson(personId){
 
   if(!syncCfg){ apply(); return; }
 
-  toast(t('me.checking'));
+  toast(t('me.checking'), true);
   syncNow().then(function(){
     var who = claimedBy(personId);
     if(who && who !== deviceId){ toast(t('me.taken', personName(personId))); renderAll(); return; }
@@ -4852,7 +4949,7 @@ function shareSetup(){
         var st = readStoreFields(sf);
         if(!st) return;
         dlgClose();
-        toast(t('sync.state.busy'));
+        toast(t('sync.state.busy'), true);
         /* Two sheets with the same name in one repository is how a group ends
            up keeping two half-filled copies of the same trip. Look first. */
         readShelf(st).then(function(items){
@@ -4967,7 +5064,7 @@ function sendCopyRow(parent, text, what){
 
 function copyText(text){
   if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(function(){ toast(t('raw.copied')); },
+    navigator.clipboard.writeText(text).then(function(){ toast(t('raw.copied'), true); },
                                             function(){ copyFallback(text); });
     return;
   }
@@ -4993,7 +5090,7 @@ function copyFallback(text){
 function shareText(text, what){
   if(navigator.share){
     navigator.share({ title: sheetTitle() + ' — ' + what, text: text })
-      .then(function(){ toast(t('code.sent')); })
+      .then(function(){ toast(t('code.sent'), true); })
       .catch(function(err){
         if(err && err.name === 'AbortError') return;      /* user closed it */
         copyText(text);
@@ -5105,7 +5202,7 @@ function sameName(a, b){
    because they are stored in the clear beside the ciphertext; everything else
    about a sheet stays sealed until its password is given. */
 function browseRepo(base){
-  toast(t('sync.state.busy'));
+  toast(t('sync.state.busy'), true);
   readShelf(base).then(function(items){
     if(!items.length) throw new Error('empty');
     showShelf(base, items);
@@ -5137,7 +5234,7 @@ function showShelf(base, items){
       del.addEventListener('click', function(){
         if(!confirm(t('shelf.delete.confirm', it.label || t('open.untitled')))) return;
         dlgClose();
-        toast(t('sync.state.busy'));
+        toast(t('sync.state.busy'), true);
         /* Leave the sheet FIRST. Doing it afterwards left a window in which
            this device's own exchange — already under way — wrote the file
            straight back, and the sheet reappeared seconds after being
@@ -5172,7 +5269,7 @@ function askPasswordFor(it){
         var pw = String(pwIn.value||'').trim();
         if(!pw){ toast(t('open.needpw')); pwIn.focus(); return; }
         dlgClose();
-        toast(t('sync.state.busy'));
+        toast(t('sync.state.busy'), true);
         Sync.openSealed(pw, it.text).then(function(o){
           return applyOpened({cfg:it.cfg, sha:it.sha, o:o}, pw);
         }).catch(reportOpenError);
@@ -5194,7 +5291,7 @@ function applyOpened(f, pw){
 }
 
 function adoptCode(code, pw){
-  toast(t('sync.state.busy'));
+  toast(t('sync.state.busy'), true);
   Sync.parseCode(code, pw).then(function(cfg){
     return loadSheet({owner:cfg.owner, repo:cfg.repo, path:cfg.path, token:cfg.token},
                      cfg.password);
@@ -5204,7 +5301,7 @@ function adoptCode(code, pw){
 }
 
 function loadSheet(cfg, pw){
-  toast(t('sync.state.busy'));
+  toast(t('sync.state.busy'), true);
   return Sync.ghGet(cfg).then(function(r){
     if(r.missing) throw new Error('gone');
     return Sync.openSealed(pw, r.text).then(function(o){
@@ -5265,7 +5362,7 @@ function setLang(next, announce){
   try{ localStorage.setItem('billing-tool.lang', lang); }catch(e){}
   /* an arrow in front, so the code reads as "switch to" rather than as a badge
      saying which language is on */
-  $('langLbl').textContent = '\u2192 ' + (lang === 'de' ? 'EN' : 'DE');
+  setTextArrows($('langLbl'), '\u2192' + (lang === 'de' ? 'EN' : 'DE'));
   applyStaticI18n();
   /* the menu entry and the install hint are written by script, so they only
      follow the language if we redraw them here */
@@ -5277,7 +5374,7 @@ function setLang(next, announce){
   $('verMode').textContent = t(isNativeShell ? 'mode.native'
     : (isStandalone ? 'mode.installed' : 'mode.browser'));
   renderAll();
-  if(announce) toast(lang === 'de' ? 'Sprache: Deutsch' : 'Language: English');
+  if(announce) toast(lang === 'de' ? 'Sprache: Deutsch' : 'Language: English', true);
 }
 
 lang = pickLang();
