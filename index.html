@@ -2682,7 +2682,13 @@ function stampChanges(){
     /* A number that moves after somebody said "this is settled" makes that
        agreement worthless — so the change cancels every confirmation, not just
        the ones on this device. */
-    finalNotice = null; clearMarks();
+    finalNotice = null;
+    /* An edit is this device's answer to the marks: it has seen them. They go
+       without a redraw — this runs on every keystroke, and rebuilding the table
+       under a cursor is exactly what the marks were meant to help with. */
+    if(marksShown()) stripMarks();
+    clearMarks();
+    if($('finalBar')) renderFinal();
     if(revokeAllFinal(now)){
       lastFinalSeen = JSON.stringify(state.final);
       applyFinalLock();
@@ -2926,7 +2932,29 @@ var finalNotice = null;      /* 'revoked' | 'someone' | null */
    A message saying "something changed" is not much use on a sheet with twenty
    rows — the point is to show WHICH one, so it can be checked in a second. */
 var changedMark = { p: {}, e: {} };
-function clearMarks(){ changedMark = { p: {}, e: {} }; }
+/* Once a confirmation has been cancelled by somebody else's edit, this device
+   is re-checking the sheet — and everything that arrives from then on is part
+   of what it has to re-check, not just the one change that started it. So the
+   marks keep collecting until this device either edits something itself or
+   confirms again. */
+var marksActive = false;
+function clearMarks(){ changedMark = { p: {}, e: {} }; marksActive = false; }
+/* take the marks off the screen without redrawing anything */
+function stripMarks(){
+  var i, n = document.querySelectorAll('.chg');
+  for(i=0;i<n.length;i++) n[i].classList.remove('chg');
+  n = document.querySelectorAll('.changed');
+  for(i=0;i<n.length;i++) n[i].classList.remove('changed', 'whole');
+}
+function addMarks(diff){
+  ['p','e'].forEach(function(k){
+    for(var id in diff[k]){
+      var have = changedMark[k][id];
+      if(!have){ changedMark[k][id] = diff[k][id]; continue; }
+      for(var f in diff[k][id]) have[f] = 1;
+    }
+  });
+}
 function marksShown(){
   for(var a in changedMark.p) return true;
   for(var b in changedMark.e) return true;
@@ -3011,18 +3039,21 @@ function noticeFinalChange(beforeJson, prevSnap){
   var wasMine = !!(before[deviceId] && before[deviceId].a);
   var isMine = iAmFinal();
 
+  /* already re-checking: every further edit from elsewhere joins the list */
+  if(marksActive && dataMoved) addMarks(diff);
+
   if(wasMine && !isMine){
     /* my own confirmation was cancelled — only a change to the sheet does that */
     finalNotice = 'revoked';
     /* the device that had confirmed is the one that has to re-check, so it is
-       the one that gets the changed rows marked */
-    changedMark = diff;
+       the one that gets the changed fields marked */
+    marksActive = true; addMarks(diff);
     toast(revokedText());
   }else if(lost.length && dataMoved){
     /* somebody's edit cancelled the others' confirmations; this device had none
        to lose, but the sheet moved and the mark is still worth having */
     finalNotice = 'revoked';
-    changedMark = diff;
+    marksActive = true; addMarks(diff);
     toast(revokedText());
   }else if(lost.length){
     /* no edit, so somebody simply took their word back */
@@ -4499,7 +4530,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '4.2.0';
+var APP_VERSION = '4.2.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
