@@ -3857,18 +3857,29 @@ var cardAt = 0;
 function cardSlides(){
   return $('tbody').querySelectorAll('tr[data-eid], tr.gone');
 }
+/* Which expense the rail was last standing on. The list no longer keeps a card
+   open on the way out, so without this the rail would forget where it was. */
+var cardSeen = null;
+function noteCardSeen(){
+  var ex = state.expenses[cardAt];
+  cardSeen = ex ? ex.id : null;
+}
 function setCardMode(on){
   closeExactRows();
   cardMode = !!on;
   if(cardMode){
-    /* start where the eye already is: the card that was open, else the newest */
+    /* start where the eye already is: the card that is open, else the one the
+       rail was last on, else the newest */
+    var want = openExpense || cardSeen;
     var k = 0;
-    state.expenses.forEach(function(e, i){ if(e.id === openExpense) k = i; });
+    state.expenses.forEach(function(e, i){ if(e.id === want) k = i; });
     cardAt = k;
   }else{
-    /* and leave the list showing the card that was last looked at */
-    var ex = state.expenses[cardAt];
-    openExpense = ex ? ex.id : null;
+    noteCardSeen();
+    /* and leave the plain list of one-liners — the view the app starts with.
+       Coming back with one card standing open reads as a leftover of the rail
+       rather than as a list. */
+    openExpense = null;
     expandAll = false;
   }
   renderTable(); renderResults();
@@ -4060,7 +4071,7 @@ function renderTable(){
   /* A confirmed sheet is for reading, and the rail shows one card at a time
      behind an inert switch — there would be no way back to the list. Whoever
      closed it, this device or the last of the others, the list comes back. */
-  if(cardMode && inputsLocked()){ cardMode = false; openExpense = null; }
+  if(cardMode && inputsLocked()){ noteCardSeen(); cardMode = false; openExpense = null; }
   /* the instruction about tapping share cells only means something while a
      card is open — over a list of one-liners it is noise */
   document.body.classList.toggle('card-mode', cardMode);
@@ -4251,11 +4262,14 @@ function renderTable(){
     if(ri > 0) navL.appendChild(cardNavBtn('left'));
     hint.appendChild(navL);
 
+    /* The chevrons belong to the hand, not to the buttons: they show which way
+       a finger travels. Wiping left brings in the card on the right, so a run
+       to the LEFT of the hand means "there is another one after this". */
     var set = el('span','swipeset');
     set.setAttribute('aria-hidden','true');
-    if(ri > 0) set.appendChild(chevRun('left', 3));
+    if(ri < state.expenses.length - 1) set.appendChild(chevRun('left', 3));
     set.appendChild(handSVG());
-    if(ri < state.expenses.length - 1) set.appendChild(chevRun('right', 3));
+    if(ri > 0) set.appendChild(chevRun('right', 3));
     hint.appendChild(set);
 
     var navR = el('span','navslot right');
@@ -5221,7 +5235,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '5.4.1';
+var APP_VERSION = '5.4.3';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
