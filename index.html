@@ -806,22 +806,37 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,td.exactcel
      The only strip of the card with nothing to type into, which is what makes
      it safe to drag across. The hand leans into the direction of travel; the
      chevrons only fan out towards a card that actually exists. */
+  /* Three slots: an arrow, the hand with its chevrons, an arrow. Fixed outer
+     columns keep the hand in the middle of the card even on the first and the
+     last one, where only one arrow exists. */
   body.card-mode .swipehint{
-    display:flex;align-items:center;justify-content:center;gap:10px;
-    flex:1 1 100%;margin:8px -4px -2px;padding:8px 4px 2px;
+    display:grid;grid-template-columns:40px 1fr 40px;align-items:center;
+    flex:1 1 100%;margin:8px -4px -2px;padding:6px 4px 2px;
     touch-action:pan-y;cursor:grab;
+  }
+  .swipehint .navslot{display:flex;align-items:center}
+  .swipehint .navslot.right{justify-content:flex-end}
+  /* the arrows are the one thing here that is tapped, so they look tappable */
+  .cardnav{
+    background:var(--surface);color:var(--primary);
+    border:1px solid var(--card-f-line);
+    width:38px;height:38px;border-radius:var(--r-full);cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;padding:0;
+  }
+  .cardnav:hover{background:var(--surface-2)}
+  .cardnav:active{background:var(--outline-var)}
+  .cardnav:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  .cardnav .navarw{width:22px;height:22px;display:block}
+  /* the hand and its chevrons: one gesture, drawn tight so the chevrons read
+     as coming off the hand rather than as two marks beside it */
+  .swipehint .swipeset{
+    display:flex;align-items:center;justify-content:center;gap:2px;
   }
   .swipehint .swhand{
     width:26px;height:26px;color:var(--on-surface-var);
     transform:rotate(-16deg);flex:0 0 auto;
   }
-  /* the runs are buttons as well: a tap does what a drag does */
   .chevrun{display:inline-flex;align-items:center;gap:1px}
-  .chevrun.tap{
-    cursor:pointer;border:none;background:transparent;padding:6px 8px;
-    border-radius:var(--r-full);
-  }
-  .chevrun.tap:hover{background:var(--surface-2)}
   .chevrun .chev{width:13px;height:20px;color:var(--primary);display:block}
   /* the run reads as motion: faint at the far end, solid next to the hand */
   .chevrun.left{flex-direction:row-reverse}
@@ -3541,6 +3556,21 @@ function listIconSVG(){
   svgPath(s, 'M4 7h16'); svgPath(s, 'M4 12h16'); svgPath(s, 'M4 17h16');
   return s;
 }
+/* A real arrow, in a real button: the one thing on the strip that is meant to
+   be tapped rather than dragged. */
+function cardNavBtn(dir){
+  var b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'cardnav ' + dir;
+  var s = svgNode('0 0 24 24','navarw');
+  svgPath(s, dir === 'left' ? 'M20 12H5' : 'M4 12h15', '2.4');
+  svgPath(s, dir === 'left' ? 'M11 5 4 12l7 7' : 'M13 5l7 7-7 7', '2.4');
+  b.appendChild(s);
+  b.title = t(dir === 'left' ? 'card.prev' : 'card.next');
+  b.setAttribute('aria-label', b.title);
+  b.addEventListener('click', function(){ goCard(dir === 'left' ? -1 : 1); });
+  return b;
+}
 /* a hand, tilted, of the kind that is about to drag something */
 function handSVG(){
   var s = svgNode('0 0 24 24','swhand');
@@ -3549,10 +3579,10 @@ function handSVG(){
   svgPath(s, 'M16.8 11.2a1.4 1.4 0 0 1 2.8 0v4.2c0 2.6-2 4.6-4.6 4.6h-1.6c-2 0-3-1-4-2.2l-2.3-3a1.4 1.4 0 0 1 2.1-1.8L11 16.4', '1.9');
   return s;
 }
-/* one chevron of the run that fans out from the hand */
+/* the run of chevrons that fans out from the hand. Not a control: it says
+   which way the card travels, and a drag across it is what turns it. */
 function chevRun(dir, n){
-  var box = document.createElement('button');
-  box.type = 'button';
+  var box = document.createElement('span');
   box.className = 'chevrun ' + dir;
   for(var i=0;i<n;i++){
     var s = svgNode('0 0 12 20','chev');
@@ -3864,9 +3894,12 @@ function swipeArea(node){
   var x0 = null, y0 = null, live = false;
   node.addEventListener('pointerdown', function(ev){
     if(!cardMode) return;
-    /* fields and buttons keep their own gestures — except the chevron runs at
-       the foot of the card, which ARE the drag surface as well as a tap */
-    if(ev.target.closest && ev.target.closest('input,select,textarea,button:not(.chevrun)')) return;
+    /* Fields and buttons keep their own gestures — except the two arrows at
+       the foot of the card: the whole strip has to be draggable, or a thumb
+       that lands on an arrow and then wipes does nothing at all. A tap on
+       them still reaches the click handler, because the pointer is only
+       captured once the drag passes its threshold. */
+    if(ev.target.closest && ev.target.closest('input,select,textarea,button:not(.cardnav)')) return;
     x0 = ev.clientX; y0 = ev.clientY; live = false;
   });
   node.addEventListener('pointermove', function(ev){
@@ -4208,25 +4241,26 @@ function renderTable(){
     /* The foot of the card is the one strip with nothing to type into, so it is
        the one place a sideways drag can never be mistaken for selecting text.
        The hand sits between two runs of chevrons; a run is only drawn towards
-       a card that exists, so the first card fans one way. */
+       a card that exists, so the first card fans one way. The two arrows at
+       the ends are buttons — for anyone who would rather tap than drag. */
     var hint = el('div','swipehint');
-    hint.setAttribute('aria-hidden','true');
-    /* The runs are also the buttons, and they point at the card they fetch:
-       the run on the right brings in the card to the right, which is what a
-       drag to the left does as well. */
-    if(ri > 0){
-      var runL = chevRun('left', 3);
-      runL.classList.add('tap'); runL.title = t('card.prev');
-      runL.addEventListener('click', function(){ goCard(-1); });
-      hint.appendChild(runL);
-    }
-    hint.appendChild(handSVG());
-    if(ri < state.expenses.length - 1){
-      var runR = chevRun('right', 3);
-      runR.classList.add('tap'); runR.title = t('card.next');
-      runR.addEventListener('click', function(){ goCard(1); });
-      hint.appendChild(runR);
-    }
+    /* Three slots, so the hand stays in the middle whether or not there is a
+       card on both sides: an arrow to tap, the hand and its chevrons to drag,
+       an arrow to tap. */
+    var navL = el('span','navslot');
+    if(ri > 0) navL.appendChild(cardNavBtn('left'));
+    hint.appendChild(navL);
+
+    var set = el('span','swipeset');
+    set.setAttribute('aria-hidden','true');
+    if(ri > 0) set.appendChild(chevRun('left', 3));
+    set.appendChild(handSVG());
+    if(ri < state.expenses.length - 1) set.appendChild(chevRun('right', 3));
+    hint.appendChild(set);
+
+    var navR = el('span','navslot right');
+    if(ri < state.expenses.length - 1) navR.appendChild(cardNavBtn('right'));
+    hint.appendChild(navR);
     /* no listener of its own: the row already carries one, and two of them on
        the same drag would turn two cards */
     tdS.appendChild(hint);
@@ -5040,10 +5074,21 @@ $('addRow').addEventListener('click', function(){
   state.expenses.unshift(fresh);
   /* a new expense is there to be filled in, so it opens */
   openExpense = fresh.id;
+  /* In the rail it is the leftmost card — and the one to be looked at. Without
+     this the rail stays where it was and the new card is off screen, inert,
+     with the cursor in a field nobody can see. */
+  if(cardMode) cardAt = 0;
   renderTable(); renderResults(); save();
   var firstRow = $('tbody').querySelector('tr');
   if(!firstRow) return;
-  firstRow.scrollIntoView({block:'nearest'});
+  /* the rail is positioned by a transform; scrolling the row itself sideways
+     would fight it, so in card mode the card as a whole is brought into view */
+  if(cardMode){
+    var wrap = $('tbl').closest('.card');
+    if(wrap) wrap.scrollIntoView({block:'nearest'});
+  }else{
+    firstRow.scrollIntoView({block:'nearest'});
+  }
 
   /* Walk the row in the order the entry actually happens: who paid, then how
      much. showPicker() drops the list open in Chromium — everywhere else the
@@ -5176,7 +5221,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '5.3.0';
+var APP_VERSION = '5.4.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
