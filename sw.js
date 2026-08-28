@@ -1,7 +1,7 @@
 /* Billing Tool — offline service worker.
    Bump CACHE when you change any file, otherwise installed copies
    keep serving the old version. */
-const CACHE = 'billing-tool-4.4.1';
+const CACHE = 'billing-tool-5.0.0';
 const ASSETS = [
   './',
   './index.html',
