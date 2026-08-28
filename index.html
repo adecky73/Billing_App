@@ -690,7 +690,7 @@ footer .ver{font-size:11.5px;opacity:.8}
 .mlabel{display:none}
 /* the folded line and the controls that go with it belong to the phone layout
    alone — on a desktop the table already shows everything at once */
-td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardnav{display:none}
+td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,td.exactcell{display:none}
 .cardbtn .swico{width:20px;height:20px;display:block}
 .cardbtn{padding:6px 9px}
 /* Nothing folds on a desktop: the whole point of folding is a screen that
@@ -717,29 +717,38 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardnav{display:none}
   body.card-mode tbody > tr{
     flex:0 0 90%;margin:0 -6% 0 0;opacity:.4;
     position:relative;z-index:1;transition:opacity .28s;
+    /* a colour of its own: in the list a row is a line among lines, here it is
+       a card lying on the panel, and the ones behind are further back still */
+    background:var(--surface-3);border-color:var(--outline-var);
   }
-  body.card-mode tbody > tr.here{opacity:1;z-index:3;box-shadow:var(--e2)}
+  body.card-mode tbody > tr.here{
+    opacity:1;z-index:3;box-shadow:var(--e2);
+    background:var(--surface);border-color:var(--primary);
+  }
+  body.card-mode tbody > tr.unassigned{background:var(--warn-c)}
   /* The strip for fixed amounts is a table row of its own, so in a rail it
      would become a card of its own. It belongs to the list view. */
   body.card-mode tbody > tr.exactrow{display:none}
-  body.card-mode .rowex{display:none}
   body.card-mode .rowfold{display:none}
   body.card-mode #foldAll{display:none}
+  /* the fixed amounts hang off the bottom of the card they belong to */
+  body.card-mode td.exactcell{
+    /* the other cells carry an explicit order; without one this would sort
+       itself to the very top of the card */
+    order:9;
+    display:block;flex:1 1 100%;padding:0;margin:8px -10px -8px;
+    border-top:1px solid var(--outline-var);
+    background:var(--surface-1);
+    border-radius:0 0 var(--r-l) var(--r-l);overflow:hidden;
+  }
+  body.card-mode tr.unassigned td.exactcell{background:var(--warn-c)}
+  body.card-mode td.exactcell .exact{padding:12px}
 
-  .cardnav{
-    display:flex;align-items:center;gap:12px;justify-content:center;
-    padding:10px 16px 14px;
-  }
-  .cardnav[hidden]{display:none}
-  .navb{
-    border:1px solid var(--outline-var);background:var(--surface);color:inherit;
-    border-radius:var(--r-full);width:44px;height:38px;cursor:pointer;
-    display:grid;place-items:center;padding:0;
-  }
-  .navb .chevrun{gap:0}
-  .cardcount{
-    font-size:13px;color:var(--on-surface-var);font-variant-numeric:tabular-nums;
-    min-width:96px;text-align:center;
+  /* where you are, at the end of the line that already carries a figure */
+  body.card-mode .cardpos{
+    display:inline;margin-left:auto;font-size:12px;letter-spacing:0;
+    text-transform:none;color:var(--on-surface-var);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
   }
 
   /* ---------- the swipe handle at the foot of a card ----------
@@ -755,7 +764,13 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardnav{display:none}
     width:26px;height:26px;color:var(--on-surface-var);
     transform:rotate(-16deg);flex:0 0 auto;
   }
+  /* the runs are buttons as well: a tap does what a drag does */
   .chevrun{display:inline-flex;align-items:center;gap:1px}
+  .chevrun.tap{
+    cursor:pointer;border:none;background:transparent;padding:6px 8px;
+    border-radius:var(--r-full);
+  }
+  .chevrun.tap:hover{background:var(--surface-2)}
   .chevrun .chev{width:13px;height:20px;color:var(--primary);display:block}
   /* the run reads as motion: faint at the far end, solid next to the hand */
   .chevrun.left{flex-direction:row-reverse}
@@ -1215,13 +1230,7 @@ th.share .pname.isme,td.share .mlabel.isme{
         <tfoot id="tfoot"></tfoot>
       </table>
     </div>
-    <!-- where you are among the cards, and two buttons for anybody who would
-         rather not wipe a finger across a form -->
-    <div class="cardnav" id="cardNav" hidden>
-      <button class="navb" id="cardPrev"></button>
-      <span class="cardcount" id="cardCount"></span>
-      <button class="navb" id="cardNext"></button>
-    </div>
+
   </div>
 
   <div class="grid2 gated">
@@ -3446,7 +3455,9 @@ function handSVG(){
 }
 /* one chevron of the run that fans out from the hand */
 function chevRun(dir, n){
-  var box = el('span','chevrun ' + dir);
+  var box = document.createElement('button');
+  box.type = 'button';
+  box.className = 'chevrun ' + dir;
   for(var i=0;i<n;i++){
     var s = svgNode('0 0 12 20','chev');
     svgPath(s, dir === 'left' ? 'M8.5 3 3 10l5.5 7' : 'M3.5 3 9 10l-5.5 7', '2.4');
@@ -3736,6 +3747,8 @@ function setCardMode(on){
   renderTable(); renderResults();
 }
 function goCard(step){
+  /* whatever was unfolded on the card being left is folded away with it */
+  closeExactRows();
   var n = cardSlides().length;
   var next = Math.max(0, Math.min(n - 1, cardAt + step));
   if(next === cardAt) return;
@@ -3754,19 +3767,29 @@ function swipeArea(node){
   var x0 = null, y0 = null, live = false;
   node.addEventListener('pointerdown', function(ev){
     if(!cardMode) return;
-    if(ev.target.closest && ev.target.closest('input,select,button,textarea')) return;
+    /* fields and buttons keep their own gestures — except the chevron runs at
+       the foot of the card, which ARE the drag surface as well as a tap */
+    if(ev.target.closest && ev.target.closest('input,select,textarea,button:not(.chevrun)')) return;
     x0 = ev.clientX; y0 = ev.clientY; live = false;
   });
   node.addEventListener('pointermove', function(ev){
     if(x0 == null) return;
     var dx = ev.clientX - x0, dy = ev.clientY - y0;
-    if(!live && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)) live = true;
+    if(!live && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)){
+      live = true;
+      /* Only now: without the capture the drag is lost the moment the finger
+         leaves the card, and a swipe naturally ends outside it. Capturing on
+         the first touch instead would swallow the taps on the chevrons, since
+         a captured pointer sends its click to the capturing element. */
+      try{ node.setPointerCapture(ev.pointerId); }catch(e){}
+    }
     if(live && ev.cancelable) ev.preventDefault();
   });
   node.addEventListener('pointerup', function(ev){
     if(x0 == null) return;
     var dx = ev.clientX - x0, was = live;
     x0 = null; live = false;
+    try{ node.releasePointerCapture(ev.pointerId); }catch(e){}
     if(was && Math.abs(dx) > 45) goCard(dx < 0 ? 1 : -1);
   });
   node.addEventListener('pointercancel', function(){ x0 = null; live = false; });
@@ -3780,11 +3803,18 @@ function paintCards(){
      left and a sliver of the one after on the right — both tucked under it */
   body.style.transform = 'translateX(calc(5% - ' + (cardAt * 84) + '%))';
   for(var i=0;i<slides.length;i++) slides[i].classList.toggle('here', i === cardAt);
-  var lbl = $('cardCount');
-  if(lbl){
-    var open = state.expenses.filter(function(e){ return !e.payerId; }).length;
-    lbl.textContent = (cardAt + 1) + '/' + slides.length +
-      (open ? ' \u00b7 ' + t('card.open', open) : '');
+  var open = state.expenses.filter(function(e){ return !e.payerId; }).length;
+  var txt = (cardAt + 1) + '/' + slides.length +
+            (open ? ' \u00b7 ' + t('card.open', open) : '');
+  var all = document.querySelectorAll('#tbody .cardpos');
+  for(var k=0;k<all.length;k++) all[k].textContent = '';
+  var here = slides[cardAt] ? slides[cardAt].querySelector('.cardpos') : null;
+  if(here) here.textContent = txt;
+  /* the cards to either side are half hidden — a field of theirs must not be
+     tappable by accident */
+  for(var j=0;j<slides.length;j++){
+    if(j === cardAt) slides[j].removeAttribute('inert');
+    else slides[j].setAttribute('inert','');
   }
 }
 /* The balance is what you read once the entering is done. Until then it is a
@@ -3842,21 +3872,6 @@ function sumCell(ex, pe){
 }
 
 function renderTable(){
-  var nav = $('cardNav');
-  if(nav){
-    nav.hidden = !cardMode;
-    if(cardMode && !nav.dataset.built){
-      /* the buttons point the way the reader travels: back is left, on is
-         right. The hint at the foot of the card points the way the FINGER
-         goes, which is the other way round — dragging left brings the next
-         card in from the right. Two different questions, two directions. */
-      $('cardPrev').appendChild(chevRun('left', 1));
-      $('cardPrev').title = t('card.prev');
-      $('cardNext').appendChild(chevRun('right', 1));
-      $('cardNext').title = t('card.next');
-      nav.dataset.built = '1';
-    }
-  }
   /* the instruction about tapping share cells only means something while a
      card is open — over a list of one-liners it is noise */
   document.body.classList.toggle('card-mode', cardMode);
@@ -4025,15 +4040,32 @@ function renderTable(){
       renderTable(); renderResults();
     });
     tdS.appendChild(fold);
+    /* Where you are, at the right-hand end of the line that already carries a
+       figure. A bar of its own under the total said the same thing twice. */
+    var pos = el('span','cardpos');
+    pos.id = 'cardpos-' + ex.id;
+    tdS.appendChild(pos);
     /* The foot of the card is the one strip with nothing to type into, so it is
        the one place a sideways drag can never be mistaken for selecting text.
        The hand sits between two runs of chevrons; the run is only drawn for a
        direction there is actually a card in, so the first card fans one way. */
     var hint = el('div','swipehint');
     hint.setAttribute('aria-hidden','true');
-    if(ri < state.expenses.length - 1) hint.appendChild(chevRun('left', 3));
+    /* The runs are also the buttons: one tap does what one drag does, so
+       nothing needs a bar of its own underneath. */
+    if(ri < state.expenses.length - 1){
+      var runL = chevRun('left', 3);
+      runL.classList.add('tap'); runL.title = t('card.next');
+      runL.addEventListener('click', function(){ goCard(1); });
+      hint.appendChild(runL);
+    }
     hint.appendChild(handSVG());
-    if(ri > 0) hint.appendChild(chevRun('right', 3));
+    if(ri > 0){
+      var runR = chevRun('right', 3);
+      runR.classList.add('tap'); runR.title = t('card.prev');
+      runR.addEventListener('click', function(){ goCard(-1); });
+      hint.appendChild(runR);
+    }
     /* no listener of its own: the row already carries one, and two of them on
        the same drag would turn two cards */
     tdS.appendChild(hint);
@@ -4119,6 +4151,9 @@ function renderTable(){
 function closeExactRows(){
   var open = document.querySelectorAll('#tbody tr.exactrow');
   for(var i=0;i<open.length;i++) open[i].remove();
+  /* in card mode the strip is a cell of the card itself, not a row after it */
+  var cells = document.querySelectorAll('#tbody td.exactcell');
+  for(var c=0;c<cells.length;c++) cells[c].remove();
   var on = document.querySelectorAll('#tbody .rowex.active');
   for(var j=0;j<on.length;j++) on[j].classList.remove('active');
   var joined = document.querySelectorAll('#tbody tr.hasexact');
@@ -4129,11 +4164,20 @@ function openExactRow(afterTr, ex){
   var btn = afterTr.querySelector('.rowex');
   if(btn) btn.classList.add('active');
   afterTr.classList.add('hasexact');
-  var tr = document.createElement('tr');
-  tr.className = 'exactrow'
-    + (afterTr.classList.contains('hoist') ? ' hoist' : '')
-    + (afterTr.classList.contains('unassigned') ? ' unassigned' : '');
-  var td = document.createElement('td');
+  /* Card mode has no room for a row of its own — a sibling row would become a
+     card of its own in the rail. The strip is hung on the bottom of the card
+     instead, as one more cell of the same row, and comes off again the moment
+     the reader moves on. */
+  var tr = afterTr, td;
+  if(cardMode){
+    td = el('td','exactcell');
+  }else{
+    tr = document.createElement('tr');
+    tr.className = 'exactrow'
+      + (afterTr.classList.contains('hoist') ? ' hoist' : '')
+      + (afterTr.classList.contains('unassigned') ? ' unassigned' : '');
+    td = document.createElement('td');
+  }
   td.colSpan = state.people.length + 6;
   var box = el('div','exact');
   box.appendChild(el('div','exact-h', t('exact.head')));
@@ -4217,7 +4261,7 @@ function openExactRow(afterTr, ex){
 
   td.appendChild(box);
   tr.appendChild(td);
-  afterTr.parentNode.insertBefore(tr, afterTr.nextSibling);
+  if(!cardMode) afterTr.parentNode.insertBefore(tr, afterTr.nextSibling);
   refreshExactFoot(box, ex);
   var first = box.querySelector('input');
   if(first && !first.disabled) first.focus();
@@ -4786,8 +4830,6 @@ $('fileInput').addEventListener('change', function(){
 
 $('foldAll').addEventListener('click', function(){ setExpandAll(!expandAll); });
 $('cardBtn').addEventListener('click', function(){ setCardMode(!cardMode); });
-$('cardPrev').addEventListener('click', function(){ goCard(-1); });
-$('cardNext').addEventListener('click', function(){ goCard(1); });
 /* a keyboard is a perfectly good finger */
 document.addEventListener('keydown', function(ev){
   if(!cardMode) return;
@@ -4960,7 +5002,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '5.0.0';
+var APP_VERSION = '5.1.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
