@@ -60,6 +60,16 @@
   --note-c:#cfe4f7;
   --on-note-c:#0b2b47;
   --note-line:#7fb3dc;
+  /* the card in focus while swiping: a blue of its own, lighter than a
+     message so a message still sits clearly on top of it */
+  --card-f:#e2eefb;
+  --card-f-line:#6ea9d8;
+  /* the cards behind it: the same blue a step deeper, so the stack reads as
+     one stack and the card in focus as the lit one */
+  --card-back:#c2d8ee;
+  --card-back-line:#9dbcd8;
+  /* the swipe symbol is the one warm accent in the header */
+  --swipe:#c25706;
 
   --r-xs:4px; --r-s:8px; --r-m:12px; --r-l:16px; --r-xl:28px; --r-full:999px;
   --e1:0 1px 2px rgba(0,0,0,.14), 0 1px 3px 1px rgba(0,0,0,.08);
@@ -96,6 +106,11 @@
     --on-warn-c:#ffdf9e;
     --note-c:#123449;
     --on-note-c:#cfe4f7;
+    --card-f:#173343;
+    --card-f-line:#4d86ad;
+    --card-back:#0f2635;
+    --card-back-line:#2c5670;
+    --swipe:#ffb072;
     --note-line:#3f7ba8;
     --e1:0 1px 2px rgba(0,0,0,.5), 0 1px 3px 1px rgba(0,0,0,.3);
     --e2:0 1px 2px rgba(0,0,0,.55), 0 2px 6px 2px rgba(0,0,0,.35);
@@ -130,6 +145,11 @@
   --on-warn-c:#ffdf9e;
   --note-c:#123449;
   --on-note-c:#cfe4f7;
+  --card-f:#173343;
+  --card-f-line:#4d86ad;
+  --card-back:#0f2635;
+  --card-back-line:#2c5670;
+  --swipe:#ffb072;
   --note-line:#3f7ba8;
   --e1:0 1px 2px rgba(0,0,0,.5), 0 1px 3px 1px rgba(0,0,0,.3);
   --e2:0 1px 2px rgba(0,0,0,.55), 0 2px 6px 2px rgba(0,0,0,.35);
@@ -691,7 +711,9 @@ footer .ver{font-size:11.5px;opacity:.8}
 /* the folded line and the controls that go with it belong to the phone layout
    alone — on a desktop the table already shows everything at once */
 td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,td.exactcell{display:none}
-.cardbtn .swico{width:20px;height:20px;display:block}
+/* the swipe symbol is the only warm thing in the header, so it reads as a
+   gesture rather than as one more grey button */
+.cardbtn .swico{width:20px;height:20px;display:block;color:var(--swipe)}
 .cardbtn{padding:6px 9px}
 /* Nothing folds on a desktop: the whole point of folding is a screen that
    cannot hold the list, and a desktop can. The card may still carry the class
@@ -715,15 +737,18 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,td.exactcell{display
      width — which is where the fields are — and it is still obvious that there
      is more on both sides. */
   body.card-mode tbody > tr{
-    flex:0 0 90%;margin:0 -6% 0 0;opacity:.4;
+    flex:0 0 90%;margin:0 -6% 0 0;opacity:.55;
     position:relative;z-index:1;transition:opacity .28s;
     /* a colour of its own: in the list a row is a line among lines, here it is
-       a card lying on the panel, and the ones behind are further back still */
-    background:var(--surface-3);border-color:var(--outline-var);
+       a card lying on the panel, and the ones behind are the same blue a step
+       deeper — one stack, with the light on the card in front */
+    background:var(--card-back);border-color:var(--card-back-line);
   }
+  /* The card in focus is blue, not white: on white the fields — which are
+     themselves near-white — disappeared into their own card. */
   body.card-mode tbody > tr.here{
     opacity:1;z-index:3;box-shadow:var(--e2);
-    background:var(--surface);border-color:var(--primary);
+    background:var(--card-f);border-color:var(--card-f-line);
   }
   body.card-mode tbody > tr.unassigned{background:var(--warn-c)}
   /* The strip for fixed amounts is a table row of its own, so in a rail it
@@ -951,6 +976,18 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,td.exactcell{display
      a line of its own like the long instruction in the expenses header */
   .card-h #balHint{flex-basis:auto;order:0}
   .card-h .btn{order:2}
+  /* ---------- the expenses header, all of it on one line ----------
+     Four things share about 350 px: the heading, "all", the add button and the
+     swipe symbol. They fit by giving up padding rather than by wrapping — and
+     "all" belongs to the heading it folds, so it sits next to it instead of
+     drifting over to the two buttons on the right. */
+  [data-edit] > .card-h{gap:3px;padding-left:14px;padding-right:14px}
+  [data-edit] > .card-h h2{font-size:15px}
+  [data-edit] > .card-h #foldAll{order:0;gap:0;padding:0 6px;margin-left:1px}
+  [data-edit] > .card-h #foldAll .arw.chev{margin:0}
+  [data-edit] > .card-h .btn.sm{min-height:34px;font-size:13px;padding:0 9px}
+  [data-edit] > .card-h .cardbtn{padding:0 6px}
+  [data-edit] > .card-h .hint{padding:0 6px}
   #tripTitle{font-size:20px;max-width:none;width:100%;min-width:0}
 }
 
@@ -1441,7 +1478,7 @@ en: {
   'people.name.aria': 'Name',
   'people.remove': 'Remove {0}',
   'expenses.hint': 'Tap a cell to include someone · tap again for a double share',
-  'expenses.add': '+ Add expense',
+  'expenses.add': '+ New expense',
 
   /* table */
   'th.payer': 'Paid by',
@@ -1779,7 +1816,7 @@ de: {
   'people.name.aria': 'Name',
   'people.remove': '{0} entfernen',
   'expenses.hint': 'Feld antippen, um jemanden einzubeziehen · nochmals antippen für doppelten Anteil',
-  'expenses.add': '+ Ausgabe hinzufügen',
+  'expenses.add': '+ neue Ausgabe',
 
   'th.payer': 'Bezahlt von',
   'th.desc': 'Ausgabe',
@@ -5002,7 +5039,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '5.1.0';
+var APP_VERSION = '5.1.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
