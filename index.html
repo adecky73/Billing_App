@@ -501,12 +501,18 @@ tbody tr.gone > td{
 .chip.gone .gnm{text-decoration:line-through}
 .chip.gone .gx{color:var(--error);font-weight:700}
 
-/* a row that is wholly new has no single field to point at */
-tbody tr.changed.whole td{border-top:3px dashed var(--error);border-bottom:3px dashed var(--error)}
-tbody tr.changed.whole td:first-child{border-left:3px dashed var(--error)}
-tbody tr.changed.whole td:last-child{border-right:3px dashed var(--error)}
+/* A row that is wholly new has no single field to point at, so the frame goes
+   round the row. On a table that means borders on the cells — which is a
+   desktop-only trick: on a phone the row is a card and gets a real border, and
+   the cell borders would leave a red stripe beside the number and beside the
+   delete button. Hence the min-width: these three rules must not reach the
+   phone layout at all. */
+@media (min-width:701px){
+  tbody tr.changed.whole td{border-top:3px dashed var(--error);border-bottom:3px dashed var(--error)}
+  tbody tr.changed.whole td:first-child{border-left:3px dashed var(--error)}
+  tbody tr.changed.whole td:last-child{border-right:3px dashed var(--error)}
+}
 @media (max-width:700px){
-  tbody tr.changed.whole td{border:none}
   /* closed, the whole line is the mark; open, the fields inside carry it */
   tbody tr.changed.folded{border:3px dashed var(--error);border-radius:var(--r-m)}
   tbody tr.changed.whole:not(.folded){border:3px dashed var(--error)}
@@ -1279,7 +1285,8 @@ en: {
   'row.sum.nodesc': 'no description',
   'row.sum.nopayer': 'payer missing',
   'row.all': 'all',
-  'row.gone': 'removed by somebody else',
+  'row.gone': 'removed by {0}',
+  'row.gone.anon': 'removed by somebody else',
   'row.fold': 'close',
   'card.balance.open': 'Show the balance',
   'card.balance.fold': 'Fold the balance away',
@@ -1613,7 +1620,8 @@ de: {
   'row.sum.nodesc': 'ohne Beschreibung',
   'row.sum.nopayer': 'Zahler fehlt',
   'row.all': 'alle',
-  'row.gone': 'von jemand anderem entfernt',
+  'row.gone': 'von {0} entfernt',
+  'row.gone.anon': 'von jemand anderem entfernt',
   'row.fold': 'zuklappen',
   'card.balance.open': 'Bilanz anzeigen',
   'card.balance.fold': 'Bilanz zuklappen',
@@ -2720,7 +2728,9 @@ function stampChanges(){
       /* a record that comes back after a delete must outlive its tombstone */
       if(state.gone[key][r.id]){ delete state.gone[key][r.id]; r.m = now; }
     });
-    for(var id in prev[key]) if(!seen[id]) state.gone[key][id] = now;
+    /* A tombstone carries the device that made it, so the other phones can say
+       WHO removed the entry rather than "somebody". */
+    for(var id in prev[key]) if(!seen[id]) state.gone[key][id] = { m: now, d: deviceId };
   });
   var after = snapshot(state);
   if(JSON.stringify(after) !== JSON.stringify(prev)){
@@ -2768,7 +2778,17 @@ function normalize(st){
   st.tm = Number(st.tm) || 0;
   st.cm = Number(st.cm) || 0;
   var g = st.gone && typeof st.gone === 'object' ? st.gone : {};
-  st.gone = { p: g.p || {}, e: g.e || {} };
+  st.gone = { p: {}, e: {} };
+  ['p','e'].forEach(function(gk){
+    var src = g[gk] || {};
+    for(var gid in src){
+      var v = src[gid];
+      /* sheets written before tombstones had an author hold a bare timestamp */
+      st.gone[gk][gid] = (v && typeof v === 'object')
+        ? { m: Number(v.m) || 0, d: v.d ? String(v.d) : null }
+        : { m: Number(v) || 0, d: null };
+    }
+  });
   /* who says "that one is me" — see the claim section below */
   var cl = st.claims && typeof st.claims === 'object' ? st.claims : {};
   st.claims = {};
@@ -3005,6 +3025,13 @@ function addGhosts(prev, now){
     /* put back what came back */
     for(id in ghosts[k]) if(now[k][id]) delete ghosts[k][id];
   });
+}
+/* "removed by <name>" — the name comes from the tombstone the deletion left */
+function goneByText(kind, id){
+  var tomb = (state.gone && state.gone[kind]) ? state.gone[kind][id] : null;
+  var who = tomb && tomb.d ? personOfDevice(tomb.d) : null;
+  var nm = who ? personName(who) : '';
+  return nm ? t('row.gone', nm) : t('row.gone.anon');
 }
 function anyGhosts(){
   for(var a in ghosts.p) return true;
@@ -3418,7 +3445,7 @@ function renderPeople(){
     var gchip = el('div','chip gone');
     gchip.appendChild(el('span','gx','\u2715'));
     gchip.appendChild(el('span','gnm', gp.name || ''));
-    gchip.title = t('row.gone');
+    gchip.title = goneByText('p', gpid);
     box.insertBefore(gchip, keep.parentNode === box ? keep : null);
   }
   if(keep.parentNode !== box) box.appendChild(keep);
@@ -3795,7 +3822,7 @@ function renderTable(){
                                                : t('row.sum.nopayer')));
     gl.appendChild(el('span','samt', money(Number(g.cents) || 0)));
     gtd.appendChild(gl);
-    gtd.appendChild(el('div','gonenote', t('row.gone')));
+    gtd.appendChild(el('div','gonenote', goneByText('e', gid)));
     gtr.appendChild(gtd);
     body.appendChild(gtr);
   }
@@ -4658,7 +4685,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '4.4.0';
+var APP_VERSION = '4.4.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -5020,8 +5047,8 @@ function toWire(st){
     if(e.fixed) o.fixed = e.fixed;
     w.expenses.push(o);
   });
-  for(var a in st.gone.p) w.people.push({id:a, x:1, m:st.gone.p[a]});
-  for(var b in st.gone.e) w.expenses.push({id:b, x:1, m:st.gone.e[b]});
+  for(var a in st.gone.p) w.people.push({id:a, x:1, m:st.gone.p[a].m, o:st.gone.p[a].d || undefined});
+  for(var b in st.gone.e) w.expenses.push({id:b, x:1, m:st.gone.e[b].m, o:st.gone.e[b].d || undefined});
   return w;
 }
 function fromWire(w){
@@ -5031,10 +5058,10 @@ function fromWire(w){
   st.claims = w.claims || {};
   st.final = w.final || {};
   (w.people||[]).forEach(function(p){
-    if(p.x) st.gone.p[p.id] = Number(p.m)||0; else st.people.push(p);
+    if(p.x) st.gone.p[p.id] = { m: Number(p.m)||0, d: p.o || null }; else st.people.push(p);
   });
   (w.expenses||[]).forEach(function(e){
-    if(e.x) st.gone.e[e.id] = Number(e.m)||0; else st.expenses.push(e);
+    if(e.x) st.gone.e[e.id] = { m: Number(e.m)||0, d: e.o || null }; else st.expenses.push(e);
   });
   return normalize(st);
 }
