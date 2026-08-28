@@ -478,6 +478,29 @@ td.chg,.exact-cell.chg,.rowex.chg{
   outline:3px dashed var(--error);outline-offset:-2px;border-radius:var(--r-s);
 }
 .chip.changed{outline:3px dashed var(--error);outline-offset:1px}
+/* Removed by somebody else: still there to be read, struck through, with
+   nothing to press. It goes when the other marks go. */
+tbody tr.gone > td{
+  border:3px dashed var(--error);border-radius:var(--r-m);
+  background:var(--surface-2);
+}
+.goneline{
+  display:flex;align-items:center;gap:9px;min-width:0;
+  text-decoration:line-through;color:var(--on-surface-var);
+}
+.goneline .gx{text-decoration:none;color:var(--error);font-weight:700;flex:0 0 auto}
+.goneline .sdesc{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.goneline .swho{font-size:12.5px;white-space:nowrap}
+.goneline .samt{margin-left:auto;font-weight:600;font-variant-numeric:tabular-nums;
+  white-space:nowrap}
+.gonenote{font-size:11.5px;color:var(--error);margin-top:3px;letter-spacing:.02em}
+.chip.gone{
+  border:2px dashed var(--error);color:var(--on-surface-var);
+  padding:0 12px;min-height:40px;gap:7px;
+}
+.chip.gone .gnm{text-decoration:line-through}
+.chip.gone .gx{color:var(--error);font-weight:700}
+
 /* a row that is wholly new has no single field to point at */
 tbody tr.changed.whole td{border-top:3px dashed var(--error);border-bottom:3px dashed var(--error)}
 tbody tr.changed.whole td:first-child{border-left:3px dashed var(--error)}
@@ -811,6 +834,8 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn{display:none}
   /* the delete button floats in the corner — but the placeholder row has a
      single cell, which would otherwise be caught by :last-child too */
   tbody tr:not(.placeholder):not(.exactrow) td.amt{padding-right:4px}
+  tbody tr.exactrow.unassigned{background:var(--warn-c)}
+  tbody tr.exactrow.unassigned .exact-cell input{background:var(--surface)}
   tbody tr.exactrow{
     display:block;padding:0;margin:0 0 10px;background:var(--surface-2);
     border:1px solid var(--row-line);border-top:none;
@@ -834,6 +859,9 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn{display:none}
   tfoot td.num{margin-left:auto;font-size:18px}
   tfoot td:last-child{display:none}
   .card-h .hint{font-size:12px;flex-basis:100%;order:3}
+  /* the instruction is about the share cells inside a card — with every card
+     closed there is nothing it could be talking about */
+  body:not(.card-open) #expHint{display:none}
   /* the balance summary is three words and belongs beside the heading, not on
      a line of its own like the long instruction in the expenses header */
   .card-h #balHint{flex-basis:auto;order:0}
@@ -844,6 +872,8 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn{display:none}
 @media print{
   body{background:#fff;color:#000}
   .top-actions,.rowdel,.rowfold,.foldall,.card-h .btn,.addperson,.chip .x,.iosbar,footer .noprint{display:none!important}
+  /* a ghost is a note to one device, not part of the sheet */
+  tbody tr.gone,.chip.gone{display:none!important}
   /* a folded row on screen is still a full row on paper */
   tbody tr > td.sum{display:none!important}
   tbody tr.folded > td:not(.sum){display:table-cell!important}
@@ -1098,7 +1128,7 @@ th.share .pname.isme,td.share .mlabel.isme{
     <div class="card-h">
       <h2 data-i18n="card.expenses">Expenses</h2>
       <span class="spacer"></span>
-      <span class="hint" data-i18n="expenses.hint">…</span>
+      <span class="hint" id="expHint" data-i18n="expenses.hint">…</span>
       <!-- only a phone folds its expenses, so only a phone shows this -->
       <button class="btn sm foldall" id="foldAll">…</button>
       <button class="btn sm primary" id="addRow" data-i18n="expenses.add">…</button>
@@ -1249,6 +1279,7 @@ en: {
   'row.sum.nodesc': 'no description',
   'row.sum.nopayer': 'payer missing',
   'row.all': 'all',
+  'row.gone': 'removed by somebody else',
   'row.fold': 'close',
   'card.balance.open': 'Show the balance',
   'card.balance.fold': 'Fold the balance away',
@@ -1582,6 +1613,7 @@ de: {
   'row.sum.nodesc': 'ohne Beschreibung',
   'row.sum.nopayer': 'Zahler fehlt',
   'row.all': 'alle',
+  'row.gone': 'von jemand anderem entfernt',
   'row.fold': 'zuklappen',
   'card.balance.open': 'Bilanz anzeigen',
   'card.balance.fold': 'Bilanz zuklappen',
@@ -2952,13 +2984,42 @@ var changedMark = { p: {}, e: {} };
    marks keep collecting until this device either edits something itself or
    confirms again. */
 var marksActive = false;
-function clearMarks(){ changedMark = { p: {}, e: {} }; marksActive = false; }
+/* A record somebody else deleted cannot be marked — it is not there any more.
+   It is kept as a ghost instead: struck through, not editable, in the list
+   where it was, until the marks are answered. Somebody has to be able to see
+   WHAT was removed before agreeing that the sheet is finished. */
+var ghosts = { p: {}, e: {} };
+function clearMarks(){
+  changedMark = { p: {}, e: {} };
+  ghosts = { p: {}, e: {} };
+  marksActive = false;
+}
+function addGhosts(prev, now){
+  if(!prev || !now) return;
+  ['p','e'].forEach(function(k){
+    var id;
+    for(id in prev[k]){
+      if(now[k][id] || ghosts[k][id]) continue;
+      try{ ghosts[k][id] = JSON.parse(prev[k][id]); }catch(e){}
+    }
+    /* put back what came back */
+    for(id in ghosts[k]) if(now[k][id]) delete ghosts[k][id];
+  });
+}
+function anyGhosts(){
+  for(var a in ghosts.p) return true;
+  for(var b in ghosts.e) return true;
+  return false;
+}
 /* take the marks off the screen without redrawing anything */
 function stripMarks(){
   var i, n = document.querySelectorAll('.chg');
   for(i=0;i<n.length;i++) n[i].classList.remove('chg');
   n = document.querySelectorAll('.changed');
   for(i=0;i<n.length;i++) n[i].classList.remove('changed', 'whole');
+  /* the ghosts are whole elements, not classes — they have to go too */
+  n = document.querySelectorAll('tr.gone, .chip.gone');
+  for(i=n.length-1;i>=0;i--) n[i].parentNode.removeChild(n[i]);
 }
 function addMarks(diff){
   ['p','e'].forEach(function(k){
@@ -2972,7 +3033,7 @@ function addMarks(diff){
 function marksShown(){
   for(var a in changedMark.p) return true;
   for(var b in changedMark.e) return true;
-  return false;
+  return anyGhosts();
 }
 /* Which FIELD moved, not merely which row. A dashed frame around a whole card
    says "something in here"; a frame around the amount says what to look at.
@@ -3011,8 +3072,8 @@ function diffSnaps(prev, now){
 /* did this one field move? */
 function chg(kind, id, field){
   var rec = changedMark[kind][id];
-  if(!rec) return false;
-  return !!(rec.added || rec[field]);
+  if(!rec || rec.added) return false;    /* a new record is framed as a whole */
+  return !!rec[field];
 }
 /* nothing but a whole new record marks the card as a whole */
 function chgWhole(kind, id){
@@ -3030,10 +3091,14 @@ function noticeFinalChange(beforeJson, prevSnap){
   var before = {};
   try{ before = JSON.parse(beforeJson == null ? lastFinalSeen : beforeJson); }catch(e){}
   var nowSeen = state.final;
-  var diff = diffSnaps(prevSnap, snapshot(state));
+  var nowSnap = snapshot(state);
+  var diff = diffSnaps(prevSnap, nowSnap);
   var dataMoved = false;
   for(var k1 in diff.p) dataMoved = true;
   for(var k2 in diff.e) dataMoved = true;
+  var k3;
+  for(k3 in (prevSnap ? prevSnap.p : {})) if(!nowSnap.p[k3]) dataMoved = true;
+  for(k3 in (prevSnap ? prevSnap.e : {})) if(!nowSnap.e[k3]) dataMoved = true;
 
   /* Who changed their mind, and in which direction. A confirmation that is
      taken back and given again is a NEW confirmation even though the flag reads
@@ -3054,20 +3119,20 @@ function noticeFinalChange(beforeJson, prevSnap){
   var isMine = iAmFinal();
 
   /* already re-checking: every further edit from elsewhere joins the list */
-  if(marksActive && dataMoved) addMarks(diff);
+  if(marksActive){ addMarks(diff); addGhosts(prevSnap, nowSnap); }
 
   if(wasMine && !isMine){
     /* my own confirmation was cancelled — only a change to the sheet does that */
     finalNotice = 'revoked';
     /* the device that had confirmed is the one that has to re-check, so it is
        the one that gets the changed fields marked */
-    marksActive = true; addMarks(diff);
+    marksActive = true; addMarks(diff); addGhosts(prevSnap, nowSnap);
     toast(revokedText());
   }else if(lost.length && dataMoved){
     /* somebody's edit cancelled the others' confirmations; this device had none
        to lose, but the sheet moved and the mark is still worth having */
     finalNotice = 'revoked';
-    marksActive = true; addMarks(diff);
+    marksActive = true; addMarks(diff); addGhosts(prevSnap, nowSnap);
     toast(revokedText());
   }else if(lost.length){
     /* no edit, so somebody simply took their word back */
@@ -3347,6 +3412,15 @@ function renderPeople(){
      keyCode 229 with key "Unidentified", so the name was never committed — it
      just sat in the field looking added until the next redraw cleared it. Hence
      a button that cannot be misread, and three ways to trigger the same thing. */
+  /* people somebody else removed, kept the same way the expenses are */
+  for(var gpid in ghosts.p){
+    var gp = ghosts.p[gpid];
+    var gchip = el('div','chip gone');
+    gchip.appendChild(el('span','gx','\u2715'));
+    gchip.appendChild(el('span','gnm', gp.name || ''));
+    gchip.title = t('row.gone');
+    box.insertBefore(gchip, keep.parentNode === box ? keep : null);
+  }
   if(keep.parentNode !== box) box.appendChild(keep);
   keep.querySelector('input').placeholder = t('people.add');
   $('peopleHint').textContent = state.people.length ? nPeople(state.people.length)
@@ -3517,6 +3591,11 @@ function sumCell(ex, pe){
 }
 
 function renderTable(){
+  /* the instruction about tapping share cells only means something while a
+     card is open — over a list of one-liners it is noise */
+  document.body.classList.toggle('card-open',
+    expandAll || inputsLocked() || (openExpense != null &&
+      state.expenses.some(function(e){ return e.id === openExpense; })));
   var fa = $('foldAll');
   if(fa){
     setChevronLabel(fa, expandAll ? 'up' : 'down', t('row.all'));
@@ -3701,6 +3780,26 @@ function renderTable(){
     body.appendChild(tr);
   });
 
+  /* what somebody else removed, kept visible until this device has answered */
+  for(var gid in ghosts.e){
+    var g = ghosts.e[gid];
+    var gtr = document.createElement('tr');
+    gtr.className = 'gone';
+    gtr.dataset.gone = gid;
+    var gtd = document.createElement('td');
+    gtd.colSpan = state.people.length + 6;
+    var gl = el('div','goneline');
+    gl.appendChild(el('span','gx','\u2715'));
+    gl.appendChild(el('span','sdesc', (g.desc || '').trim() || t('row.sum.nodesc')));
+    gl.appendChild(el('span','swho', g.payerId ? (personName(g.payerId) || t('row.sum.nopayer'))
+                                               : t('row.sum.nopayer')));
+    gl.appendChild(el('span','samt', money(Number(g.cents) || 0)));
+    gtd.appendChild(gl);
+    gtd.appendChild(el('div','gonenote', t('row.gone')));
+    gtr.appendChild(gtd);
+    body.appendChild(gtr);
+  }
+
   if(!state.expenses.length){
     var etr = document.createElement('tr');
     etr.className = 'placeholder';
@@ -3739,7 +3838,9 @@ function openExactRow(afterTr, ex){
   if(btn) btn.classList.add('active');
   afterTr.classList.add('hasexact');
   var tr = document.createElement('tr');
-  tr.className = 'exactrow' + (afterTr.classList.contains('hoist') ? ' hoist' : '');
+  tr.className = 'exactrow'
+    + (afterTr.classList.contains('hoist') ? ' hoist' : '')
+    + (afterTr.classList.contains('unassigned') ? ' unassigned' : '');
   var td = document.createElement('td');
   td.colSpan = state.people.length + 6;
   var box = el('div','exact');
@@ -3910,8 +4011,13 @@ function updatePerShare(){
        outright, which silently stripped whatever else the row was wearing —
        that cost us the exact-amount join once and the change mark once, and
        would have cost the folded state a third time. */
-    rows[i].classList.toggle('unassigned',
-      !!(pe.unassigned || pe.overfixed || pe.shortfixed));
+    var warnRow = !!(pe.unassigned || pe.overfixed || pe.shortfixed);
+    rows[i].classList.toggle('unassigned', warnRow);
+    /* the open strip for fixed amounts is part of the same card, so it turns
+       with it — half an orange card reads as a rendering fault */
+    var strip = rows[i].nextSibling;
+    if(strip && strip.classList && strip.classList.contains('exactrow'))
+      strip.classList.toggle('unassigned', warnRow);
 
     var spent = pe.hasFixed && pe.rest === 0 && (ex.cents||0) !== 0;
     var btns = rows[i].querySelectorAll('td.share .sharebtn');
@@ -4552,7 +4658,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '4.3.0';
+var APP_VERSION = '4.4.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -5116,6 +5222,10 @@ function syncNow(){
         return syncNow();
       }
       if(res && res.sha) syncSha = res.sha;
+      /* The sheet keeps its file and its invitation code when it is renamed —
+         changing either would cut off every device that already has them. What
+         has to follow is the NAME this device shows for it in the list. */
+      if(syncCfg) rememberShared(syncCfg, state.title, syncPw);
       setSyncStatus('ok');
       syncBusy = false;
       if(syncAgain){ syncAgain = false; syncSoon(); }
