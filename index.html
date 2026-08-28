@@ -712,9 +712,14 @@ footer .ver{font-size:11.5px;opacity:.8}
    alone — on a desktop the table already shows everything at once */
 td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,td.exactcell{display:none}
 /* the swipe symbol is the only warm thing in the header, so it reads as a
-   gesture rather than as one more grey button */
-.cardbtn .swico{width:20px;height:20px;display:block;color:var(--swipe)}
-.cardbtn{padding:6px 9px}
+   gesture rather than as one more grey button. The chevron run is drawn wide
+   and large — the button keeps its size, the padding gives way instead. */
+.cardbtn .swico{width:20px;height:20px;display:block;flex:0 0 auto;color:var(--swipe)}
+/* the chevron run is drawn wide and large; the button keeps its size because
+   it has none of its own to give — it is a fixed square either way */
+.cardbtn .swico.wide{width:30px;height:19px}
+/* .btn.sm sets a padding of its own, so this has to out-specify it */
+.btn.sm.cardbtn{padding:0;width:34px;min-width:34px;height:34px;min-height:34px}
 /* Nothing folds on a desktop: the whole point of folding is a screen that
    cannot hold the list, and a desktop can. The card may still carry the class
    — it simply does nothing here. */
@@ -828,6 +833,8 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,td.exactcel
      warning that folds away with the numbers it is about is worse than none. */
   .foldbtn{min-width:40px;padding:6px 10px;font-size:13px;line-height:1;
     display:inline-flex;align-items:center;justify-content:center}
+  /* a class beats the browser's own [hidden] rule, so it has to be said here */
+  .foldbtn[hidden]{display:none}
   .foldbtn .arw.chev{margin:0}
   .card.folded > .card-b{padding-top:0;padding-bottom:14px}
   .card.folded > .card-b > *:not(.note){display:none}
@@ -993,9 +1000,10 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,td.exactcel
   /* the instruction is about the share cells inside a card — with every card
      closed there is nothing it could be talking about */
   body:not(.card-open) #expHint{display:none}
-  /* the balance summary is three words and belongs beside the heading, not on
-     a line of its own like the long instruction in the expenses header */
-  .card-h #balHint{flex-basis:auto;order:0}
+  /* the balance summary and the head count are two words each and belong
+     beside their heading, not on a line of their own like the long
+     instruction in the expenses header */
+  .card-h #balHint,.card-h #peopleHint{flex-basis:auto;order:0}
   .card-h .btn{order:2}
   /* ---------- the expenses header, all of it on one line ----------
      Four things share about 350 px: the heading, "all", the add button and the
@@ -1007,7 +1015,8 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,td.exactcel
   [data-edit] > .card-h #foldAll{order:0;gap:0;padding:0 6px;margin-left:1px}
   [data-edit] > .card-h #foldAll .arw.chev{margin:0}
   [data-edit] > .card-h .btn.sm{min-height:34px;font-size:13px;padding:0 9px}
-  [data-edit] > .card-h .cardbtn{padding:0 6px}
+  [data-edit] > .card-h .btn.sm.cardbtn{padding:0}
+
   [data-edit] > .card-h .hint{padding:0 6px}
   #tripTitle{font-size:20px;max-width:none;width:100%;min-width:0}
 }
@@ -1260,11 +1269,12 @@ th.share .pname.isme,td.share .mlabel.isme{
     <button class="x" id="installHelpX" data-i18n-aria="install.dismiss">×</button>
   </div>
 
-  <div class="card gated" data-edit data-meok>
+  <div class="card gated" id="peopleCard" data-edit data-meok>
     <div class="card-h">
       <h2 data-i18n="card.people">People</h2>
-      <span class="spacer"></span>
       <span class="hint" id="peopleHint"></span>
+      <span class="spacer"></span>
+      <button class="btn sm foldbtn" id="peopleFold">…</button>
     </div>
     <div class="card-b">
       <div class="people" id="people"></div>
@@ -1442,6 +1452,8 @@ en: {
   'row.fold': 'close',
   'card.balance.open': 'Show the balance',
   'card.balance.fold': 'Fold the balance away',
+  'card.people.open': 'Show the people',
+  'card.people.fold': 'Fold the people away',
   'bal.mine': 'me: {0}',
   'final.status.auto': '(incl. {0} after 48 h)',
   'final.mini': '{0} of {1} final',
@@ -1786,6 +1798,8 @@ de: {
   'row.fold': 'zuklappen',
   'card.balance.open': 'Bilanz anzeigen',
   'card.balance.fold': 'Bilanz zuklappen',
+  'card.people.open': 'Personen anzeigen',
+  'card.people.fold': 'Personen zuklappen',
   'bal.mine': 'ich: {0}',
   'final.status.auto': '(davon {0} nach 48 h)',
   'final.mini': '{0} von {1} final',
@@ -3360,6 +3374,19 @@ function renderBalanceFold(){
   btn.title = t(balOpen ? 'card.balance.fold' : 'card.balance.open');
 }
 
+/* The people list folds like the balance — but never while the sheet is still
+   asking this device who it is: the answer is given in that very list. */
+function renderPeopleFold(){
+  var card = $('peopleCard'), btn = $('peopleFold');
+  if(!card || !btn) return;
+  var open = peopleOpen || needsMeGate();
+  card.classList.toggle('folded', !open);
+  setChevronLabel(btn, open ? 'up' : 'down', '');
+  btn.setAttribute('aria-expanded', String(open));
+  btn.title = t(open ? 'card.people.fold' : 'card.people.open');
+  btn.hidden = needsMeGate();
+}
+
 function renderFinal(){
   var bar = $('finalBar'), note = $('finalNote');
   var show = !!syncCfg;
@@ -3496,13 +3523,16 @@ function svgPath(parent, d, w, fill){
   parent.appendChild(p);
   return p;
 }
-/* two arrows: "these move sideways" */
+/* The same chevron runs that sit at the foot of a card, shrunk into a button:
+   two pointing each way, the outer one fainter, so the switch and the thing it
+   switches to are drawn in the same hand. */
 function swipeIconSVG(){
-  var s = svgNode('0 0 24 24','swico');
-  svgPath(s, 'M9 8 4.5 12 9 16');
-  svgPath(s, 'M4.8 12H13');
-  svgPath(s, 'M15 8l4.5 4L15 16');
-  svgPath(s, 'M19.2 12H11');
+  var s = svgNode('0 0 34 20','swico wide');
+  var d = ['M13 4 8 10l5 6', 'M8 4 3 10l5 6', 'M21 4l5 6-5 6', 'M26 4l5 6-5 6'];
+  for(var i=0;i<d.length;i++){
+    var p = svgPath(s, d[i], '2.6');
+    if(i === 1 || i === 3) p.style.opacity = '.45';
+  }
   return s;
 }
 /* three lines: "back to the list" */
@@ -3673,6 +3703,7 @@ function renderPeople(){
   keep.querySelector('input').placeholder = t('people.add');
   $('peopleHint').textContent = state.people.length ? nPeople(state.people.length)
                                                     : t('people.hint.empty');
+  renderPeopleFold();
 }
 
 function claimedByOther(personId){
@@ -3939,6 +3970,9 @@ function paintCards(){
    third of the screen showing numbers that are still moving, so it starts
    folded — and stays however this device last left it. */
 var balOpen = lsGet('billing-tool.balopen') === '1';
+/* The people list is the other way round: it is where a sheet starts, so it
+   starts open and folds away once the names are in. */
+var peopleOpen = lsGet('billing-tool.peopleopen') !== '0';
 
 /* A confirmed device cannot edit, so it cannot tap a line open either — the
    card is inert as a whole. Then folding would hide the very numbers it is
@@ -3993,7 +4027,7 @@ function renderTable(){
   /* A confirmed sheet is for reading, and the rail shows one card at a time
      behind an inert switch — there would be no way back to the list. Whoever
      closed it, this device or the last of the others, the list comes back. */
-  if(cardMode && inputsLocked()) cardMode = false;
+  if(cardMode && inputsLocked()){ cardMode = false; openExpense = null; }
   /* the instruction about tapping share cells only means something while a
      card is open — over a list of one-liners it is noise */
   document.body.classList.toggle('card-mode', cardMode);
@@ -4964,6 +4998,12 @@ document.addEventListener('keydown', function(ev){
   if(ev.key === 'ArrowRight') goCard(1);
   else if(ev.key === 'ArrowLeft') goCard(-1);
 });
+$('peopleFold').addEventListener('click', function(){
+  peopleOpen = !peopleOpen;
+  lsSet('billing-tool.peopleopen', peopleOpen ? '1' : '0');
+  renderPeopleFold();
+});
+
 $('balFold').addEventListener('click', function(){
   balOpen = !balOpen;
   lsSet('billing-tool.balopen', balOpen ? '1' : '0');
@@ -4974,8 +5014,11 @@ $('finalBtn').addEventListener('click', function(){
   finalNotice = null; clearMarks();
   /* Confirming from the rail would lock the sheet with one card on screen and
      the rest of it out of reach — and a locked sheet cannot be swiped back
-     into a list. So the list comes back first, open, and then the lock. */
-  if(cardMode && !inputsLocked()) setCardMode(false);
+     into a list. So the list comes back first, open, and then the lock.
+     Nothing stays open behind the lock: when the lock lifts again — somebody
+     edits, or the confirmation is taken back — what should be there is the
+     plain list, not whichever card happened to be under the thumb. */
+  if(cardMode && !inputsLocked()){ setCardMode(false); openExpense = null; }
   setFinal(!inputsLocked());
 });
 
@@ -5133,7 +5176,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '5.2.0';
+var APP_VERSION = '5.3.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -5367,6 +5410,8 @@ function applyGate(){
   }
   $('tripTitle').readOnly = editLock;
   applyFinalLock();
+  /* the people list is forced open while its own answer is what is missing */
+  renderPeopleFold();
 }
 
 /* An inert subtree swallows the click whole — the event never reaches any
