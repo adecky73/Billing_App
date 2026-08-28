@@ -762,8 +762,10 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,td.exactcell{display
        itself to the very top of the card */
     order:9;
     display:block;flex:1 1 100%;padding:0;margin:8px -10px -8px;
-    border-top:1px solid var(--outline-var);
-    background:var(--surface-1);
+    /* it hangs off the card, so it is the card: same blue, and only a line to
+       say where the one ends and the other begins */
+    border-top:1px solid var(--card-f-line);
+    background:var(--card-f);
     border-radius:0 0 var(--r-l) var(--r-l);overflow:hidden;
   }
   body.card-mode tr.unassigned td.exactcell{background:var(--warn-c)}
