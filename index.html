@@ -500,7 +500,7 @@ td.chg,.exact-cell.chg,.rowex.chg{
 .chip.changed{outline:3px dashed var(--error);outline-offset:1px}
 /* Removed by somebody else: still there to be read, struck through, with
    nothing to press. It goes when the other marks go. */
-tbody tr.gone > td{
+tbody tr.gone > td.gonecell{
   border:3px dashed var(--error);border-radius:var(--r-m);
   background:var(--surface-2);
 }
@@ -519,6 +519,15 @@ tbody tr.gone > td{
   padding:0 12px;min-height:40px;gap:7px;
 }
 .chip.gone .gnm{text-decoration:line-through}
+/* A person somebody removed keeps their column until the marks are answered:
+   struck through, with the share they held, and nothing to press. Their shares
+   would otherwise disappear from every card without leaving a trace. */
+th.share.gone .pname,td.share.gone .mlabel{
+  text-decoration:line-through;color:var(--error);
+}
+th.share.gone{opacity:.75}
+/* the tick is history, not a setting — it must not look like one */
+td.share.gone .sharebtn{opacity:.5;cursor:default;filter:grayscale(.6)}
 .chip.gone .gx{color:var(--error);font-weight:700}
 
 /* A row that is wholly new has no single field to point at, so the frame goes
@@ -710,7 +719,8 @@ footer .ver{font-size:11.5px;opacity:.8}
 .mlabel{display:none}
 /* the folded line and the controls that go with it belong to the phone layout
    alone — on a desktop the table already shows everything at once */
-td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,td.exactcell{display:none}
+td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,.gonefoot,
+td.exactcell{display:none}
 /* the swipe symbol is the only warm thing in the header, so it reads as a
    gesture rather than as one more grey button. The chevron run is drawn wide
    and large — the button keeps its size, the padding gives way instead. */
@@ -751,11 +761,45 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,td.exactcel
   }
   /* The card in focus is blue, not white: on white the fields — which are
      themselves near-white — disappeared into their own card. */
+  /* the arrows belong to the card in focus; on the neighbours they are half
+     hidden, inert and just noise. visibility, not display: the cards behind
+     have to keep the same height as the one in front. */
+  body.card-mode tbody > tr:not(.here) .swipehint{visibility:hidden}
   body.card-mode tbody > tr.here{
     opacity:1;z-index:3;box-shadow:var(--e2);
     background:var(--card-f);border-color:var(--card-f-line);
   }
   body.card-mode tbody > tr.unassigned{background:var(--warn-c)}
+  /* ---------- a removed expense, at card size ----------
+     In the rail everything is a card, so this is one too: the same width, the
+     red frame, and a cross the size of the card, because the one thing it has
+     to say is that there is nothing here any more. */
+  body.card-mode tbody > tr.gone{
+    flex-wrap:wrap;align-items:center;justify-content:center;
+    min-height:200px;padding:0;overflow:hidden;
+    background:var(--surface-3);border:3px dashed var(--error);
+  }
+  body.card-mode tbody > tr.gone > td.no{display:none}
+  body.card-mode tbody > tr.gone > td.gonecell{
+    padding:18px;text-align:center;flex:1 1 100%;
+  }
+  body.card-mode tr.gone .goneline{justify-content:center;flex-wrap:wrap;min-height:0}
+  body.card-mode tr.gone .goneline .samt{margin-left:0}
+  body.card-mode tr.gone .gonenote{margin-top:10px;font-size:12.5px}
+  body.card-mode tbody > tr.gone::before,
+  body.card-mode tbody > tr.gone::after{
+    content:'';position:absolute;left:5%;right:5%;top:calc(50% - 3px);
+    height:6px;border-radius:3px;background:var(--error);opacity:.3;
+    pointer-events:none;
+  }
+  body.card-mode tbody > tr.gone::before{transform:rotate(26deg)}
+  body.card-mode tbody > tr.gone::after{transform:rotate(-26deg)}
+  /* the counter and the marks line, above the strip and out of its way */
+  body.card-mode .gonefoot{
+    display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:baseline;
+    gap:2px 10px;margin-top:14px;
+  }
+  body.card-mode .gonefoot .cardchg{flex:0 1 auto;justify-content:flex-end}
   /* The strip for fixed amounts is a table row of its own, so in a rail it
      would become a card of its own. It belongs to the list view. */
   body.card-mode tbody > tr.exactrow{display:none}
@@ -858,6 +902,19 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,td.exactcel
     padding:0;background:var(--surface);border-color:var(--outline-var);
     overflow:hidden;flex-wrap:nowrap;
   }
+  /* A removed line keeps the shape of the line it was: same width, same edge,
+     no second box inside a first one. The frame is the row's, the grey is the
+     row's, and the cell inside carries nothing of its own. */
+  tbody tr.gone{
+    padding:0;margin-bottom:3px;flex-wrap:nowrap;
+    background:var(--surface-3);border:3px dashed var(--error);
+  }
+  tbody tr.gone > td.no{padding:0 0 0 8px;align-self:center}
+  tbody tr.gone > td.gonecell{
+    display:block;flex:1 1 auto;min-width:0;
+    border:none;background:transparent;border-radius:0;padding:9px 12px 9px 4px;
+  }
+  .goneline{min-height:30px}
   tbody tr.folded.unassigned{background:var(--warn-c)}
   tbody tr.folded > td:not(.sum):not(.no){display:none}
   tbody tr.folded > td.no{padding:0 0 0 10px}
@@ -1042,6 +1099,7 @@ td.sum,td.no,.rowfold,.foldall,.foldbtn,.swipehint,.cardpos,.cardchg,td.exactcel
   body.card-mode tbody{transform:none!important;flex-direction:column!important}
   body.card-mode tbody > tr{opacity:1!important}
   .swipehint,.cardnav,.cardchg{display:none!important}
+  th.share.gone,td.share.gone{display:none!important}
   .top-actions,.rowdel,.rowfold,.foldall,.card-h .btn,.addperson,.chip .x,.iosbar,footer .noprint{display:none!important}
   /* a ghost is a note to one device, not part of the sheet */
   tbody tr.gone,.chip.gone{display:none!important}
@@ -3202,8 +3260,13 @@ var ghosts = { p: {}, e: {} };
 function clearMarks(){
   changedMark = { p: {}, e: {} };
   ghosts = { p: {}, e: {} };
+  ghostShares = {};
   marksActive = false;
 }
+/* What a person who has been removed was down for, expense by expense. Their
+   column is gone from the table the moment they are, so without this there is
+   no way to see WHAT the removal changed — only that something did. */
+var ghostShares = {};
 function addGhosts(prev, now){
   if(!prev || !now) return;
   ['p','e'].forEach(function(k){
@@ -3211,10 +3274,27 @@ function addGhosts(prev, now){
     for(id in prev[k]){
       if(now[k][id] || ghosts[k][id]) continue;
       try{ ghosts[k][id] = JSON.parse(prev[k][id]); }catch(e){}
+      if(k === 'p' && ghosts.p[id]) ghostShares[id] = sharesOf(prev.e, id);
     }
     /* put back what came back */
-    for(id in ghosts[k]) if(now[k][id]) delete ghosts[k][id];
+    for(id in ghosts[k]) if(now[k][id]){
+      delete ghosts[k][id];
+      if(k === 'p') delete ghostShares[id];
+    }
   });
+}
+/* every share this person held, read off the snapshot taken before they went */
+function sharesOf(snapE, pid){
+  var out = {};
+  for(var eid in snapE){
+    var rec = null;
+    try{ rec = JSON.parse(snapE[eid]); }catch(e){}
+    if(!rec) continue;
+    var n = rec.shares ? (Number(rec.shares[pid]) || 0) : 0;
+    var fx = rec.fixed ? (Number(rec.fixed[pid]) || 0) : 0;
+    if(n || fx) out[eid] = { n: n, fx: fx };
+  }
+  return out;
 }
 /* "removed by <name>" — the name comes from the tombstone the deletion left */
 function goneByText(kind, id){
@@ -3571,6 +3651,31 @@ function cardNavBtn(dir){
   b.addEventListener('click', function(){ goCard(dir === 'left' ? -1 : 1); });
   return b;
 }
+/* The strip at the foot of a card: three slots, so the hand stays in the middle
+   whether or not there is a card on both sides — an arrow to tap, the hand and
+   its chevrons to drag, an arrow to tap. The chevrons belong to the hand, not
+   to the buttons: they show which way a FINGER travels. Wiping left brings in
+   the card on the right, so a run to the LEFT means "there is another one
+   after this". Counted in slides, not in expenses: a removed expense is still
+   a card in the rail, and a card with no way past it is a dead end. */
+function swipeStrip(at, total){
+  var hint = el('div','swipehint');
+  var navL = el('span','navslot');
+  if(at > 0) navL.appendChild(cardNavBtn('left'));
+  hint.appendChild(navL);
+
+  var set = el('span','swipeset');
+  set.setAttribute('aria-hidden','true');
+  if(at < total - 1) set.appendChild(chevRun('left', 3));
+  set.appendChild(handSVG());
+  if(at > 0) set.appendChild(chevRun('right', 3));
+  hint.appendChild(set);
+
+  var navR = el('span','navslot right');
+  if(at < total - 1) navR.appendChild(cardNavBtn('right'));
+  hint.appendChild(navR);
+  return hint;
+}
 /* a hand, tilted, of the kind that is about to drag something */
 function handSVG(){
   var s = svgNode('0 0 24 24','swhand');
@@ -3857,16 +3962,47 @@ var cardAt = 0;
 function cardSlides(){
   return $('tbody').querySelectorAll('tr[data-eid], tr.gone');
 }
+/* how many cards the rail would hold: the expenses plus the ones somebody
+   removed, which are still there to be read */
+function railCards(){
+  return state.expenses.length + Object.keys(ghosts.e).length;
+}
 /* Which expense the rail was last standing on. The list no longer keeps a card
-   open on the way out, so without this the rail would forget where it was. */
+   open on the way out, so without this the rail would forget where it was —
+   and both facts outlive the session: an app closed while swiping opens on the
+   same card. */
+var CARD_MODE_KEY = 'billing-tool.cardmode';
+var CARD_SEEN_KEY = 'billing-tool.cardseen';
 var cardSeen = null;
+var cardViewSaved = '';
+function saveCardView(){
+  var line = (cardMode ? '1' : '0') + '|' + (cardSeen || '');
+  if(line === cardViewSaved) return;      /* renders are frequent, writes are not */
+  cardViewSaved = line;
+  lsSet(CARD_MODE_KEY, cardMode ? '1' : '0');
+  lsSet(CARD_SEEN_KEY, cardSeen || '');
+}
 function noteCardSeen(){
   var ex = state.expenses[cardAt];
   cardSeen = ex ? ex.id : null;
+  saveCardView();
+}
+/* At startup: pick the rail up where it was left. Only with a rail to pick up
+   — one expense hides the switch, and a card with no way back out of it is a
+   trap. */
+function restoreCardView(){
+  cardSeen = lsGet(CARD_SEEN_KEY) || null;
+  if(lsGet(CARD_MODE_KEY) !== '1') return;
+  if(!state || state.expenses.length < 2 || inputsLocked()) return;
+  cardMode = true;
+  var k = 0;
+  state.expenses.forEach(function(e, i){ if(e.id === cardSeen) k = i; });
+  cardAt = k;
 }
 function setCardMode(on){
   closeExactRows();
   cardMode = !!on;
+  saveCardView();
   if(cardMode){
     /* start where the eye already is: the card that is open, else the one the
        rail was last on, else the newest */
@@ -3994,6 +4130,8 @@ function paintCards(){
      left and a sliver of the one after on the right — both tucked under it */
   body.style.transform = 'translateX(calc(5% - ' + (cardAt * 84) + '%))';
   for(var i=0;i<slides.length;i++) slides[i].classList.toggle('here', i === cardAt);
+  /* the card on screen is the one to come back to, whenever that is */
+  noteCardSeen();
   var open = state.expenses.filter(function(e){ return !e.payerId; }).length;
   var txt = (cardAt + 1) + '/' + slides.length +
             (open ? ' \u00b7 ' + t('card.open', open) : '');
@@ -4072,6 +4210,9 @@ function renderTable(){
      behind an inert switch — there would be no way back to the list. Whoever
      closed it, this device or the last of the others, the list comes back. */
   if(cardMode && inputsLocked()){ noteCardSeen(); cardMode = false; openExpense = null; }
+  /* the switch out of the rail is hidden below two cards, so a rail with fewer
+     than two is a room with no door. A removed expense is still a card. */
+  if(cardMode && railCards() < 2){ cardMode = false; openExpense = null; }
   /* the instruction about tapping share cells only means something while a
      card is open — over a list of one-liners it is noise */
   document.body.classList.toggle('card-mode', cardMode);
@@ -4089,7 +4230,7 @@ function renderTable(){
     cb.appendChild(cardMode ? listIconSVG() : swipeIconSVG());
     cb.title = t(cardMode ? 'card.tolist' : 'card.tocards');
     cb.setAttribute('aria-label', cb.title);
-    cb.hidden = state.expenses.length < 2;
+    cb.hidden = railCards() < 2;
   }
   var head = $('thead'); head.innerHTML = '';
   head.appendChild(el('th', null, t('th.payer')));
@@ -4107,11 +4248,21 @@ function renderTable(){
     });
     head.appendChild(th);
   });
+  /* a removed person keeps a column, struck through, until the marks are
+     answered — otherwise their shares vanish without a trace */
+  for(var gph in ghosts.p){
+    var gth = el('th','share gone');
+    gth.appendChild(el('span','pname', ghosts.p[gph].name || ''));
+    gth.title = goneByText('p', gph);
+    head.appendChild(gth);
+  }
   head.appendChild(el('th','num',t('th.pershare')));
   head.appendChild(el('th', null, ''));
 
   var body = $('tbody'); body.innerHTML = '';
   var res = computeBalances(state.people, state.expenses);
+  /* what the rail will hold: every expense, plus every one somebody removed */
+  var slideCount = railCards();
 
   state.expenses.forEach(function(ex, ri){
     var tr = document.createElement('tr');
@@ -4219,6 +4370,21 @@ function renderTable(){
       td.appendChild(b); tr.appendChild(td);
     });
 
+    /* and the same column in every row: what they were down for, struck
+       through and with nothing to press */
+    for(var gpid in ghosts.p){
+      var gsd = el('td','share gone');
+      gsd.appendChild(el('span','mlabel', ghosts.p[gpid].name || ''));
+      var gsb = el('button','sharebtn');
+      var had = (ghostShares[gpid] || {})[ex.id];
+      if(had && had.fx){ gsb.className = 'sharebtn fixed'; gsb.textContent = formatCents(had.fx); }
+      else paintShare(gsb, had ? had.n : 0, null, false);
+      gsb.disabled = true;
+      gsd.appendChild(gsb);
+      gsd.title = goneByText('p', gpid);
+      tr.appendChild(gsd);
+    }
+
     // per share
     var tdS = el('td','num pershare');
     /* With fixed amounts in the row, this figure is what one share of the
@@ -4254,27 +4420,7 @@ function renderTable(){
        The hand sits between two runs of chevrons; a run is only drawn towards
        a card that exists, so the first card fans one way. The two arrows at
        the ends are buttons — for anyone who would rather tap than drag. */
-    var hint = el('div','swipehint');
-    /* Three slots, so the hand stays in the middle whether or not there is a
-       card on both sides: an arrow to tap, the hand and its chevrons to drag,
-       an arrow to tap. */
-    var navL = el('span','navslot');
-    if(ri > 0) navL.appendChild(cardNavBtn('left'));
-    hint.appendChild(navL);
-
-    /* The chevrons belong to the hand, not to the buttons: they show which way
-       a finger travels. Wiping left brings in the card on the right, so a run
-       to the LEFT of the hand means "there is another one after this". */
-    var set = el('span','swipeset');
-    set.setAttribute('aria-hidden','true');
-    if(ri < state.expenses.length - 1) set.appendChild(chevRun('left', 3));
-    set.appendChild(handSVG());
-    if(ri > 0) set.appendChild(chevRun('right', 3));
-    hint.appendChild(set);
-
-    var navR = el('span','navslot right');
-    if(ri < state.expenses.length - 1) navR.appendChild(cardNavBtn('right'));
-    hint.appendChild(navR);
+    var hint = swipeStrip(ri, slideCount);
     /* no listener of its own: the row already carries one, and two of them on
        the same drag would turn two cards */
     tdS.appendChild(hint);
@@ -4311,13 +4457,19 @@ function renderTable(){
   });
 
   /* what somebody else removed, kept visible until this device has answered */
+  var gAt = state.expenses.length;
   for(var gid in ghosts.e){
     var g = ghosts.e[gid];
     var gtr = document.createElement('tr');
     gtr.className = 'gone';
     gtr.dataset.gone = gid;
+    /* an empty number cell, so the line starts where every other line starts */
+    var gno = el('td','no','');
+    gno.setAttribute('aria-hidden','true');
+    gtr.appendChild(gno);
     var gtd = document.createElement('td');
-    gtd.colSpan = state.people.length + 6;
+    gtd.className = 'gonecell';
+    gtd.colSpan = state.people.length + Object.keys(ghosts.p).length + 5;
     var gl = el('div','goneline');
     gl.appendChild(el('span','gx','\u2715'));
     gl.appendChild(el('span','sdesc', (g.desc || '').trim() || t('row.sum.nodesc')));
@@ -4326,7 +4478,16 @@ function renderTable(){
     gl.appendChild(el('span','samt', money(Number(g.cents) || 0)));
     gtd.appendChild(gl);
     gtd.appendChild(el('div','gonenote', goneByText('e', gid)));
+    /* in the rail this is a card like any other, and it carries the counter */
+    var gfoot = el('div','gonefoot');
+    gfoot.appendChild(el('span','cardpos'));
+    gfoot.appendChild(el('span','cardchg'));
+    gtd.appendChild(gfoot);
+    /* it is a card in the rail like any other, so it needs the way out of it */
+    gtd.appendChild(swipeStrip(gAt, slideCount));
+    gAt++;
     gtr.appendChild(gtd);
+    swipeArea(gtr);
     body.appendChild(gtr);
   }
 
@@ -4347,7 +4508,9 @@ function renderTable(){
     var ftr = document.createElement('tr');
     var fc = el('td', null, t('th.total')); fc.colSpan = 2; ftr.appendChild(fc);
     var ft = el('td','num total', ''); ftr.appendChild(ft);
-    var fill = el('td'); fill.colSpan = state.people.length + 2; ftr.appendChild(fill);
+    var fill = el('td');
+    fill.colSpan = state.people.length + Object.keys(ghosts.p).length + 2;
+    ftr.appendChild(fill);
     foot.appendChild(ftr);
   }
 
@@ -4387,7 +4550,7 @@ function openExactRow(afterTr, ex){
       + (afterTr.classList.contains('unassigned') ? ' unassigned' : '');
     td = document.createElement('td');
   }
-  td.colSpan = state.people.length + 6;
+  td.colSpan = state.people.length + Object.keys(ghosts.p).length + 6;
   var box = el('div','exact');
   box.appendChild(el('div','exact-h', t('exact.head')));
 
@@ -5235,7 +5398,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '5.4.3';
+var APP_VERSION = '5.7.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -6498,6 +6661,7 @@ function topGapDialog(){
   ]);
 }
 state = load();
+restoreCardView();
 /* a stored sheet that has entries but lost its name is exactly the ambiguous
    case — ask rather than silently adopt it under whatever name is typed next */
 if(!(state.title || '').trim() && countData() > 0) carryChoice = null;
