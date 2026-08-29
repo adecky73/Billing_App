@@ -742,6 +742,7 @@ td.exactcell{display:none}
      the cards themselves are the same cards. */
   body.card-mode .tablewrap{overflow:hidden}
   body.card-mode tbody{
+    transform:translateX(var(--rail, 0));
     flex-direction:row;flex-wrap:nowrap;align-items:flex-start;
     transition:transform .28s cubic-bezier(.2,.7,.3,1);
     touch-action:pan-y;
@@ -832,14 +833,14 @@ td.exactcell{display:none}
      list itself puts in front of each expense. */
   body.card-mode .cardchg{
     display:flex;flex:1 1 100%;justify-content:flex-end;align-items:center;
-    flex-wrap:wrap;gap:1px;margin-top:2px;font-size:12px;letter-spacing:0;
+    flex-wrap:wrap;gap:0;margin-top:2px;font-size:12px;letter-spacing:0;
     text-transform:none;color:var(--error);font-variant-numeric:tabular-nums;
   }
   body.card-mode .cardchg:empty{display:none}
   .chgjump{
     border:none;background:transparent;color:var(--error);
     font:inherit;font-weight:700;cursor:pointer;
-    padding:2px 3px;min-height:24px;border-radius:var(--r-xs);
+    padding:2px 2px;min-height:24px;border-radius:var(--r-xs);
   }
   .chgjump:hover{background:var(--error-c);color:var(--on-error-c)}
   .chgjump:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
@@ -955,11 +956,18 @@ td.exactcell{display:none}
   .rowfold .arw.chev{width:15px;height:15px;margin:0;vertical-align:0}
   td.pershare{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   /* the lifted card says so: it sits on the page rather than in the list */
+  /* An open card is an open card, rail or list: the same blue, so the fields
+     on it stand out the same way. A card with something missing keeps its
+     orange — that warning outranks the colour of the mode. */
+  tbody tr:not(.folded):not(.gone):not(.unassigned){
+    background:var(--card-f);border-color:var(--card-f-line);
+  }
   tbody tr.hoist{
     border-color:var(--primary);box-shadow:var(--e2);
-    background:var(--surface-1);
   }
   tbody tr.hoist.unassigned{background:var(--warn-c)}
+  tbody tr:not(.folded):hover{background:var(--card-f)}
+  tbody tr:not(.folded).unassigned:hover{background:var(--warn-c)}
   .rowfold:hover{background:var(--surface-3)}
 
   .wrap{
@@ -1047,8 +1055,8 @@ td.exactcell{display:none}
   tbody tr.exactrow.unassigned{background:var(--warn-c)}
   tbody tr.exactrow.unassigned .exact-cell input{background:var(--surface)}
   tbody tr.exactrow{
-    display:block;padding:0;margin:0 0 10px;background:var(--surface-2);
-    border:1px solid var(--row-line);border-top:none;
+    display:block;padding:0;margin:0 0 10px;background:var(--card-f);
+    border:1px solid var(--card-f-line);border-top:none;
     border-radius:0 0 var(--r-l) var(--r-l);
     overflow:hidden;
   }
@@ -1516,7 +1524,8 @@ en: {
   'card.prev': 'Previous expense',
   'card.next': 'Next expense',
   'card.open': '{0} incomplete',
-  'card.changed': 'Changes in {0}',
+  'card.changed': 'Changes in cards {0}',
+  'card.changed.one': 'Change in card {0}',
   'card.changed.gone': '{0} removed',
   'card.goto': 'Go to expense {0}',
   'card.goto.gone': 'Go to what was removed',
@@ -1862,7 +1871,8 @@ de: {
   'card.prev': 'Vorige Ausgabe',
   'card.next': 'N\u00e4chste Ausgabe',
   'card.open': '{0} unvollst\u00e4ndig',
-  'card.changed': '\u00c4nderungen in {0}',
+  'card.changed': '\u00c4nderungen in Karten {0}',
+  'card.changed.one': '\u00c4nderung in Karte {0}',
   'card.changed.gone': '{0} entfernt',
   'card.goto': 'Zu Ausgabe {0}',
   'card.goto.gone': 'Zum Entfernten',
@@ -2803,7 +2813,37 @@ function settle(rows) {
       var a = (local || {})[k], b = (remote || {})[k];
       if (!a) { out[k] = b; continue; }
       if (!b) { out[k] = a; continue; }
+      /* Round first, clock only to break a tie inside one round. A phone whose
+         clock runs slow would otherwise lose the confirmation it has just
+         given to the cancellation it is answering. */
+      var ra = Number(a.r) || 0, rb = Number(b.r) || 0;
+      if (rb !== ra) { out[k] = rb > ra ? b : a; continue; }
       out[k] = ((Number(b.m) || 0) > (Number(a.m) || 0)) ? b : a;
+    }
+    return out;
+  }
+
+  /* ---- why a confirmation carries a round number ----
+     Two phones do not agree on the time. A confirmation and the edit that
+     cancels it were resolved by comparing their timestamps, so a phone whose
+     clock ran a minute fast kept a confirmation that had already been
+     cancelled — silently, with no message and no marks, which is the one
+     outcome the whole mechanism exists to prevent.
+     So a change bumps a counter instead. The counter only ever grows and is
+     merged as a maximum, which no clock can argue with: a confirmation given
+     in round 3 is dead the moment the sheet reaches round 4. Sheets from
+     before this have no counter and no round on their confirmations — both
+     read as 0, so they go on working until the first change bumps them. */
+  function finalAlive(entry, rev) {
+    if (!entry || !entry.a) return false;
+    return (Number(entry.r) || 0) >= (Number(rev) || 0);
+  }
+  /* the confirmations as they actually count, with the dead ones cleared */
+  function liveFinal(final, rev) {
+    var out = {}, k;
+    for (k in (final || {})) {
+      var e = final[k];
+      out[k] = finalAlive(e, rev) ? e : { a: 0, m: Number(e && e.m) || 0, r: Number(e && e.r) || 0 };
     }
     return out;
   }
@@ -2824,6 +2864,8 @@ function settle(rows) {
       expenses: mergeList(local.expenses, remote.expenses),
       claims: mergeClaims(local.claims, remote.claims),
       final: mergeFinal(local.final, remote.final),
+      /* only ever forwards, on every device */
+      rev: Math.max(Number(local.rev) || 0, Number(remote.rev) || 0),
     };
     /* newest expense first, the same order a single device produces */
     out.expenses.sort(function (a, b) { return (Number(b.c) || 0) - (Number(a.c) || 0); });
@@ -2844,8 +2886,10 @@ function settle(rows) {
         return [k, st.claims[k] && st.claims[k].d, st.claims[k] && st.claims[k].m];
       }),
       Object.keys(st.final || {}).sort().map(function (k) {
-        return [k, st.final[k] && st.final[k].a ? 1 : 0, st.final[k] && st.final[k].m];
+        return [k, st.final[k] && st.final[k].a ? 1 : 0, st.final[k] && st.final[k].m,
+                st.final[k] && st.final[k].r];
       }),
+      Number(st.rev) || 0,
     ]);
   }
 
@@ -2905,7 +2949,7 @@ function settle(rows) {
     CODE_PREFIX: CODE_PREFIX, CODE_FULL_PREFIX: CODE_FULL_PREFIX,
     ghGet: ghGet, ghPut: ghPut, ghList: ghList, ghDelete: ghDelete,
     mergeState: mergeState, mergeList: mergeList, mergeClaims: mergeClaims,
-    mergeFinal: mergeFinal,
+    mergeFinal: mergeFinal, finalAlive: finalAlive, liveFinal: liveFinal,
     alive: alive, fingerprint: fingerprint,
     _b64: { bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, b64url: b64url, unb64url: unb64url },
   };
@@ -2929,7 +2973,7 @@ function emptyState(){
      tombstones of deleted records. Both only matter for shared sheets, but
      they are always kept so a local sheet can become a shared one later. */
   return { title:'', currency:'\u20ac', people:[], expenses:[], tm:0, cm:0,
-           gone:{p:{},e:{}}, claims:{}, final:{} };
+           gone:{p:{},e:{}}, claims:{}, final:{}, rev:0 };
 }
 
 function load(){
@@ -2994,7 +3038,7 @@ function stampChanges(){
     clearMarks();
     if($('finalBar')) renderFinal();
     if(revokeAllFinal(now)){
-      lastFinalSeen = JSON.stringify(state.final);
+      lastFinalSeen = JSON.stringify(stFinal());
       applyFinalLock();
       if($('finalBar')) renderFinal();
       toast(t('final.revoked.mine'));
@@ -3009,7 +3053,9 @@ function stampChanges(){
 var saveTargetChosen = false;
 function adopt(st){
   state = st; lastSnap = snapshot(state); saveTargetChosen = false;
-  lastFinalSeen = JSON.stringify(state.final || {});
+  /* the live view, always: a dead confirmation must not read as one that was
+     just taken back the next time these are compared */
+  lastFinalSeen = JSON.stringify(stFinal());
   return state;
 }
 
@@ -3049,8 +3095,12 @@ function normalize(st){
   st.final = {};
   for(var fk in fi){
     var fv = fi[fk];
-    if(fv && typeof fv === 'object') st.final[fk] = { a: fv.a ? 1 : 0, m: Number(fv.m) || 0 };
+    if(fv && typeof fv === 'object')
+      st.final[fk] = { a: fv.a ? 1 : 0, m: Number(fv.m) || 0, r: Number(fv.r) || 0 };
   }
+  /* the round the sheet is in: bumped by every change that cancels a
+     confirmation, and never goes backwards */
+  st.rev = Number(st.rev) || 0;
   st.people = (st.people||[]).map(function(p){
     var pn = {id:p.id||uid(), name:String(p.name||'').toUpperCase(), m:Number(p.m)||0};
     if(p.o) pn.o = String(p.o);
@@ -3166,7 +3216,10 @@ function finalRoster(){
   add(deviceId);
   return out;
 }
-function iAmFinal(){ var f = (state && state.final) || {}; return !!(f[deviceId] && f[deviceId].a); }
+function iAmFinal(){
+  var f = (state && state.final) || {};
+  return Sync.finalAlive(f[deviceId], (state && state.rev) || 0);
+}
 
 /* Which people have said "final" — by name, because "somebody" is no use when
    you are trying to work out who still has to look. A device without a claimed
@@ -3208,7 +3261,11 @@ function finalSomeoneText(){
    decides anything. */
 /* The arithmetic lives with the merge code, where it can be tested without a
    browser and where every device is guaranteed to use the same version of it. */
-function stFinal(){ return (state && state.final) || {}; }
+/* The confirmations as they COUNT: one that was given before the last change
+   is dead, whatever the two clocks involved make of the timestamps. */
+function stFinal(){
+  return Sync.liveFinal((state && state.final) || {}, (state && state.rev) || 0);
+}
 function autoFinalLeft(now){ return Sync.autoFinalLeft(stFinal(), deviceId, now || Date.now()); }
 
 function finalTally(){ return Sync.finalTally(finalRoster(), stFinal(), Date.now()); }
@@ -3220,8 +3277,9 @@ function allFinal(){
 function inputsLocked(){ return iAmFinal() || allFinal(); }
 
 function setFinal(on){
-  state.final[deviceId] = { a: on ? 1 : 0, m: Date.now() };
-  lastFinalSeen = JSON.stringify(state.final);
+  /* stamped with the round it was given in, so a later change can kill it */
+  state.final[deviceId] = { a: on ? 1 : 0, m: Date.now(), r: Number(state.rev) || 0 };
+  lastFinalSeen = JSON.stringify(stFinal());
   applyFinalLock();
   renderAll();
   save();
@@ -3231,10 +3289,17 @@ function setFinal(on){
 /* A change after somebody confirmed cancels every confirmation. Called from
    the one place that knows a change really happened. */
 function revokeAllFinal(now){
+  var rev = Number(state.rev) || 0;
   var any = false;
-  for(var d in state.final) if(state.final[d] && state.final[d].a) any = true;
+  for(var d in state.final) if(Sync.finalAlive(state.final[d], rev)) any = true;
   if(!any) return false;
-  for(var d2 in state.final) state.final[d2] = { a: 0, m: now };
+  /* the round number is what actually cancels them; the flags follow so that
+     an older build reading this sheet sees the same thing */
+  state.rev = rev + 1;
+  /* the flags follow so an older build reading this sheet sees the same thing,
+     but they are stamped with the round they CANCEL, not the new one — a
+     confirmation given in the new round has to be able to out-rank them */
+  for(var d2 in state.final) state.final[d2] = { a: 0, m: now, r: rev };
   return true;
 }
 
@@ -3387,7 +3452,7 @@ function revokedText(){
 function noticeFinalChange(beforeJson, prevSnap){
   var before = {};
   try{ before = JSON.parse(beforeJson == null ? lastFinalSeen : beforeJson); }catch(e){}
-  var nowSeen = state.final;
+  var nowSeen = stFinal();
   var nowSnap = snapshot(state);
   var diff = diffSnaps(prevSnap, nowSnap);
   var dataMoved = false;
@@ -4094,7 +4159,7 @@ function fillCardChanges(box){
     /* the numbers are buttons, so the sentence is built around the placeholder
        rather than substituted into it — and the placeholder is not always at
        the end of the sentence in every language */
-    var parts = t('card.changed').split('{0}');
+    var parts = t(marks.length === 1 ? 'card.changed.one' : 'card.changed').split('{0}');
     if(parts[0]) box.appendChild(document.createTextNode(parts[0]));
     marks.forEach(function(m, i){
       if(i) box.appendChild(document.createTextNode(','));
@@ -4122,13 +4187,28 @@ function fillCardChanges(box){
   }
 }
 
+/* The rail is a phone layout. Turn the phone sideways and the wide layout takes
+   over — the whole table, as on a desktop. The rail's position has to go with
+   it: an inline transform survives a media query and pushed the table clean off
+   the screen, and rows left inert could not be typed into. */
+var PHONE_MQ = window.matchMedia ? window.matchMedia('(max-width:700px)') : null;
+function phoneLayout(){ return PHONE_MQ ? PHONE_MQ.matches : true; }
+
 function paintCards(){
   var body = $('tbody');
-  if(!cardMode){ body.style.transform = ''; return; }
-  var slides = cardSlides();
+  var slides = cardSlides(), q;
+  if(!cardMode || !phoneLayout()){
+    body.style.removeProperty('--rail');
+    body.style.transform = '';
+    for(q=0;q<slides.length;q++){
+      slides[q].removeAttribute('inert');
+      if(!cardMode) slides[q].classList.remove('here');
+    }
+    return;
+  }
   /* the card in focus is centred, so a sliver of the one before shows on the
      left and a sliver of the one after on the right — both tucked under it */
-  body.style.transform = 'translateX(calc(5% - ' + (cardAt * 84) + '%))';
+  body.style.setProperty('--rail', 'calc(5% - ' + (cardAt * 84) + '%)');
   for(var i=0;i<slides.length;i++) slides[i].classList.toggle('here', i === cardAt);
   /* the card on screen is the one to come back to, whenever that is */
   noteCardSeen();
@@ -4642,7 +4722,10 @@ function openExactRow(afterTr, ex){
 /* Refresh the strip that is currently open, if any. Called when the expense
    amount changes underneath it. */
 function refreshOpenExact(){
-  var open = document.querySelector('#tbody tr.exactrow .exact');
+  /* the strip is a row of its own in the list and a cell of the card in the
+     rail — looking for only one of the two left the note standing while the
+     numbers underneath it moved */
+  var open = document.querySelector('#tbody tr.exactrow .exact, #tbody td.exactcell .exact');
   if(open && open._ex) refreshExactFoot(open, open._ex);
 }
 
@@ -5398,7 +5481,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '5.7.0';
+var APP_VERSION = '5.8.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -5749,7 +5832,8 @@ function forgetShared(path){
    and nothing else. */
 function toWire(st){
   var w = { title: st.title, tm: st.tm||0, currency: st.currency, cm: st.cm||0,
-            people: [], expenses: [], claims: st.claims || {}, final: st.final || {} };
+            people: [], expenses: [], claims: st.claims || {}, final: st.final || {},
+            rev: Number(st.rev) || 0 };
   st.people.forEach(function(p){
     var r = {id:p.id, name:p.name, m:p.m||0};
     if(p.o) r.o = p.o;
@@ -5772,6 +5856,7 @@ function fromWire(w){
   st.currency = w.currency || st.currency; st.cm = Number(w.cm)||0;
   st.claims = w.claims || {};
   st.final = w.final || {};
+  st.rev = Number(w.rev) || 0;
   (w.people||[]).forEach(function(p){
     if(p.x) st.gone.p[p.id] = { m: Number(p.m)||0, d: p.o || null }; else st.people.push(p);
   });
@@ -6032,9 +6117,10 @@ function stopSync(){
   syncCfg = null; syncKeyObj = null; syncSha = null; syncPw = null; syncSalt = null;
   /* a confirmation only means anything among several devices — keeping it after
      leaving would lock this one with nobody left to unlock it */
-  if(state.final && state.final[deviceId]) state.final[deviceId] = { a: 0, m: Date.now() };
+  if(state.final && state.final[deviceId])
+    state.final[deviceId] = { a: 0, m: Date.now(), r: Number(state.rev) || 0 };
   finalNotice = null;
-  lastFinalSeen = JSON.stringify(state.final || {});
+  lastFinalSeen = JSON.stringify(stFinal());
   applyFinalLock();
   lsDel(SYNC_KEY);
   syncMenuItems();
@@ -6591,6 +6677,14 @@ function setLang(next, announce){
     : (isStandalone ? 'mode.installed' : 'mode.browser'));
   renderAll();
   if(announce) toast(lang === 'de' ? 'Sprache: Deutsch' : 'Language: English', true);
+}
+
+/* turning the phone changes which layout is in force, and the rail has to be
+   put away or set up again accordingly */
+if(PHONE_MQ && PHONE_MQ.addEventListener){
+  PHONE_MQ.addEventListener('change', function(){
+    if(state){ renderTable(); renderResults(); }
+  });
 }
 
 lang = pickLang();
