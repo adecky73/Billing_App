@@ -370,6 +370,10 @@ td.desc input,td.amt input{
   border-radius:var(--r-xs);padding:9px 10px;font-size:14px;
 }
 td.amt input{text-align:right;font-variant-numeric:tabular-nums}
+/* the desktop table has a column heading for this, so the box and its currency
+   step out of the way entirely */
+.amtbox{display:contents}
+td.amt .cur{display:none}
 td.desc input:hover,td.amt input:hover{background:var(--surface-2)}
 td.desc input:focus,td.amt input:focus{
   outline:none;border-color:var(--focus);background:var(--surface);
@@ -1034,7 +1038,17 @@ td.exactcell{display:none}
   td.payer{order:1;flex:1 1 50%;min-width:0}
   td.payer select{font-size:15px;padding:10px 6px;background:var(--surface);border-radius:var(--r-s)}
   td.amt{order:2;flex:0 1 40%;min-width:0;padding-right:44px}
-  td.amt input{background:var(--surface);border-radius:var(--r-s);font-size:16px;font-weight:500;padding:10px}
+  /* the field carries its own label on a phone: the currency, inside the box */
+  td.amt .amtbox{
+    display:flex;align-items:center;gap:1px;min-width:0;
+    background:var(--surface);border-radius:var(--r-s);padding-right:10px;
+  }
+  td.amt input{background:transparent;border-radius:var(--r-s);font-size:16px;
+    font-weight:500;padding:10px 2px 10px 10px;min-width:0}
+  td.amt .cur{
+    display:inline;font-size:15px;font-weight:500;color:var(--on-surface-var);
+    flex:0 0 auto;
+  }
   td.desc{order:3;flex:1 1 100%}
   td.desc input{background:var(--surface);border-radius:var(--r-s);font-size:15px;padding:10px}
   td.share{
@@ -1352,7 +1366,7 @@ th.share .pname.isme,td.share .mlabel.isme{
 
   <div class="card gated" id="peopleCard" data-edit data-meok>
     <div class="card-h">
-      <h2 data-i18n="card.people">People</h2>
+      <h2 id="peopleHead">People</h2>
       <span class="hint" id="peopleHint"></span>
       <span class="spacer"></span>
       <button class="btn sm foldbtn" id="peopleFold">…</button>
@@ -3786,7 +3800,7 @@ function toast(msg, brief){
   box.classList.toggle('brief', !!brief);
   box.classList.add('show');
   clearTimeout(toastTimer);
-  if(brief) toastTimer = setTimeout(hideToast, 4000);
+  if(brief) toastTimer = setTimeout(hideToast, 3000);
 }
 function hideToast(){ $('toast').classList.remove('show'); }
 function personName(id){
@@ -3901,8 +3915,12 @@ function renderPeople(){
   }
   if(keep.parentNode !== box) box.appendChild(keep);
   keep.querySelector('input').placeholder = t('people.add');
-  $('peopleHint').textContent = state.people.length ? nPeople(state.people.length)
-                                                    : t('people.hint.empty');
+  /* "People — 3 people" said it twice. With names on the list the count IS the
+     heading; with none there is nothing to count, so the plain word stands and
+     the hint says what to do. */
+  var many = state.people.length > 0;
+  $('peopleHead').textContent = many ? nPeople(state.people.length) : t('card.people');
+  $('peopleHint').textContent = many ? '' : t('people.hint.empty');
   renderPeopleFold();
 }
 
@@ -4417,7 +4435,14 @@ function renderTable(){
     inA.addEventListener('blur', function(){ inA.value = ex.cents ? formatCents(ex.cents) : ''; });
     inA.addEventListener('focus', function(){ inA.select(); });
     if(chg('e', ex.id, 'amt')) tdA.classList.add('chg');
-    tdA.appendChild(inA); tr.appendChild(tdA);
+    /* On a phone the field stands alone with no column heading over it, so it
+       says what it is: the currency sits inside it, after the figure. On a
+       desktop the column is already labelled and the box is display:contents,
+       which leaves the cell exactly as it was. */
+    var amtBox = el('span','amtbox');
+    amtBox.appendChild(inA);
+    amtBox.appendChild(el('span','cur', state.currency));
+    tdA.appendChild(amtBox); tr.appendChild(tdA);
 
     // shares
     state.people.forEach(function(p){
@@ -5481,7 +5506,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '5.8.0';
+var APP_VERSION = '5.8.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
