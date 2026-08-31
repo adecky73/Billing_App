@@ -307,13 +307,37 @@ header.top.stacked #tripTitle{flex:1 1 auto}
 .card-b{padding:8px 20px 16px}
 
 /* ---------- people ---------- */
-.people{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+/* One person, one line. The names used to wrap like tags, which was tidy until
+   every person carried two addresses as well — then a row is the only shape
+   that lets the eye run down the column and see who can be paid. */
+.people{display:flex;flex-direction:column;gap:6px;align-items:stretch}
 .chip{
-  display:inline-flex;align-items:center;gap:4px;
+  display:flex;align-items:center;gap:6px;
   border:1px solid var(--outline-var);background:transparent;
-  border-radius:var(--r-s);min-height:40px;padding:0 4px 0 14px;
+  border-radius:var(--r-s);min-height:44px;padding:0 6px 0 14px;
   transition:background .15s;
 }
+/* the name takes what is left, the addresses and the delete button do not move */
+.chip > input{flex:1 1 auto;min-width:60px}
+.payset{display:flex;align-items:center;gap:6px;margin-left:auto;flex:0 0 auto}
+.paybtn{
+  display:inline-flex;align-items:center;gap:5px;position:relative;
+  border:1px solid var(--outline-var);background:var(--surface);
+  color:var(--on-surface-var);border-radius:var(--r-full);
+  padding:0 12px;min-height:32px;font:inherit;font-size:12.5px;font-weight:500;
+  letter-spacing:.02em;cursor:pointer;white-space:nowrap;
+  transition:background .15s, opacity .15s;
+}
+.paybtn:hover{background:var(--surface-2)}
+.chip .x[hidden]{display:none}
+.mebtn:disabled,.pickme:disabled{opacity:.5;cursor:default}
+.paybtn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+/* Filled in: the button steps back and wears a tick. Half transparent says
+   "nothing to do here"; the tick says why. */
+.paybtn.filled{opacity:.55;border-color:var(--success);background:transparent}
+.paybtn.filled:hover{opacity:.85;background:var(--surface-2)}
+.paytick{width:15px;height:15px;color:var(--success);flex:0 0 auto;display:block}
+@media (prefers-color-scheme: dark){.paytick{color:var(--success)}}
 .chip:hover{background:var(--surface-2)}
 /* the width is measured in script; the cap only stops one very long name from
    taking a whole line on a phone */
@@ -487,6 +511,26 @@ td.ph{color:var(--on-surface-var);text-align:left;padding:24px 4px;border-bottom
 .tr .from,.tr .to{font-weight:500}
 .tr .arrow{color:var(--focus);font-weight:500}
 .tr .amt{font-variant-numeric:tabular-nums;font-weight:500;color:var(--error)}
+/* the two ways to pay, at the end of a transfer I owe */
+.tpayset{display:flex;align-items:center;gap:6px;margin-left:auto;flex:0 0 auto}
+.tpay{
+  display:inline-flex;align-items:center;gap:5px;
+  border:1px solid var(--card-f-line);background:var(--card-f);
+  color:var(--on-surface);border-radius:var(--r-full);
+  padding:0 12px;min-height:32px;font:inherit;font-size:12.5px;font-weight:500;
+  cursor:pointer;white-space:nowrap;transition:background .15s, opacity .15s;
+}
+.tpay:hover{border-color:var(--primary)}
+.tpay:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+/* handed over: this one steps back with a tick, the other is crossed out —
+   both still respond, because a transfer can always be repeated */
+.tpay.done{opacity:.55;border-color:var(--success);background:transparent}
+.tpay.done:hover{opacity:.85}
+.tpay.void{
+  opacity:.45;background:transparent;border-color:var(--outline-var);
+  text-decoration:line-through;
+}
+.tpay.void:hover{opacity:.7}
 .empty-note{color:var(--on-surface-var);padding:8px 0}
 .note{
   background:var(--warn-c);color:var(--on-warn-c);border-radius:var(--r-m);
@@ -891,6 +935,18 @@ td.exactcell{display:none}
   .chevrun.left{flex-direction:row-reverse}
 
   /* ---------- one line per expense, one card open ---------- */
+  /* On a phone a name and two addresses do not fit side by side, and the name
+     is what has to stay readable — so the addresses drop to a line of their
+     own underneath it, still inside the person's row. */
+  .chip{flex-wrap:wrap;padding:6px 6px 6px 8px;row-gap:2px}
+  /* the hand joins the row instead of floating over it: with two lines there
+     is no single middle for it to sit in */
+  .chip.haspick{padding-left:8px}
+  .pickme{position:static;transform:none;order:0;flex:0 0 auto;margin-right:2px}
+  .chip > input{flex:1 1 auto;order:1;min-width:0}
+  .chip .mebtn{order:0}
+  .chip .x{order:2}
+  .payset{flex:1 1 100%;order:3;margin-left:0;justify-content:flex-start}
   .foldall{display:inline-flex;align-items:center}
   .foldall[hidden]{display:none}
   /* A folded card keeps its heading, its summary line and any warning — a
@@ -1607,6 +1663,40 @@ en: {
   'people.addbtn': 'Add',
   'people.exists': '{0} is already on the list.',
   'people.add': '+ add person',
+  'pay.pp': 'PayPal',
+  'pay.bank': 'IBAN',
+  'pay.pp.set': 'PayPal for {0}: {1}',
+  'pay.bank.set': 'IBAN for {0}: {1}',
+  'pay.pp.none': 'Enter a PayPal name for {0}',
+  'pay.bank.none': 'Enter an IBAN for {0}',
+  'pay.pp.head': 'PayPal name of {0}',
+  'pay.bank.head': 'Account of {0}',
+  'pay.pp.lbl': 'PayPal user name or paypal.me address',
+  'pay.pp.hint': 'Whatever comes after paypal.me/ \u2014 the whole address may be pasted.',
+  'pay.bank.lbl': 'IBAN',
+  'pay.bank.hint': 'Spaces are ignored. The check digits are verified before it is saved.',
+  'pay.bad.iban': 'That is not a valid IBAN \u2014 check the digits.',
+  'pay.bad.pp': 'A PayPal name has letters and digits, nothing else.',
+  'pay.save': 'Save',
+  'pay.clear': 'Remove',
+  'pay.locked': '\u201c{0}\u201d is another device\u2019s \u201cme\u201d. Only that device enters where the money goes.',
+  'pay.saved': 'Saved for {0}.',
+  'pay.removed': 'Removed for {0}.',
+  'set.pay.pp': 'Pay {0} with PayPal',
+  'set.pay.bank': 'Bank details for {0}',
+  'set.pay.done.pp': 'Handed to PayPal. Tap again if it did not go through.',
+  'set.pay.done.bank': 'Details copied. Tap again if it did not go through.',
+  'set.pay.again': 'This transfer looks as though it has already happened ({0}). Send money anyway?',
+  'set.pay.reopen': 'Both ways are open again.',
+  'set.pay.via.pp': 'via PayPal',
+  'set.pay.via.bank': 'by bank transfer',
+  'set.bank.head': 'Transfer to {0}',
+  'set.bank.name': 'Recipient',
+  'set.bank.amount': 'Amount',
+  'set.bank.ref': 'Reference',
+  'set.bank.copy': 'Copy details',
+  'set.bank.copied': 'Details copied.',
+  'exact.auto': 'The rest is on {0} automatically \u2014 clear that field to stop it.',
   'people.add.aria': 'Add a person',
   'people.name.aria': 'Name',
   'people.remove': 'Remove {0}',
@@ -1952,6 +2042,40 @@ de: {
   'people.addbtn': 'Hinzufügen',
   'people.exists': '{0} steht schon auf der Liste.',
   'people.add': '+ Person hinzufügen',
+  'pay.pp': 'PayPal',
+  'pay.bank': 'IBAN',
+  'pay.pp.set': 'PayPal von {0}: {1}',
+  'pay.bank.set': 'IBAN von {0}: {1}',
+  'pay.pp.none': 'PayPal-Namen für {0} eintragen',
+  'pay.bank.none': 'IBAN für {0} eintragen',
+  'pay.pp.head': 'PayPal-Name von {0}',
+  'pay.bank.head': 'Konto von {0}',
+  'pay.pp.lbl': 'PayPal-Benutzername oder paypal.me-Adresse',
+  'pay.pp.hint': 'Alles, was hinter paypal.me/ steht — die ganze Adresse darf man einfügen.',
+  'pay.bank.lbl': 'IBAN',
+  'pay.bank.hint': 'Leerzeichen sind egal. Die Prüfziffern werden vor dem Speichern geprüft.',
+  'pay.bad.iban': 'Das ist keine gültige IBAN — bitte die Ziffern prüfen.',
+  'pay.bad.pp': 'Ein PayPal-Name besteht aus Buchstaben und Ziffern, sonst nichts.',
+  'pay.save': 'Speichern',
+  'pay.clear': 'Entfernen',
+  'pay.locked': '„{0}“ ist das „ich“ eines anderen Geräts. Wohin das Geld geht, trägt nur dieses Gerät ein.',
+  'pay.saved': 'Für {0} gespeichert.',
+  'pay.removed': 'Für {0} entfernt.',
+  'set.pay.pp': '{0} mit PayPal bezahlen',
+  'set.pay.bank': 'Bankdaten von {0}',
+  'set.pay.done.pp': 'An PayPal übergeben. Nochmal antippen, falls es nicht geklappt hat.',
+  'set.pay.done.bank': 'Daten kopiert. Nochmal antippen, falls es nicht geklappt hat.',
+  'set.pay.again': 'Dieser Transfer hat anscheinend schon stattgefunden ({0}). Trotzdem Geld senden?',
+  'set.pay.reopen': 'Beide Wege sind wieder frei.',
+  'set.pay.via.pp': 'über PayPal',
+  'set.pay.via.bank': 'per Banküberweisung',
+  'set.bank.head': 'Überweisung an {0}',
+  'set.bank.name': 'Empfänger',
+  'set.bank.amount': 'Betrag',
+  'set.bank.ref': 'Verwendungszweck',
+  'set.bank.copy': 'Daten kopieren',
+  'set.bank.copied': 'Daten kopiert.',
+  'exact.auto': 'Der Rest steht automatisch bei {0} — dieses Feld leeren beendet das.',
   'people.add.aria': 'Person hinzufügen',
   'people.name.aria': 'Name',
   'people.remove': '{0} entfernen',
@@ -2877,6 +3001,13 @@ function settle(rows) {
       people: mergeList(local.people, remote.people),
       expenses: mergeList(local.expenses, remote.expenses),
       claims: mergeClaims(local.claims, remote.claims),
+      /* Where to send somebody money, and which transfers have been handed over
+         to a bank or to PayPal. Both are notes ABOUT the settlement rather than
+         part of it: they are merged like claims, entry by entry and newest
+         wins, but they are deliberately left out of the change comparison, so
+         typing an IBAN never cancels anybody's confirmation. */
+      pay: mergeClaims(local.pay, remote.pay),
+      sent: mergeClaims(local.sent, remote.sent),
       final: mergeFinal(local.final, remote.final),
       /* only ever forwards, on every device */
       rev: Math.max(Number(local.rev) || 0, Number(remote.rev) || 0),
@@ -2898,6 +3029,14 @@ function settle(rows) {
       }),
       Object.keys(st.claims || {}).sort().map(function (k) {
         return [k, st.claims[k] && st.claims[k].d, st.claims[k] && st.claims[k].m];
+      }),
+      Object.keys(st.pay || {}).sort().map(function (k) {
+        var v = st.pay[k] || {};
+        return [k, v.pp, v.iban, v.m];
+      }),
+      Object.keys(st.sent || {}).sort().map(function (k) {
+        var v = st.sent[k] || {};
+        return [k, v.via, v.m];
       }),
       Object.keys(st.final || {}).sort().map(function (k) {
         return [k, st.final[k] && st.final[k].a ? 1 : 0, st.final[k] && st.final[k].m,
@@ -2987,7 +3126,7 @@ function emptyState(){
      tombstones of deleted records. Both only matter for shared sheets, but
      they are always kept so a local sheet can become a shared one later. */
   return { title:'', currency:'\u20ac', people:[], expenses:[], tm:0, cm:0,
-           gone:{p:{},e:{}}, claims:{}, final:{}, rev:0 };
+           gone:{p:{},e:{}}, claims:{}, final:{}, rev:0, pay:{}, sent:{} };
 }
 
 function load(){
@@ -3115,6 +3254,25 @@ function normalize(st){
   /* the round the sheet is in: bumped by every change that cancels a
      confirmation, and never goes backwards */
   st.rev = Number(st.rev) || 0;
+  /* Where to send somebody money. Kept per person id, beside the people rather
+     than inside them, so that entering an IBAN is not an edit to the sheet: it
+     must never cancel a confirmation or raise a change mark. */
+  var py = st.pay && typeof st.pay === 'object' ? st.pay : {};
+  st.pay = {};
+  for(var pk in py){
+    var pv = py[pk];
+    if(pv && typeof pv === 'object') st.pay[pk] = {
+      pp: String(pv.pp || ''), iban: String(pv.iban || ''), m: Number(pv.m) || 0 };
+  }
+  /* Which transfers have been handed to a bank or to PayPal, keyed "from>to".
+     Same reasoning: a note about the settlement, not part of it. */
+  var sn = st.sent && typeof st.sent === 'object' ? st.sent : {};
+  st.sent = {};
+  for(var sk in sn){
+    var sv = sn[sk];
+    if(sv && typeof sv === 'object') st.sent[sk] = {
+      via: String(sv.via || ''), m: Number(sv.m) || 0, d: sv.d ? String(sv.d) : null };
+  }
   st.people = (st.people||[]).map(function(p){
     var pn = {id:p.id||uid(), name:String(p.name||'').toUpperCase(), m:Number(p.m)||0};
     if(p.o) pn.o = String(p.o);
@@ -3808,6 +3966,222 @@ function personName(id){
   return '';
 }
 
+
+/* ==================== where the money goes ====================
+   Two addresses per person, kept beside the sheet rather than inside it (see
+   normalize): a PayPal name and an IBAN. Anybody may enter them — somebody
+   without the app has to be payable too — except where another device stands
+   behind that person as "me"; then the address is theirs alone, exactly as
+   their name is. Before any money moves the payer sees the address, and PayPal
+   or the bank shows the account holder again. */
+function payOf(pid){
+  var r = (state.pay && state.pay[pid]) || {};
+  return { pp: r.pp || '', iban: r.iban || '' };
+}
+function setPay(pid, kind, value){
+  if(!state.pay) state.pay = {};
+  var r = state.pay[pid] || { pp:'', iban:'', m:0 };
+  r[kind] = value;
+  r.m = Date.now();
+  state.pay[pid] = r;
+  /* deliberately not stampChanges(): an address is not an edit to the sheet,
+     and must never cancel somebody's confirmation */
+  if(!memoryOnly){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+  syncSoon();
+}
+/* An IBAN is checked before it is stored: it is the one field in the app where
+   a typo sends real money somewhere else. Move the first four characters to the
+   end, turn letters into numbers, and the whole thing must divide by 97. */
+function cleanIban(v){ return String(v || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+function ibanOk(v){
+  var iv = cleanIban(v);
+  if(!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{10,30}$/.test(iv)) return false;
+  var re = iv.slice(4) + iv.slice(0, 4), num = '', i, c;
+  for(i=0;i<re.length;i++){
+    c = re.charCodeAt(i);
+    num += (c >= 65 && c <= 90) ? String(c - 55) : re.charAt(i);
+  }
+  /* 97 in chunks, because the number is far past what a double can hold */
+  var rest = 0;
+  for(i=0;i<num.length;i++) rest = (rest * 10 + (num.charCodeAt(i) - 48)) % 97;
+  return rest === 1;
+}
+function ibanPretty(v){ return cleanIban(v).replace(/(.{4})/g, '$1 ').trim(); }
+/* "paypal.me/anna", "https://www.paypal.me/anna/12EUR" and "anna" all mean anna */
+function cleanPp(v){
+  var pv = String(v || '').trim();
+  pv = pv.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
+  pv = pv.replace(/^paypal\.me\//i, '');
+  pv = pv.split('/')[0].split('?')[0];
+  return pv.replace(/^@/, '').trim();
+}
+function ppOk(v){ return /^[A-Za-z0-9]{3,20}$/.test(cleanPp(v)); }
+
+/* PayPal wants a currency CODE; the sheet only knows a symbol. Where the two
+   cannot be matched up there is no PayPal button — a guess here would send the
+   right number in the wrong currency. */
+var CUR_CODE = { '\u20ac':'EUR', '$':'USD', '\u00a3':'GBP', '\u00a5':'JPY',
+                 'CHF':'CHF', 'SEK':'SEK', 'NOK':'NOK', 'DKK':'DKK',
+                 'PLN':'PLN', 'CZK':'CZK' };
+function currencyCode(){
+  var c = String(state.currency || '').trim();
+  if(/^[A-Z]{3}$/.test(c)) return c;
+  return CUR_CODE[c] || '';
+}
+function ppLink(handle, cents){
+  var code = currencyCode();
+  return 'https://paypal.me/' + encodeURIComponent(cleanPp(handle)) + '/' +
+         (cents / 100).toFixed(2) + (code || '');
+}
+/* Out of our window and into PayPal's own. A login inside this app's WebView
+   would be indistinguishable from the trick it looks like, so the address is
+   handed to the system and never loaded here.
+   A plain link, not window.open: an anchor with rel=noopener is not treated as
+   a pop-up by any browser, and the Android shell hands an external address to
+   the system browser or to the app that claims it. window.open('…','noopener')
+   always returns null, which made every successful jump look like a failure. */
+function openExternal(url){
+  var a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/* the dialog behind the two buttons on a person's row */
+function payDialog(p, kind){
+  if(claimedByOther(p.id)){ toast(t('pay.locked', p.name)); return; }
+  var isPp = kind === 'pp';
+  var cur = payOf(p.id)[kind];
+  dlgOpen(t(isPp ? 'pay.pp.head' : 'pay.bank.head', p.name), function(body){
+    var inp = field(body, t(isPp ? 'pay.pp.lbl' : 'pay.bank.lbl'), {
+      value: isPp ? cur : ibanPretty(cur), mono: !isPp });
+    inp.id = 'payField';
+    note(body, t(isPp ? 'pay.pp.hint' : 'pay.bank.hint'));
+  }, [
+    { label: t('pay.save'), act: 'go', primary: true, onClick: function(){
+        var v = $('payField').value.trim();
+        if(!v){ setPay(p.id, kind, ''); dlgClose(); renderPeople(); renderResults();
+                toast(t('pay.removed', p.name), true); return; }
+        if(isPp && !ppOk(v)){ toast(t('pay.bad.pp')); return; }
+        if(!isPp && !ibanOk(v)){ toast(t('pay.bad.iban')); return; }
+        setPay(p.id, kind, isPp ? cleanPp(v) : cleanIban(v));
+        dlgClose(); renderPeople(); renderResults();
+        toast(t('pay.saved', p.name), true);
+      } },
+    { label: t('pay.clear'), act: 'clear', onClick: function(){
+        setPay(p.id, kind, ''); dlgClose(); renderPeople(); renderResults();
+        toast(t('pay.removed', p.name), true);
+      } },
+    { label: t('btn.cancel'), act: 'cancel', onClick: dlgClose },
+  ]);
+}
+/* the two buttons themselves: a filled one steps back and wears a tick */
+function payButton(p, kind){
+  var isPp = kind === 'pp';
+  var val = payOf(p.id)[kind];
+  var b = el('button', 'paybtn ' + kind + (val ? ' filled' : ''));
+  b.type = 'button';
+  b.appendChild(el('span','paylbl', t(isPp ? 'pay.pp' : 'pay.bank')));
+  if(val) b.appendChild(tickSVG());
+  b.title = val ? t(isPp ? 'pay.pp.set' : 'pay.bank.set', p.name,
+                    isPp ? val : ibanPretty(val))
+                : t(isPp ? 'pay.pp.none' : 'pay.bank.none', p.name);
+  b.setAttribute('aria-label', b.title);
+  b.addEventListener('click', function(){ payDialog(p, kind); });
+  return b;
+}
+function tickSVG(){
+  var s = svgNode('0 0 24 24','paytick');
+  svgPath(s, 'M5 13l4.5 4.5L19 7', '3');
+  return s;
+}
+
+/* ---------- a transfer that has been handed over ----------
+   Nothing tells the app whether money actually moved: no bank and no PayPal
+   reports back. What it can record is that the details were handed over, and
+   by whom — enough to stop the same transfer being paid twice by accident,
+   and honest about being no more than that. */
+function sentKey(fromId, toId){ return fromId + '>' + toId; }
+function sentVia(fromId, toId){
+  var r = state.sent && state.sent[sentKey(fromId, toId)];
+  return (r && r.via) || '';
+}
+function markSent(fromId, toId, via){
+  if(!state.sent) state.sent = {};
+  state.sent[sentKey(fromId, toId)] = { via: via || '', m: Date.now(), d: deviceId };
+  /* like an address: a note about the settlement, never an edit to it */
+  if(!memoryOnly){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }catch(e){} }
+  syncSoon();
+}
+function copyOut(text, okMsg){
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(function(){ toast(okMsg, true); },
+      function(){ prompt(t('copy.prompt'), text); });
+  }else{ prompt(t('copy.prompt'), text); }
+}
+/* Everything a banking app asks for, in one place, ready to copy. No QR code
+   and no link: a bank transfer is started in the bank's own app, and this is
+   the part we can honestly do for it. */
+function bankDialog(x){
+  var to = payOf(x.toId), name = personName(x.toId);
+  var ref = (state.title || '').trim();
+  dlgOpen(t('set.bank.head', name), function(body){
+    field(body, t('set.bank.name'), { value: name, ro: true });
+    field(body, t('pay.bank.lbl'), { value: ibanPretty(to.iban), ro: true, mono: true });
+    field(body, t('set.bank.amount'), { value: money(x.cents), ro: true, mono: true });
+    if(ref) field(body, t('set.bank.ref'), { value: ref, ro: true });
+  }, [
+    { label: t('set.bank.copy'), act: 'go', primary: true, onClick: function(){
+        copyOut([name, ibanPretty(to.iban), money(x.cents)].concat(ref ? [ref] : []).join('\n'),
+                t('set.bank.copied'));
+        markSent(x.fromId, x.toId, 'bank');
+        dlgClose(); renderResults();
+      } },
+    { label: t('btn.cancel'), act: 'cancel', onClick: dlgClose },
+  ]);
+}
+function payAction(x, kind){
+  var via = sentVia(x.fromId, x.toId);
+  if(via){
+    /* Pressing a settled transfer again is either a correction or a mistake.
+       Ask, and on "yes" only open both ways again — sending is then a second,
+       deliberate press. */
+    if(!confirm(t('set.pay.again', t(via === 'pp' ? 'set.pay.via.pp' : 'set.pay.via.bank')))) return;
+    markSent(x.fromId, x.toId, '');
+    renderResults();
+    toast(t('set.pay.reopen'), true);
+    return;
+  }
+  if(kind === 'pp'){
+    openExternal(ppLink(payOf(x.toId).pp, x.cents));
+    markSent(x.fromId, x.toId, 'pp');
+    renderResults();
+    toast(t('set.pay.done.pp'), true);
+    return;
+  }
+  bankDialog(x);
+}
+/* the two names for the same thing: 'iban' is the field on the person, 'bank'
+   is the way the money went */
+function channelOf(kind){ return kind === 'pp' ? 'pp' : 'bank'; }
+function transferPayButton(x, kind, via){
+  var isPp = kind === 'pp';
+  var chan = channelOf(kind);
+  var b = el('button', 'tpay ' + kind);
+  b.type = 'button';
+  b.appendChild(el('span','paylbl', t(isPp ? 'pay.pp' : 'pay.bank')));
+  if(via === chan){ b.classList.add('done'); b.appendChild(tickSVG()); }
+  else if(via){ b.classList.add('void'); }
+  b.title = via === chan ? t(isPp ? 'set.pay.done.pp' : 'set.pay.done.bank')
+                         : t(isPp ? 'set.pay.pp' : 'set.pay.bank', personName(x.toId));
+  b.setAttribute('aria-label', b.title);
+  b.addEventListener('click', function(){ payAction(x, kind); });
+  return b;
+}
+
 /* ============================ rendering ============================ */
 /* what is typed into the add-person field but not committed yet */
 var pendingPerson = '';
@@ -3831,6 +4205,7 @@ function renderPeople(){
       /* The claim is itself the control: pressing it hands the name back. The
          real name stays in the tooltip, so it is never actually lost. */
       var meBtn = el('button','mebtn', t('me.nom'));
+      meBtn.disabled = inputsLocked();
       meBtn.title = t('me.release', p.name);
       meBtn.setAttribute('aria-label', t('me.release', p.name));
       meBtn.addEventListener('click', function(){ releasePerson(p.id); });
@@ -3839,6 +4214,8 @@ function renderPeople(){
       var inp = document.createElement('input');
       inp.value = p.name; inp.size = Math.max(4, p.name.length);
       inp.setAttribute('aria-label', t('people.name.aria'));
+      /* the list stays reachable on a confirmed sheet, but only for addresses */
+      if(inputsLocked()) inp.readOnly = true;
       inp.addEventListener('input', function(){
         /* Somebody else's phone shows this name as "me". Renaming it under them
            would rename them, so it waits until they hand the name back. This is
@@ -3872,6 +4249,7 @@ function renderPeople(){
       }
       if(!mine && !claimedBy(p.id)){
         var pick = el('button','pickme');
+        pick.disabled = inputsLocked();
         pick.title = t('me.pick', p.name);
         pick.setAttribute('aria-label', t('me.pick', p.name));
         pick.addEventListener('click', function(ev){ ev.preventDefault(); claimPerson(p.id); });
@@ -3880,7 +4258,14 @@ function renderPeople(){
       }
     }
 
+    /* where money would go, on the person it would go to */
+    var pays = el('span','payset');
+    pays.appendChild(payButton(p, 'pp'));
+    pays.appendChild(payButton(p, 'iban'));
+    chip.appendChild(pays);
+
     var x = el('button','x','×');
+    x.hidden = inputsLocked();
     x.title = t('people.remove', shownName(p.id));
     x.addEventListener('click', function(){
       /* same reason as the name: a person another phone is standing behind is
@@ -3890,6 +4275,8 @@ function renderPeople(){
       var used = state.expenses.some(function(e){ return e.payerId===p.id || (e.shares[p.id]||0)>0; });
       if(used && !confirm(t(isMe(p.id) ? 'confirm.removeme' : 'confirm.removeperson', p.name))) return;
       if(state.claims[p.id]) state.claims[p.id] = { d: null, m: Date.now() };
+      /* their address goes with them */
+      if(state.pay && state.pay[p.id]){ setPay(p.id, 'pp', ''); setPay(p.id, 'iban', ''); }
       state.people = state.people.filter(function(q){ return q.id!==p.id; });
       state.expenses.forEach(function(e){ if(e.payerId===p.id) e.payerId=null; delete e.shares[p.id]; });
       renderAll(); save();
@@ -4625,7 +5012,24 @@ function renderTable(){
 /* The exact-amount strip. It lives directly under its expense row, is opened
    from the € button, and is closed again as soon as another one opens — so at
    most one is ever on screen and the normal view stays as plain as before. */
+/* Closing a strip in which nobody else was given an amount undoes the payer's
+   automatic rest. An expense where only the payer holds a fixed amount is the
+   same expense as one with no fixed amounts at all — except that it stops the
+   shares from dividing anything. Opening the strip to look at it must not
+   quietly turn a three-way expense into the payer's own. */
+function endAutoRest(){
+  if(!autoRest) return;
+  var ex = null, i;
+  for(i=0;i<state.expenses.length;i++) if(state.expenses[i].id === autoRest) ex = state.expenses[i];
+  autoRest = null;
+  if(!ex || !ex.payerId || !ex.fixed) return;
+  for(var k in ex.fixed) if(k !== ex.payerId) return;     /* somebody was itemised */
+  delete ex.fixed[ex.payerId];
+  if(!Object.keys(ex.fixed).length) delete ex.fixed;
+  updatePerShare(); save();
+}
 function closeExactRows(){
+  endAutoRest();
   var open = document.querySelectorAll('#tbody tr.exactrow');
   for(var i=0;i<open.length;i++) open[i].remove();
   /* in card mode the strip is a cell of the card itself, not a row after it */
@@ -4678,9 +5082,10 @@ function openExactRow(afterTr, ex){
       /* What is still unclaimed by the OTHER people. Checking against the whole
          expense would let two people each stay under it while together going
          over — the sum is what has to hold. */
-      var others = 0;
-      for(var k in ex.fixed) if(k !== p.id) others += ex.fixed[k];
+      var others = fixedByOthers(ex, p.id);
       var available = (ex.cents || 0) - others;
+      /* typing in the payer's own field takes it back off the automatic */
+      if(autoOn(ex) && p.id === ex.payerId) autoRest = null;
 
       /* No expense amount yet: there is nothing to divide up, so a fixed
          amount here could only ever be "more than the whole expense". Refuse
@@ -4700,6 +5105,7 @@ function openExactRow(afterTr, ex){
         delete ex.fixed[p.id];
         if(!Object.keys(ex.fixed).length) delete ex.fixed;
         inp.value = '';
+        applyAutoRest(ex); paintAutoField(box, ex);
         updatePerShare(); renderResults(); save();
         refreshExactFoot(box, ex, t('exact.toomuch', shownName(p.id), money(Math.max(0, available))));
         toast(t('exact.toomuch', shownName(p.id), money(Math.max(0, available))));
@@ -4709,6 +5115,8 @@ function openExactRow(afterTr, ex){
       if(inp.value.trim() === '' || cents === 0) delete ex.fixed[p.id];
       else ex.fixed[p.id] = cents;
       if(ex.fixed && !Object.keys(ex.fixed).length) delete ex.fixed;
+      applyAutoRest(ex);
+      paintAutoField(box, ex);
       updatePerShare(); renderResults(); save(); refreshExactFoot(box, ex);
     });
     cell.appendChild(inp);
@@ -4722,6 +5130,7 @@ function openExactRow(afterTr, ex){
   var clr = el('button','btn sm', t('exact.clear'));
   clr.addEventListener('click', function(){
     delete ex.fixed;
+    autoRest = null;                 /* an empty strip has no rest to carry */
     var ins = box.querySelectorAll('input');
     for(var i=0;i<ins.length;i++) ins[i].value = '';
     updatePerShare(); renderResults(); save(); refreshExactFoot(box, ex);
@@ -4739,6 +5148,14 @@ function openExactRow(afterTr, ex){
   td.appendChild(box);
   tr.appendChild(td);
   if(!cardMode) afterTr.parentNode.insertBefore(tr, afterTr.nextSibling);
+  /* Opening the strip is what starts the automatic rest: an expense with a
+     payer and an amount is nearly always "the rest was mine". */
+  autoRest = (ex.payerId && (ex.cents || 0) > 0) ? ex.id : null;
+  if(autoOn(ex)){
+    applyAutoRest(ex);
+    paintAutoField(box, ex);
+    updatePerShare(); renderResults(); save();
+  }
   refreshExactFoot(box, ex);
   var first = box.querySelector('input');
   if(first && !first.disabled) first.focus();
@@ -4746,6 +5163,43 @@ function openExactRow(afterTr, ex){
 
 /* Refresh the strip that is currently open, if any. Called when the expense
    amount changes underneath it. */
+/* ---------- the rest, on the person who paid ----------
+   Opening the fixed amounts on an expense that has a payer puts whatever is
+   left of it on that payer, and keeps it there as the others are typed in: a
+   receipt is usually "these three items were for you, the rest was mine".
+   The moment their field is emptied or set to zero, the sheet stops doing it
+   and the expense goes back to being split by shares. */
+var autoRest = null;                 /* the expense id it is running on */
+function autoOn(ex){ return !!ex && autoRest === ex.id && !!ex.payerId; }
+/* what the others have claimed — the payer's automatic share is not a claim */
+function fixedByOthers(ex, exceptId){
+  var sum = 0;
+  for(var k in (ex.fixed || {})){
+    if(k === exceptId) continue;
+    if(autoOn(ex) && k === ex.payerId) continue;
+    sum += ex.fixed[k];
+  }
+  return sum;
+}
+function applyAutoRest(ex){
+  if(!autoOn(ex)) return;
+  var rest = (ex.cents || 0) - fixedByOthers(ex, null);
+  if(!ex.fixed) ex.fixed = {};
+  if(rest > 0) ex.fixed[ex.payerId] = rest;
+  else delete ex.fixed[ex.payerId];
+  if(!Object.keys(ex.fixed).length) delete ex.fixed;
+}
+/* redraw the payer's field from the model without disturbing what is typed */
+function paintAutoField(box, ex){
+  var ins = box._inputs || [];
+  for(var i=0;i<ins.length && i<state.people.length;i++){
+    if(state.people[i].id !== ex.payerId) continue;
+    if(document.activeElement === ins[i]) return;
+    var v = (ex.fixed && ex.fixed[ex.payerId]) || 0;
+    ins[i].value = v ? formatCents(v) : '';
+  }
+}
+
 function refreshOpenExact(){
   /* the strip is a row of its own in the list and a cell of the card in the
      rail — looking for only one of the two left the note standing while the
@@ -4769,8 +5223,7 @@ function refreshExactFoot(box, ex, override){
   for(var i=0;i<ins.length && i<state.people.length;i++){
     var pid = state.people[i].id;
     var own = (ex.fixed && ex.fixed[pid]) || 0;
-    var others = 0;
-    if(ex.fixed) for(var k in ex.fixed) if(k !== pid) others += ex.fixed[k];
+    var others = fixedByOthers(ex, pid);
     var taken = !own && ((ex.cents || 0) - others) <= 0;
     ins[i].disabled = noAmount || taken;
     ins[i].placeholder = (taken && !noAmount) ? t('exact.nothingleft') : t('exact.ph');
@@ -4906,6 +5359,15 @@ function renderResults(){
       d.appendChild(el('span','amt', money(x.cents)));
       d.appendChild(el('span',null,t('set.to')));
       d.appendChild(el('span', isMe(x.toId) ? 'to isme' : 'to', shownName(x.toId, 'acc')));
+      /* Only where I am the one paying, and only once everybody has agreed the
+         numbers — before that, paying would settle a sum that may still move. */
+      if(isMe(x.fromId) && allFinal()){
+        var to = payOf(x.toId), via = sentVia(x.fromId, x.toId);
+        var ways = el('span','tpayset');
+        if(to.pp && currencyCode()) ways.appendChild(transferPayButton(x, 'pp', via));
+        if(to.iban) ways.appendChild(transferPayButton(x, 'iban', via));
+        if(ways.firstChild) d.appendChild(ways);
+      }
       tb.appendChild(d);
     });
     var n = res.rows.filter(function(r){return r.balance!==0;}).length;
@@ -5506,7 +5968,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '5.8.1';
+var APP_VERSION = '6.0.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -5736,6 +6198,13 @@ function applyGate(){
     var card = cards[i];
     var meShut = needMe && !card.hasAttribute('data-meok');
     var shut = locked || (editLock && card.hasAttribute('data-edit'));
+    /* A confirmed sheet closes for editing — but paying up happens AFTER the
+       confirmation, and an address is not part of the sheet. So the people
+       list stays reachable: the names are read-only, only the two address
+       buttons still answer. Otherwise a missing IBAN could only be added by
+       cancelling everybody's confirmation, which would also take away the very
+       buttons it was needed for. */
+    if(shut && !locked && card.hasAttribute('data-meok')) shut = false;
     setCardLock(card, shut ? 'inert' : (meShut ? 'shade' : 'open'));
   }
   $('tripTitle').readOnly = editLock;
@@ -5858,7 +6327,7 @@ function forgetShared(path){
 function toWire(st){
   var w = { title: st.title, tm: st.tm||0, currency: st.currency, cm: st.cm||0,
             people: [], expenses: [], claims: st.claims || {}, final: st.final || {},
-            rev: Number(st.rev) || 0 };
+            rev: Number(st.rev) || 0, pay: st.pay || {}, sent: st.sent || {} };
   st.people.forEach(function(p){
     var r = {id:p.id, name:p.name, m:p.m||0};
     if(p.o) r.o = p.o;
@@ -5882,6 +6351,8 @@ function fromWire(w){
   st.claims = w.claims || {};
   st.final = w.final || {};
   st.rev = Number(w.rev) || 0;
+  st.pay = w.pay || {};
+  st.sent = w.sent || {};
   (w.people||[]).forEach(function(p){
     if(p.x) st.gone.p[p.id] = { m: Number(p.m)||0, d: p.o || null }; else st.people.push(p);
   });
