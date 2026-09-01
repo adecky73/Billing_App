@@ -678,15 +678,18 @@ td.share.gone .sharebtn{opacity:.5;cursor:default;filter:grayscale(.6)}
 .finalnote.warn{background:var(--warn-c);color:var(--on-warn-c)}
 
 /* Locked cards say so by going flat and grey. inert already stops every click;
-   this is only so nobody wonders why nothing reacts. */
-body.await-final .card[data-edit],
-body.all-final  .card[data-edit]{
+   this is only so nobody wonders why nothing reacts. The people list is not
+   one of them: paying up happens after the confirmation, and the addresses
+   live there — only the NAMES inside it are fixed, and they say so
+   themselves (see .chip input[readonly]). */
+body.await-final .card[data-edit]:not([data-meok]),
+body.all-final  .card[data-edit]:not([data-meok]){
   opacity:.6;filter:grayscale(.6);
   background:
     repeating-linear-gradient(135deg, transparent 0 9px, rgba(120,120,145,.13) 9px 18px),
     var(--surface-2);
 }
-body.all-final .card[data-edit]{opacity:.5}
+body.all-final .card[data-edit]:not([data-meok]){opacity:.5}
 body.await-final #tripTitle,
 body.all-final  #tripTitle{opacity:.62}
 /* Waiting for "which one are you?": the same washed-out look as the naming
@@ -2550,8 +2553,13 @@ function computeBalances(people, expenses) {
     const unassigned = totalShares === 0 && !hasFixed && cents !== 0;
     /* fixed amounts add up to more than the expense */
     const overfixed = hasFixed && rest < 0;
-    /* fixed amounts leave a remainder that no share picks up */
-    const shortfixed = hasFixed && rest > 0 && totalShares === 0;
+    /* A remainder that nothing picks up. Two ways that happens: nobody has a
+       share left to take it, or the person who PAID has been given a fixed
+       amount of their own — which means the receipt was being itemised in
+       full, and what is left over is an oversight rather than a share. */
+    const payerFixed = ex.payerId != null && idx.has(ex.payerId) &&
+      fixed[idx.get(ex.payerId)] !== 0;
+    const shortfixed = hasFixed && rest > 0 && (totalShares === 0 || payerFixed);
 
     const split = unassigned ? shares.map(() => 0) : splitExpense(cents, shares, fixed);
     if (!unassigned) {
@@ -5245,7 +5253,9 @@ function openExactRow(afterTr, ex){
       var available = (ex.cents || 0) - others;
       /* correcting the payer's own figure ends the guessing, for this expense
          and from now on — including after it is emptied and typed again */
-      if(p.id === ex.payerId){ autoRest = null; autoDone[ex.id] = 1; }
+      if(p.id === ex.payerId){ autoRest = null; autoLive = false; autoDone[ex.id] = 1; }
+      /* and changing anybody else's puts the rest on the payer for real */
+      else if(autoArmed(ex)){ autoLive = true; box._proposal = false; }
 
       /* No expense amount yet: there is nothing to divide up, so a fixed
          amount here could only ever be "more than the whole expense". Refuse
@@ -5313,11 +5323,11 @@ function openExactRow(afterTr, ex){
   /* Opening the strip is what starts the automatic rest: an expense with a
      payer and an amount is nearly always "the rest was mine". */
   autoRest = (ex.payerId && (ex.cents || 0) > 0 && !autoDone[ex.id]) ? ex.id : null;
-  if(autoOn(ex)){
-    applyAutoRest(ex);
-    paintAutoField(box, ex);
-    updatePerShare(); renderResults(); save();
-  }
+  autoLive = false;
+  /* an empty panel gets the rest shown at the payer straight away; one that
+     already carries amounts is left exactly as it stands */
+  box._proposal = autoArmed(ex) && !ex.fixed;
+  if(box._proposal) paintAutoField(box, ex);
   refreshExactFoot(box, ex);
   var first = box.querySelector('input');
   if(first && !first.disabled) first.focus();
@@ -5332,20 +5342,31 @@ function openExactRow(afterTr, ex){
    The moment their field is emptied or set to zero, the sheet stops doing it
    and the expense goes back to being split by shares. */
 var autoRest = null;                 /* the expense id it is running on */
+/* Armed but not yet writing. Opening a panel that already has amounts in it
+   must not move anybody's figure — the automatic rest engages on the first
+   amount that is actually CHANGED. On an empty panel it shows the rest at the
+   payer straight away, but as a proposal: the figure is in the field and
+   blinking, and nothing is written until something is really entered. */
+var autoLive = false;
 /* Once the payer's own figure has been corrected by hand, the sheet stops
    guessing at it for that expense — for good, not just until the strip is
    closed. Somebody who has said what their own share was does not want it
    silently rewritten the next time they open the panel. */
 var autoDone = {};
-function autoOn(ex){
+function autoArmed(ex){
   return !!ex && autoRest === ex.id && !!ex.payerId && !autoDone[ex.id];
 }
+function autoOn(ex){ return autoArmed(ex) && autoLive; }
 /* what the others have claimed — the payer's automatic share is not a claim */
 function fixedByOthers(ex, exceptId){
   var sum = 0;
   for(var k in (ex.fixed || {})){
     if(k === exceptId) continue;
-    if(autoOn(ex) && k === ex.payerId) continue;
+    /* As long as the payer's figure is still the automatic rest — armed, even
+       if it has not moved yet — it is a remainder and not a claim. Counting it
+       as a claim left the payer holding the whole expense and every other
+       field shut, with no way to itemise anybody at all. */
+    if(autoArmed(ex) && k === ex.payerId) continue;
     sum += ex.fixed[k];
   }
   return sum;
@@ -5374,10 +5395,14 @@ function paintAutoField(box, ex){
     if(state.people[i].id !== ex.payerId) continue;
     /* the field blinks while the figure in it is the app's and not yet the
        user's — the one place in the sheet where a number writes itself */
-    ins[i].classList.toggle('auto', autoOn(ex));
+    var armed = autoArmed(ex) && (autoLive || box._proposal);
+    ins[i].classList.toggle('auto', armed);
     if(document.activeElement === ins[i]) return;
     var v = (ex.fixed && ex.fixed[ex.payerId]) || 0;
-    ins[i].value = v ? formatCents(v) : '';
+    /* a proposal is shown but not stored: closing the panel again has to leave
+       the expense exactly as it was found */
+    if(!v && armed && box._proposal) v = (ex.cents || 0) - fixedByOthers(ex, null);
+    ins[i].value = v > 0 ? formatCents(v) : '';
   }
 }
 
@@ -6154,7 +6179,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.2.0';
+var APP_VERSION = '6.3.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
