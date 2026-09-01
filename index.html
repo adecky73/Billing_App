@@ -1801,7 +1801,8 @@ en: {
   'exact.ph': 'amount',
   'exact.close': 'Done',
   'exact.clear': 'Clear all',
-  'exact.rest': 'Rest to split: {0} \u2014 shared by {1}',
+  'exact.rest': 'Split between {1}: {0}',
+  'exact.allfixed': 'All of it is in fixed amounts.',
   'exact.over': 'The fixed amounts exceed the expense by {0}',
   'exact.toomuch': 'Too much for {0} — at most {1} is available. Reset to zero.',
   'row.share.spent': 'Nothing left to divide — the fixed amounts already cover the whole expense.',
@@ -2189,7 +2190,8 @@ de: {
   'exact.ph': 'Betrag',
   'exact.close': 'Fertig',
   'exact.clear': 'Alle leeren',
-  'exact.rest': 'Zu teilender Rest: {0} \u2014 geteilt durch {1}',
+  'exact.rest': 'Wird auf {1} verteilt: {0}',
+  'exact.allfixed': 'Alles in festen Beträgen verteilt.',
   'exact.over': 'Die festen Beträge übersteigen die Ausgabe um {0}',
   'exact.toomuch': 'Zu viel für {0} — höchstens {1} verfügbar. Auf null zurückgesetzt.',
   'row.share.spent': 'Nichts mehr zu verteilen — die festen Beträge decken die Ausgabe bereits vollständig.',
@@ -5042,7 +5044,10 @@ function renderTable(){
         else next = cur === 0 ? 1 : (cur === 1 ? 2 : 0);
         if(next <= 0) delete ex.shares[p.id]; else ex.shares[p.id] = next;
         paintShare(b, next, null);
-        updatePerShare(); renderResults(); save();
+        /* a tick decides whether there is a rest for the payer to hold at all,
+           so an open strip has to be told about it */
+        applyAutoRest(ex);
+        updatePerShare(); renderResults(); save(); refreshOpenExact();
       });
       td.appendChild(b); tr.appendChild(td);
     });
@@ -5272,8 +5277,11 @@ function openExactRow(afterTr, ex){
       /* correcting the payer's own figure ends the guessing, for this expense
          and from now on — including after it is emptied and typed again */
       if(p.id === ex.payerId){ autoRest = null; autoLive = false; autoDone[ex.id] = 1; }
-      /* and changing anybody else's puts the rest on the payer for real */
-      else if(autoArmed(ex)){ autoLive = true; box._proposal = false; }
+      /* and changing anybody else's arms it for real. Deliberately not
+         autoArmed(): while somebody still has a tick there is no rest to give
+         away, but the moment the last tick goes the payer has to receive it —
+         and by then the change that started it is long past. */
+      else if(autoArmedBase(ex)){ autoLive = true; box._proposal = false; }
 
       /* No expense amount yet: there is nothing to divide up, so a fixed
          amount here could only ever be "more than the whole expense". Refuse
@@ -5371,9 +5379,26 @@ var autoLive = false;
    closed. Somebody who has said what their own share was does not want it
    silently rewritten the next time they open the panel. */
 var autoDone = {};
-function autoArmed(ex){
+/* Is there anybody left to take what is not fixed? A tick with no fixed amount
+   beside it IS somebody: the money is already theirs, and there is no rest for
+   the payer to hold. Only when the last tick is gone does the remainder have
+   nowhere to go, and only then does the payer get it. */
+function restTakers(ex){
+  var n = 0;
+  for(var i=0;i<state.people.length;i++){
+    var p = state.people[i];
+    if(!(ex.shares && ex.shares[p.id] > 0)) continue;
+    /* the payer's own tick counts like everybody else's — what is being
+       decided here is whether their FIXED amount should exist at all */
+    if(p.id !== ex.payerId && ex.fixed && ex.fixed[p.id]) continue;
+    n++;
+  }
+  return n;
+}
+function autoArmedBase(ex){
   return !!ex && autoRest === ex.id && !!ex.payerId && !autoDone[ex.id];
 }
+function autoArmed(ex){ return autoArmedBase(ex) && restTakers(ex) === 0; }
 function autoOn(ex){ return autoArmed(ex) && autoLive; }
 /* what the others have claimed — the payer's automatic share is not a claim */
 function fixedByOthers(ex, exceptId){
@@ -5390,9 +5415,17 @@ function fixedByOthers(ex, exceptId){
   return sum;
 }
 function applyAutoRest(ex){
-  if(!autoOn(ex)) return;
-  var others = fixedByOthers(ex, null);
+  if(!autoArmedBase(ex)) return;
   if(!ex.fixed) ex.fixed = {};
+  /* a tick has appeared, or was there all along: the rest is theirs, and
+     nothing belongs on the payer */
+  if(restTakers(ex) > 0){
+    delete ex.fixed[ex.payerId];
+    if(!Object.keys(ex.fixed).length) delete ex.fixed;
+    return;
+  }
+  if(!autoLive) return;
+  var others = fixedByOthers(ex, null);
   /* Nothing itemised yet means there is nothing for the payer to hold the rest
      OF. Writing the whole expense onto them the moment the panel opens made an
      unshared expense look complete for as long as it stood open, and turned it
@@ -5429,7 +5462,10 @@ function refreshOpenExact(){
      rail — looking for only one of the two left the note standing while the
      numbers underneath it moved */
   var open = document.querySelector('#tbody tr.exactrow .exact, #tbody td.exactcell .exact');
-  if(open && open._ex) refreshExactFoot(open, open._ex);
+  if(!open || !open._ex) return;
+  open._proposal = autoArmed(open._ex) && !open._ex.fixed;
+  paintAutoField(open, open._ex);
+  refreshExactFoot(open, open._ex);
 }
 
 function refreshExactFoot(box, ex, override){
@@ -5462,8 +5498,10 @@ function refreshExactFoot(box, ex, override){
        money gone missing, when in fact one tick is collecting all of it. */
     var takers = 0;
     for(var q=0;q<pe.shares.length;q++) if(!pe.fixed[q] && pe.shares[q] > 0) takers++;
-    note.textContent = t('exact.rest', money(pe.rest),
-      nPeople(takers));
+    /* nobody splitting anything, and nothing to split: every cent is in a
+       fixed amount, which is a finished expense and not a rest of zero */
+    if(!takers) note.textContent = t('exact.allfixed');
+    else note.textContent = t('exact.rest', money(pe.rest), nPeople(takers));
   }
 }
 
@@ -6204,7 +6242,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.3.1';
+var APP_VERSION = '6.4.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
