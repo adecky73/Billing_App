@@ -359,6 +359,9 @@ header.top.stacked #tripTitle{flex:1 1 auto}
 .chip input:focus{outline:2px solid var(--focus);outline-offset:1px}
 /* a confirmed sheet fixes the names: grey, and they say why when tapped */
 .chip input[readonly]{color:var(--on-surface-var);opacity:.7;cursor:default}
+/* no new people while the sheet is confirmed either */
+.addperson.shut{opacity:.5}
+.addperson.shut input{cursor:default}
 .chip .x{
   border:none;background:transparent;cursor:pointer;color:var(--on-surface-var);
   width:32px;height:32px;border-radius:var(--r-full);
@@ -1798,7 +1801,7 @@ en: {
   'exact.ph': 'amount',
   'exact.close': 'Done',
   'exact.clear': 'Clear all',
-  'exact.rest': 'Rest to split: {0}',
+  'exact.rest': 'Rest to split: {0} \u2014 shared by {1}',
   'exact.over': 'The fixed amounts exceed the expense by {0}',
   'exact.toomuch': 'Too much for {0} — at most {1} is available. Reset to zero.',
   'row.share.spent': 'Nothing left to divide — the fixed amounts already cover the whole expense.',
@@ -2186,7 +2189,7 @@ de: {
   'exact.ph': 'Betrag',
   'exact.close': 'Fertig',
   'exact.clear': 'Alle leeren',
-  'exact.rest': 'Zu teilender Rest: {0}',
+  'exact.rest': 'Zu teilender Rest: {0} \u2014 geteilt durch {1}',
   'exact.over': 'Die festen Beträge übersteigen die Ausgabe um {0}',
   'exact.toomuch': 'Zu viel für {0} — höchstens {1} verfügbar. Auf null zurückgesetzt.',
   'row.share.spent': 'Nichts mehr zu verteilen — die festen Beträge decken die Ausgabe bereits vollständig.',
@@ -2553,13 +2556,12 @@ function computeBalances(people, expenses) {
     const unassigned = totalShares === 0 && !hasFixed && cents !== 0;
     /* fixed amounts add up to more than the expense */
     const overfixed = hasFixed && rest < 0;
-    /* A remainder that nothing picks up. Two ways that happens: nobody has a
-       share left to take it, or the person who PAID has been given a fixed
-       amount of their own — which means the receipt was being itemised in
-       full, and what is left over is an oversight rather than a share. */
-    const payerFixed = ex.payerId != null && idx.has(ex.payerId) &&
-      fixed[idx.get(ex.payerId)] !== 0;
-    const shortfixed = hasFixed && rest > 0 && (totalShares === 0 || payerFixed);
+    /* A remainder that nothing picks up. "Nothing" is the whole test:
+       totalShares already counts only people who have a share AND no fixed
+       amount of their own, so it is zero exactly when nobody is left to take
+       what is over. Anything narrower cries wolf — a remainder that one
+       person's tick collects is assigned, not lost. */
+    const shortfixed = hasFixed && rest > 0 && totalShares === 0;
 
     const split = unassigned ? shares.map(() => 0) : splitExpense(cents, shares, fixed);
     if (!unassigned) {
@@ -3285,6 +3287,9 @@ function stampChanges(){
     if(revokeAllFinal(now)){
       lastFinalSeen = JSON.stringify(stFinal());
       applyFinalLock();
+      /* the cards themselves are locked in applyGate, not here — without this
+         the sheet read as open again while every card stayed inert */
+      applyGate();
       if($('finalBar')) renderFinal();
       toast(t('final.revoked.mine'));
     }
@@ -4463,6 +4468,15 @@ function renderPeople(){
   }
   if(keep.parentNode !== box) box.appendChild(keep);
   keep.querySelector('input').placeholder = t('people.add');
+  /* and it says so before anything is typed, not after */
+  keep.classList.toggle('shut', inputsLocked());
+  var addIn = keep.querySelector('input');
+  if(!addIn._lockHooked){
+    addIn._lockHooked = 1;
+    addIn.addEventListener('focus', function(){
+      if(inputsLocked()){ addIn.blur(); toast(t('final.locked.name')); }
+    });
+  }
   /* "People — 3 people" said it twice. With names on the list the count IS the
      heading; with none there is nothing to count, so the plain word stands and
      the hint says what to do. */
@@ -4516,6 +4530,10 @@ function addPersonRow(){
   add.setAttribute('enterkeyhint', 'done');
 
   function commitPerson(){
+    /* A confirmed sheet is confirmed on the people it names. Adding one is an
+       edit like any other and has to wait until the confirmation is undone —
+       the addresses are the only thing the list still takes. */
+    if(inputsLocked()){ toast(t('final.locked.name')); add.value = ''; return; }
     var nm = add.value.trim().toUpperCase();
     if(!nm){ add.focus(); return; }
     if(isReservedName(nm)){ toast(t('me.reserved', nm)); add.select(); return; }
@@ -5439,7 +5457,14 @@ function refreshExactFoot(box, ex, override){
   if(noAmount){ note.textContent = t('exact.noamount'); note.classList.add('bad'); return; }
   if(pe.overfixed){ note.textContent = t('exact.over', money(-pe.rest)); note.classList.add('bad'); }
   else if(pe.shortfixed){ note.textContent = t('exact.short', money(pe.rest)); note.classList.add('bad'); }
-  else note.textContent = t('exact.rest', money(pe.rest));
+  else {
+    /* Who actually takes what is left. "108 € left over" on its own reads as
+       money gone missing, when in fact one tick is collecting all of it. */
+    var takers = 0;
+    for(var q=0;q<pe.shares.length;q++) if(!pe.fixed[q] && pe.shares[q] > 0) takers++;
+    note.textContent = t('exact.rest', money(pe.rest),
+      nPeople(takers));
+  }
 }
 
 function paintShare(btn, n, fixedCents, spent){
@@ -6179,7 +6204,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.3.0';
+var APP_VERSION = '6.3.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
