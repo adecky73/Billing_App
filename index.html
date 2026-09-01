@@ -68,6 +68,11 @@
      one stack and the card in focus as the lit one */
   --card-back:#c2d8ee;
   --card-back-line:#9dbcd8;
+  /* the ways of paying, wherever they appear: a warm ground that belongs to
+     none of the other states in the sheet */
+  --pay-c:#ffe2c2;
+  --pay-line:#dd9c55;
+  --on-pay-c:#5a3306;
   /* the swipe symbol is the one warm accent in the header */
   --swipe:#c25706;
 
@@ -110,6 +115,9 @@
     --card-f-line:#4d86ad;
     --card-back:#0f2635;
     --card-back-line:#2c5670;
+    --pay-c:#3d2a14;
+    --pay-line:#9a6a35;
+    --on-pay-c:#ffd7a8;
     --swipe:#ffb072;
     --note-line:#3f7ba8;
     --e1:0 1px 2px rgba(0,0,0,.5), 0 1px 3px 1px rgba(0,0,0,.3);
@@ -149,6 +157,9 @@
   --card-f-line:#4d86ad;
   --card-back:#0f2635;
   --card-back-line:#2c5670;
+  --pay-c:#3d2a14;
+  --pay-line:#9a6a35;
+  --on-pay-c:#ffd7a8;
   --swipe:#ffb072;
   --note-line:#3f7ba8;
   --e1:0 1px 2px rgba(0,0,0,.5), 0 1px 3px 1px rgba(0,0,0,.3);
@@ -322,20 +333,20 @@ header.top.stacked #tripTitle{flex:1 1 auto}
 .payset{display:flex;align-items:center;gap:6px;margin-left:auto;flex:0 0 auto}
 .paybtn{
   display:inline-flex;align-items:center;gap:5px;position:relative;
-  border:1px solid var(--outline-var);background:var(--surface);
-  color:var(--on-surface-var);border-radius:var(--r-full);
+  border:1px solid var(--pay-line);background:var(--pay-c);
+  color:var(--on-pay-c);border-radius:var(--r-full);
   padding:0 12px;min-height:32px;font:inherit;font-size:12.5px;font-weight:500;
   letter-spacing:.02em;cursor:pointer;white-space:nowrap;
   transition:background .15s, opacity .15s;
 }
-.paybtn:hover{background:var(--surface-2)}
+.paybtn:hover{filter:brightness(.96)}
 .chip .x[hidden]{display:none}
 .mebtn:disabled,.pickme:disabled{opacity:.5;cursor:default}
 .paybtn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 /* Filled in: the button steps back and wears a tick. Half transparent says
    "nothing to do here"; the tick says why. */
-.paybtn.filled{opacity:.55;border-color:var(--success);background:transparent}
-.paybtn.filled:hover{opacity:.85;background:var(--surface-2)}
+.paybtn.filled{opacity:.55;border-color:var(--success)}
+.paybtn.filled:hover{opacity:.85}
 .paytick{width:15px;height:15px;color:var(--success);flex:0 0 auto;display:block}
 @media (prefers-color-scheme: dark){.paytick{color:var(--success)}}
 .chip:hover{background:var(--surface-2)}
@@ -346,6 +357,8 @@ header.top.stacked #tripTitle{flex:1 1 auto}
   font-size:14px;font-weight:500;padding:2px;border-radius:var(--r-xs);
 }
 .chip input:focus{outline:2px solid var(--focus);outline-offset:1px}
+/* a confirmed sheet fixes the names: grey, and they say why when tapped */
+.chip input[readonly]{color:var(--on-surface-var);opacity:.7;cursor:default}
 .chip .x{
   border:none;background:transparent;cursor:pointer;color:var(--on-surface-var);
   width:32px;height:32px;border-radius:var(--r-full);
@@ -473,7 +486,7 @@ tr.exactrow:hover td{background:var(--surface-2)}
    typing over it stops both the blinking and the guessing. */
 @keyframes restblink{
   0%,100%{background:transparent;color:var(--on-surface)}
-  50%{background:var(--primary-c);color:var(--on-primary-c)}
+  50%{background:var(--pay-c);color:var(--on-pay-c)}
 }
 .exact-cell input.auto{
   animation:restblink 1.5s ease-in-out infinite;
@@ -482,7 +495,7 @@ tr.exactrow:hover td{background:var(--surface-2)}
 @media (prefers-reduced-motion: reduce){
   /* still marked, just not moving */
   .exact-cell input.auto{
-    animation:none;background:var(--primary-c);color:var(--on-primary-c);
+    animation:none;background:var(--pay-c);color:var(--on-pay-c);
   }
 }
 
@@ -494,8 +507,12 @@ tr.exactrow:hover td{background:var(--surface-2)}
     background:var(--card-f);
     border-top:2px solid var(--card-f-line);border-bottom:none;
   }
-  tbody tr.hasexact > td:first-child{border-left:2px solid var(--card-f-line)}
-  tbody tr.hasexact > td:last-child{border-right:2px solid var(--card-f-line)}
+  /* The first and last cells of a row are the running number and the folded
+     line, and neither is displayed on a wide screen — a border on them is a
+     border on nothing, which is what left the corner open. The frame goes on
+     the first and last cells that are actually there. */
+  tbody tr.hasexact > td.payer{border-left:2px solid var(--card-f-line)}
+  tbody tr.hasexact > td.rowtools{border-right:2px solid var(--card-f-line)}
   tbody tr.exactrow > td{
     background:var(--card-f);
     border:2px solid var(--card-f-line);border-top:none;
@@ -553,26 +570,26 @@ td.ph{color:var(--on-surface-var);text-align:left;padding:24px 4px;border-bottom
 .tpayset{display:flex;align-items:center;gap:6px;margin-left:auto;flex:0 0 auto}
 .tpay{
   display:inline-flex;align-items:center;gap:5px;
-  border:1px solid var(--card-f-line);background:var(--card-f);
-  color:var(--on-surface);border-radius:var(--r-full);
+  border:1px solid var(--pay-line);background:var(--pay-c);
+  color:var(--on-pay-c);border-radius:var(--r-full);
   padding:0 12px;min-height:32px;font:inherit;font-size:12.5px;font-weight:500;
   cursor:pointer;white-space:nowrap;transition:background .15s, opacity .15s;
 }
-.tpay:hover{border-color:var(--primary)}
+.tpay:hover{filter:brightness(.96)}
 .tpay:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 /* handed over: this one steps back with a tick, the other is crossed out —
    both still respond, because a transfer can always be repeated */
-.tpay.done{opacity:.55;border-color:var(--success);background:transparent}
+.tpay.done{opacity:.55;border-color:var(--success)}
 .tpay.done:hover{opacity:.85}
 .tpay.void{
   opacity:.45;background:transparent;border-color:var(--outline-var);
-  text-decoration:line-through;
+  color:var(--on-surface-var);text-decoration:line-through;
 }
 .tpay.void:hover{opacity:.7}
 /* a way with nothing behind it yet: dashed, quiet, and it still answers */
 .tpay.miss{
-  background:transparent;border-style:dashed;border-color:var(--outline-var);
-  color:var(--on-surface-var);opacity:.8;
+  background:transparent;border-style:dashed;border-color:var(--pay-line);
+  color:var(--on-surface-var);opacity:.85;
 }
 .tpay.miss:hover{opacity:1;border-color:var(--primary)}
 .empty-note{color:var(--on-surface-var);padding:8px 0}
@@ -1718,12 +1735,18 @@ en: {
   'pay.bank.none': 'Enter an IBAN for {0}',
   'pay.pp.head': 'PayPal name of {0}',
   'pay.bank.head': 'Account of {0}',
-  'pay.pp.lbl': 'PayPal user name or paypal.me address',
-  'pay.pp.hint': 'Whatever comes after paypal.me/ \u2014 the whole address may be pasted.',
+  'pay.pp.lbl': 'PayPal name or the e-mail of the PayPal account',
+  'pay.pp.hint': 'A PayPal.Me name (letters and digits only) can be handed over with the amount already filled in. An e-mail cannot \u2014 PayPal has no address for that \u2014 so the details are shown to copy instead.',
   'pay.bank.lbl': 'IBAN',
   'pay.bank.hint': 'Spaces are ignored. The check digits are verified before it is saved.',
   'pay.bad.iban': 'That is not a valid IBAN \u2014 check the digits.',
-  'pay.bad.pp': 'A PayPal name has letters and digits, nothing else.',
+  'pay.bad.pp': 'That is neither a PayPal name (letters and digits only) nor an e-mail address.',
+  'set.pp.head': 'PayPal to {0}',
+  'set.pp.addr': 'PayPal address',
+  'set.pp.note': 'PayPal cannot be handed an e-mail address with the amount in it. Copy the details and use \u201cSend money\u201d in PayPal.',
+  'set.pp.open': 'Open PayPal',
+  'set.pp.copied': 'Details copied.',
+  'final.locked.name': 'The sheet is confirmed, so the names are fixed. Undo the confirmation to change one. Payment details can still be entered.',
   'pay.save': 'Save',
   'pay.clear': 'Remove',
   'pay.locked': '\u201c{0}\u201d is another device\u2019s \u201cme\u201d. Only that device enters where the money goes.',
@@ -2101,12 +2124,18 @@ de: {
   'pay.bank.none': 'IBAN für {0} eintragen',
   'pay.pp.head': 'PayPal-Name von {0}',
   'pay.bank.head': 'Konto von {0}',
-  'pay.pp.lbl': 'PayPal-Benutzername oder paypal.me-Adresse',
-  'pay.pp.hint': 'Alles, was hinter paypal.me/ steht — die ganze Adresse darf man einfügen.',
+  'pay.pp.lbl': 'PayPal-Name oder E-Mail des PayPal-Kontos',
+  'pay.pp.hint': 'Ein PayPal.Me-Name (nur Buchstaben und Ziffern) lässt sich mit fertigem Betrag übergeben. Eine E-Mail nicht — dafür hat PayPal keine Adresse — dann werden die Daten stattdessen zum Kopieren gezeigt.',
   'pay.bank.lbl': 'IBAN',
   'pay.bank.hint': 'Leerzeichen sind egal. Die Prüfziffern werden vor dem Speichern geprüft.',
   'pay.bad.iban': 'Das ist keine gültige IBAN — bitte die Ziffern prüfen.',
-  'pay.bad.pp': 'Ein PayPal-Name besteht aus Buchstaben und Ziffern, sonst nichts.',
+  'pay.bad.pp': 'Das ist weder ein PayPal-Name (nur Buchstaben und Ziffern) noch eine E-Mail-Adresse.',
+  'set.pp.head': 'PayPal an {0}',
+  'set.pp.addr': 'PayPal-Adresse',
+  'set.pp.note': 'Einer E-Mail-Adresse kann PayPal den Betrag nicht mitgeben. Daten kopieren und in PayPal „Geld senden“ benutzen.',
+  'set.pp.open': 'PayPal öffnen',
+  'set.pp.copied': 'Daten kopiert.',
+  'final.locked.name': 'Die Abrechnung ist final, deshalb stehen die Namen fest. Zum Ändern muss die Finalisierung aufgehoben werden. Zahlungsdaten lassen sich weiter eintragen.',
   'pay.save': 'Speichern',
   'pay.clear': 'Entfernen',
   'pay.locked': '„{0}“ ist das „ich“ eines anderen Geräts. Wohin das Geld geht, trägt nur dieses Gerät ein.',
@@ -4065,12 +4094,23 @@ function ibanPretty(v){ return cleanIban(v).replace(/(.{4})/g, '$1 ').trim(); }
 /* "paypal.me/anna", "https://www.paypal.me/anna/12EUR" and "anna" all mean anna */
 function cleanPp(v){
   var pv = String(v || '').trim();
+  if(isPpMail(pv)) return pv;            /* an e-mail is kept exactly as given */
   pv = pv.replace(/^https?:\/\//i, '').replace(/^www\./i, '');
   pv = pv.replace(/^paypal\.me\//i, '');
   pv = pv.split('/')[0].split('?')[0];
   return pv.replace(/^@/, '').trim();
 }
-function ppOk(v){ return /^[A-Za-z0-9]{3,20}$/.test(cleanPp(v)); }
+/* PayPal.Me names are letters and digits only — PayPal says so itself, and an
+   e-mail cannot be put in such a link at all. But plenty of accounts have no
+   PayPal.Me name and run on their e-mail, and those people have to be payable
+   too: the address is kept, and the button shows the details to copy instead
+   of pretending it can fill a form it has no address for. */
+function isPpMail(v){ return String(v || '').indexOf('@') > 0; }
+function ppOk(v){
+  var raw = String(v || '').trim();
+  if(isPpMail(raw)) return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(raw);
+  return /^[A-Za-z0-9]{3,20}$/.test(cleanPp(raw));
+}
 
 /* PayPal wants a currency CODE; the sheet only knows a symbol. Where the two
    cannot be matched up there is no PayPal button — a guess here would send the
@@ -4205,6 +4245,30 @@ function payMissing(x, kind){
   if(kind === 'pp' && !currencyCode()) return 'cur';
   return to[kind === 'pp' ? 'pp' : 'iban'] ? '' : 'addr';
 }
+/* An account that has only an e-mail: PayPal has no address that carries the
+   amount, so the details are handed over the same way the bank ones are. */
+function ppMailDialog(x, mail){
+  var name = personName(x.toId), ref = (state.title || '').trim();
+  dlgOpen(t('set.pp.head', name), function(body){
+    note(body, t('set.pp.note'));
+    field(body, t('set.pp.addr'), { value: mail, ro: true, mono: true });
+    field(body, t('set.bank.amount'), { value: money(x.cents), ro: true, mono: true });
+    if(ref) field(body, t('set.bank.ref'), { value: ref, ro: true });
+  }, [
+    { label: t('set.bank.copy'), act: 'go', primary: true, onClick: function(){
+        copyOut([mail, money(x.cents)].concat(ref ? [ref] : []).join('\n'),
+                t('set.pp.copied'));
+        markSent(x.fromId, x.toId, 'pp');
+        dlgClose(); renderResults();
+      } },
+    { label: t('set.pp.open'), act: 'open', onClick: function(){
+        openExternal('https://www.paypal.com/myaccount/transfer/homepage/pay');
+        markSent(x.fromId, x.toId, 'pp');
+        dlgClose(); renderResults();
+      } },
+    { label: t('btn.cancel'), act: 'cancel', onClick: dlgClose },
+  ]);
+}
 function payAction(x, kind){
   var miss = payMissing(x, kind);
   if(miss === 'cur'){ toast(t('set.pay.miss.cur', state.currency)); return; }
@@ -4234,7 +4298,9 @@ function payAction(x, kind){
     return;
   }
   if(kind === 'pp'){
-    openExternal(ppLink(payOf(x.toId).pp, x.cents));
+    var handle = payOf(x.toId).pp;
+    if(isPpMail(handle)){ ppMailDialog(x, handle); return; }
+    openExternal(ppLink(handle, x.cents));
     markSent(x.fromId, x.toId, 'pp');
     renderResults();
     toast(t('set.pay.done.pp'), true);
@@ -4295,8 +4361,14 @@ function renderPeople(){
       var inp = document.createElement('input');
       inp.value = p.name; inp.size = Math.max(4, p.name.length);
       inp.setAttribute('aria-label', t('people.name.aria'));
-      /* the list stays reachable on a confirmed sheet, but only for addresses */
-      if(inputsLocked()) inp.readOnly = true;
+      /* The list stays reachable on a confirmed sheet, but only for addresses:
+         the names are what the numbers were agreed on. Grey, fixed, and it
+         says how to get at them rather than simply not answering. */
+      if(inputsLocked()){
+        inp.readOnly = true;
+        inp.addEventListener('focus', function(){ toast(t('final.locked.name')); });
+        inp.addEventListener('click', function(){ toast(t('final.locked.name')); });
+      }
       inp.addEventListener('input', function(){
         /* Somebody else's phone shows this name as "me". Renaming it under them
            would rename them, so it waits until they hand the name back. This is
@@ -5280,10 +5352,19 @@ function fixedByOthers(ex, exceptId){
 }
 function applyAutoRest(ex){
   if(!autoOn(ex)) return;
-  var rest = (ex.cents || 0) - fixedByOthers(ex, null);
+  var others = fixedByOthers(ex, null);
   if(!ex.fixed) ex.fixed = {};
-  if(rest > 0) ex.fixed[ex.payerId] = rest;
-  else delete ex.fixed[ex.payerId];
+  /* Nothing itemised yet means there is nothing for the payer to hold the rest
+     OF. Writing the whole expense onto them the moment the panel opens made an
+     unshared expense look complete for as long as it stood open, and turned it
+     orange again the moment it was closed — a warning that came and went with
+     a panel nobody had typed into. */
+  if(others <= 0) delete ex.fixed[ex.payerId];
+  else {
+    var rest = (ex.cents || 0) - others;
+    if(rest > 0) ex.fixed[ex.payerId] = rest;
+    else delete ex.fixed[ex.payerId];
+  }
   if(!Object.keys(ex.fixed).length) delete ex.fixed;
 }
 /* redraw the payer's field from the model without disturbing what is typed */
@@ -5460,8 +5541,10 @@ function renderResults(){
       d.appendChild(el('span',null,t('set.to')));
       d.appendChild(el('span', isMe(x.toId) ? 'to isme' : 'to', shownName(x.toId, 'acc')));
       /* Only where I am the one paying, and only once everybody has agreed the
-         numbers — before that, paying would settle a sum that may still move. */
-      if(isMe(x.fromId) && allFinal()){
+         numbers — before that, paying would settle a sum that may still move.
+         On a sheet nobody shares there is nobody to agree with and no
+         confirmation to make, so having said which person is "me" is enough. */
+      if(isMe(x.fromId) && (allFinal() || !syncCfg)){
         /* Both ways are always offered. A way with nothing behind it says so
            when it is pressed — a button that is simply absent leaves nobody
            any wiser about what is missing. */
@@ -6071,7 +6154,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.1.0';
+var APP_VERSION = '6.2.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
