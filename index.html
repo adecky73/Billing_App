@@ -722,7 +722,11 @@ body.all-final  .card[data-edit]:not([data-meok])::after{border-color:transparen
    list, which is where the addresses for paying up are. Green is reserved for
    this state, so the neutral ring above is a different colour on purpose:
    a sheet that looked confirmed from the first tap would say nothing. */
-body.all-final .card::after{border-color:var(--success)}
+/* and it is drawn heavier than the neutral one. Confirmed is a state worth
+   seeing across the room, and a ring that only changed hue was too easy to
+   miss — especially while only THIS device has confirmed and everything is
+   still grey, waiting for the others. */
+body.all-final .card::after{border-color:var(--success);border-width:3px}
 
 
 /* ---------- naming gate ---------- */
@@ -885,7 +889,12 @@ td.exactcell{display:none}
     margin-left:calc(-12px - env(safe-area-inset-left, 0px));
     border-radius:0;
   }
-  body.card-mode #expCard::after{border-color:transparent}
+  /* Open at the sides, closed top and bottom: the rail runs off both edges of
+     the screen, but the card is still a card and says where it begins and
+     ends. Only the two lines the rail passes through come off. */
+  body.card-mode #expCard::after{border-left-color:transparent;border-right-color:transparent}
+  body.card-mode.await-final #expCard::after,
+  body.card-mode.all-final  #expCard::after{border-color:transparent}
   /* the heading keeps the inset it had — the card moved out from under it,
      so the padding has to make up the page margin the card gave back */
   body.card-mode #expCard > .card-h{
@@ -6786,7 +6795,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.6.0';
+var APP_VERSION = '6.6.1';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
