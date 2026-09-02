@@ -700,8 +700,20 @@ body.all-final  #tripTitle{opacity:.62}
 .shaded{position:relative;opacity:.45;filter:saturate(.5)}
 .meshade{position:absolute;inset:0;z-index:3;cursor:not-allowed;background:transparent}
 
-/* the settlement is the one thing that stays fully lit once everybody agrees */
-body.all-final .grid2 .card:not([data-edit]){
+/* Which cards still take input is otherwise only discoverable by trying one.
+   A thin ring says it up front, and its absence says the opposite — the
+   expenses lose theirs the moment the sheet is confirmed. */
+.card[data-edit]{outline:2px solid var(--outline-var);outline-offset:-2px}
+body.await-final .card[data-edit]:not([data-meok]),
+body.all-final  .card[data-edit]:not([data-meok]){outline:none}
+
+/* Once everybody agrees, the ring turns green on everything that is still
+   live: the balance and the settlement, which are the result — and the people
+   list, which is where the addresses for paying up are. Green is reserved for
+   this state, so the neutral ring above is a different colour on purpose:
+   a sheet that looked confirmed from the first tap would say nothing. */
+body.all-final .grid2 .card:not([data-edit]),
+body.all-final .card[data-edit][data-meok]{
   outline:2px solid var(--success);outline-offset:-2px;
 }
 
@@ -1326,6 +1338,22 @@ body.has-syncbar .wrap{padding-bottom:76px}
 .sheetitem .nm{font-weight:500}
 /* the password is meant to be read off the screen and typed on another phone */
 .sendrow{display:flex;gap:8px;justify-content:flex-end;margin-top:-4px}
+.sendrow .btn.on{background:var(--primary-c);color:var(--on-primary-c)}
+
+/* The QR code. It is always black on white whatever the app's theme is doing:
+   a reader looks for dark modules on a light ground, and an inverted code is
+   the one thing that reliably defeats a phone camera. The white plate stays
+   under it in dark mode for the same reason. */
+.qrbox{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  margin:10px 0 2px;
+}
+.qrpic{
+  width:min(320px, 78vw);background:#fff;padding:10px;border-radius:8px;
+  box-shadow:0 0 0 1px rgba(0,0,0,.12);
+}
+.qrpic svg{display:block;width:100%;height:auto}
+.qrhint{font-size:12.5px;color:var(--on-surface-var);text-align:center;max-width:340px}
 .linkbtn{
   align-self:flex-start;background:none;border:none;padding:0;cursor:pointer;
   color:var(--primary);font:inherit;font-size:13px;text-decoration:underline;
@@ -1803,6 +1831,7 @@ en: {
   'exact.clear': 'Clear all',
   'exact.rest': 'Split between {1}: {0}',
   'exact.allfixed': 'All of it is in fixed amounts.',
+  'exact.topayer': 'Suggested: {0} to {1} \u2014 not assigned to anybody yet.',
   'exact.over': 'The fixed amounts exceed the expense by {0}',
   'exact.toomuch': 'Too much for {0} — at most {1} is available. Reset to zero.',
   'row.share.spent': 'Nothing left to divide — the fixed amounts already cover the whole expense.',
@@ -1891,6 +1920,9 @@ en: {
 
   'code.field': 'Invitation code',
   'code.copy': 'Copy',
+  'code.qr': 'QR code',
+  'code.qr.hint': 'Photograph this with the other phone — nothing is sent anywhere. Their camera shows the code; copy it into the app there.',
+  'code.qr.fail': 'The code is too long for a QR code.',
   'code.share': 'Send…',
   'code.selected': 'Selected — copy it now.',
   'open.title': 'Open a shared sheet',
@@ -2192,6 +2224,7 @@ de: {
   'exact.clear': 'Alle leeren',
   'exact.rest': 'Wird auf {1} verteilt: {0}',
   'exact.allfixed': 'Alles in festen Beträgen verteilt.',
+  'exact.topayer': 'Vorschlag: {0} an {1} \u2014 noch niemandem fest zugeordnet.',
   'exact.over': 'Die festen Beträge übersteigen die Ausgabe um {0}',
   'exact.toomuch': 'Zu viel für {0} — höchstens {1} verfügbar. Auf null zurückgesetzt.',
   'row.share.spent': 'Nichts mehr zu verteilen — die festen Beträge decken die Ausgabe bereits vollständig.',
@@ -2280,6 +2313,9 @@ de: {
 
   'code.field': 'Einladungscode',
   'code.copy': 'Kopieren',
+  'code.qr': 'QR-Code',
+  'code.qr.hint': 'Mit dem anderen Handy abfotografieren — es wird nichts verschickt. Dessen Kamera zeigt den Code an; dort in die App kopieren.',
+  'code.qr.fail': 'Der Code ist zu lang für einen QR-Code.',
   'code.share': 'Senden…',
   'code.selected': 'Markiert — jetzt kopieren.',
   'open.title': 'Geteilte Abrechnung öffnen',
@@ -3203,6 +3239,416 @@ function settle(rows) {
     _b64: { bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, b64url: b64url, unb64url: unb64url },
   };
 });
+
+</script>
+<script>
+/* ---------- QR codes, from scratch ----------------------------------------
+   An invitation code is a long string that somebody has to get onto a second
+   phone. Reading it out loud is hopeless, and a chat message is exactly the
+   channel the two-message split exists to avoid. A code on the screen that the
+   other phone photographs travels no further than the room.
+
+   Everything here is ISO/IEC 18004 in byte mode. No library: the app has to
+   keep working offline and out of a zip file, and a QR encoder is small enough
+   to own outright. Only what this app needs is implemented — byte mode, error
+   correction L and M, versions 1 to 25, which is well past the longest code
+   this app can produce.
+
+   Verified against OpenCV's decoder for every version and both levels
+   (test/qr.js): if a table entry here were wrong, the picture would not read
+   back, and it does. */
+var QR = (function(){
+  'use strict';
+
+  /* total codewords (data + error correction) per version */
+  var TOTAL = [0,26,44,70,100,134,172,196,242,292,346,404,466,532,581,655,733,
+               815,901,991,1085,1156,1258,1364,1474,1588];
+
+  /* [error-correction codewords per block, number of blocks].
+     The data codewords divide over the blocks as evenly as they can, the
+     shorter blocks first — which is the whole rest of the standard's table,
+     so it is computed below rather than typed out again. */
+  var ECB = {
+    L: [null,[7,1],[10,1],[15,1],[20,1],[26,1],[18,2],[20,2],[24,2],[30,2],
+        [18,4],[20,4],[24,4],[26,4],[30,4],[22,6],[24,6],[28,6],[30,6],[28,7],
+        [28,8],[28,8],[28,9],[30,9],[30,10],[26,12]],
+    M: [null,[10,1],[16,1],[26,1],[18,2],[24,2],[16,4],[18,4],[22,4],[22,5],
+        [26,5],[30,5],[22,8],[22,9],[24,9],[24,10],[28,10],[28,11],[26,13],
+        [26,14],[26,16],[26,17],[28,17],[28,18],[28,20],[28,21]]
+  };
+
+  /* centres of the alignment patterns, per version */
+  var ALIGN = [null,[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],
+    [6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],
+    [6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],
+    [6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],
+    [6,32,58,84,110]];
+
+  /* the bits that are left over after the last codeword */
+  function remainderBits(v){
+    if(v === 1) return 0;
+    if(v <= 6) return 7;
+    if(v <= 13) return 0;
+    if(v <= 20) return 3;
+    return 4;                                  /* versions 21-27 */
+  }
+
+  var LEVEL_BITS = { L:1, M:0, Q:3, H:2 };
+
+  /* ---------- GF(256), the field the error correction lives in ---------- */
+  var EXP = new Array(512), LOG = new Array(256);
+  (function(){
+    var x = 1;
+    for(var i=0;i<255;i++){
+      EXP[i] = x; LOG[x] = i;
+      x <<= 1;
+      if(x & 0x100) x ^= 0x11d;                /* the standard's polynomial */
+    }
+    for(var j=255;j<512;j++) EXP[j] = EXP[j-255];
+  })();
+  function gmul(a, b){ return (a === 0 || b === 0) ? 0 : EXP[LOG[a] + LOG[b]]; }
+
+  /* the generator polynomial for n error-correction codewords */
+  function genPoly(n){
+    var g = [1];
+    for(var i=0;i<n;i++){
+      var next = new Array(g.length + 1);
+      for(var k=0;k<next.length;k++) next[k] = 0;
+      /* highest power first, so multiplying by (x + a^i) shifts the old
+         coefficient up one place and adds a^i times it in the old place */
+      for(var j=0;j<g.length;j++){
+        next[j] ^= g[j];
+        next[j+1] ^= gmul(g[j], EXP[i]);
+      }
+      g = next;
+    }
+    return g;
+  }
+
+  function ecBytes(data, n){
+    var g = genPoly(n), i, j;
+    var rem = new Array(n);
+    for(i=0;i<n;i++) rem[i] = 0;
+    for(i=0;i<data.length;i++){
+      var factor = data[i] ^ rem[0];
+      rem.shift(); rem.push(0);
+      for(j=0;j<n;j++) rem[j] ^= gmul(g[j+1], factor);
+    }
+    return rem;
+  }
+
+  /* ---------- the message ---------- */
+  function utf8Bytes(s){
+    var out = [], i, c;
+    for(i=0;i<s.length;i++){
+      c = s.charCodeAt(i);
+      if(c < 0x80) out.push(c);
+      else if(c < 0x800){ out.push(0xc0 | (c >> 6), 0x80 | (c & 63)); }
+      else if(c >= 0xd800 && c <= 0xdbff && i + 1 < s.length){
+        var lo = s.charCodeAt(++i);
+        var cp = 0x10000 + ((c - 0xd800) << 10) + (lo - 0xdc00);
+        out.push(0xf0 | (cp >> 18), 0x80 | ((cp >> 12) & 63),
+                 0x80 | ((cp >> 6) & 63), 0x80 | (cp & 63));
+      }
+      else out.push(0xe0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+    }
+    return out;
+  }
+
+  function dataCapacity(v, level){
+    var e = ECB[level][v];
+    return TOTAL[v] - e[0] * e[1];
+  }
+
+  function pickVersion(len, level){
+    for(var v=1;v<TOTAL.length;v++){
+      var head = 4 + (v < 10 ? 8 : 16);
+      if(dataCapacity(v, level) * 8 >= head + len * 8) return v;
+    }
+    return 0;
+  }
+
+  function bitStream(bytes, v, level){
+    var bits = [];
+    function put(val, n){ for(var i=n-1;i>=0;i--) bits.push((val >> i) & 1); }
+    put(4, 4);                                  /* byte mode */
+    put(bytes.length, v < 10 ? 8 : 16);
+    for(var i=0;i<bytes.length;i++) put(bytes[i], 8);
+
+    var cap = dataCapacity(v, level) * 8;
+    for(var k=0;k<4 && bits.length < cap;k++) bits.push(0);
+    while(bits.length % 8) bits.push(0);
+    var pads = [0xec, 0x11], p = 0;
+    while(bits.length < cap){ put(pads[p], 8); p ^= 1; }
+
+    var out = [];
+    for(var b=0;b<bits.length;b+=8){
+      var byte = 0;
+      for(var j=0;j<8;j++) byte = (byte << 1) | bits[b+j];
+      out.push(byte);
+    }
+    return out;
+  }
+
+  /* split into blocks, add the error correction, and interleave the lot */
+  function codewords(data, v, level){
+    var e = ECB[level][v], ecLen = e[0], blocks = e[1];
+    var total = data.length;
+    var shortLen = Math.floor(total / blocks);
+    var longCount = total % blocks;              /* these get one byte more */
+    var dat = [], ecc = [], at = 0, i, j;
+    for(i=0;i<blocks;i++){
+      var len = shortLen + (i >= blocks - longCount ? 1 : 0);
+      var blk = data.slice(at, at + len); at += len;
+      dat.push(blk);
+      ecc.push(ecBytes(blk, ecLen));
+    }
+    var out = [];
+    for(j=0;j<shortLen+1;j++)
+      for(i=0;i<blocks;i++) if(j < dat[i].length) out.push(dat[i][j]);
+    for(j=0;j<ecLen;j++)
+      for(i=0;i<blocks;i++) out.push(ecc[i][j]);
+    return out;
+  }
+
+  /* ---------- the picture ---------- */
+  function blank(n){
+    var m = new Array(n), i, j;
+    for(i=0;i<n;i++){ m[i] = new Array(n); for(j=0;j<n;j++) m[i][j] = null; }
+    return m;
+  }
+
+  function finder(m, r, c){
+    for(var i=-1;i<=7;i++) for(var j=-1;j<=7;j++){
+      var y = r + i, x = c + j;
+      if(y < 0 || x < 0 || y >= m.length || x >= m.length) continue;
+      var on = (i >= 0 && i <= 6 && (j === 0 || j === 6)) ||
+               (j >= 0 && j <= 6 && (i === 0 || i === 6)) ||
+               (i >= 2 && i <= 4 && j >= 2 && j <= 4);
+      m[y][x] = on ? 1 : 0;
+    }
+  }
+
+  function functionPatterns(m, v){
+    var n = m.length, i, j;
+    finder(m, 0, 0); finder(m, 0, n-7); finder(m, n-7, 0);
+    for(i=8;i<n-8;i++){                          /* timing */
+      m[6][i] = (i % 2 === 0) ? 1 : 0;
+      m[i][6] = (i % 2 === 0) ? 1 : 0;
+    }
+    var pos = ALIGN[v], last = pos.length - 1;
+    for(i=0;i<pos.length;i++) for(j=0;j<pos.length;j++){
+      /* The three that would sit on a finder are left out — and only those.
+         Testing "is this module still empty" instead dropped the pattern that
+         legitimately crosses the timing line, which is why everything from
+         version 7 up was unreadable. */
+      if((i === 0 && j === 0) || (i === 0 && j === last) || (i === last && j === 0)) continue;
+      var r = pos[i], c = pos[j];
+      for(var dy=-2;dy<=2;dy++) for(var dx=-2;dx<=2;dx++)
+        m[r+dy][c+dx] = (Math.max(Math.abs(dy), Math.abs(dx)) !== 1) ? 1 : 0;
+    }
+    m[n-8][8] = 1;                               /* the one module that is
+                                                    always dark */
+    /* format information is written later; reserve it so the data skips it */
+    for(i=0;i<9;i++){
+      if(m[8][i] === null) m[8][i] = 0;
+      if(m[i][8] === null) m[i][8] = 0;
+    }
+    for(i=0;i<8;i++){
+      if(m[8][n-1-i] === null) m[8][n-1-i] = 0;
+      if(m[n-1-i][8] === null) m[n-1-i][8] = 0;
+    }
+    if(v >= 7){
+      for(i=0;i<6;i++) for(j=0;j<3;j++){
+        m[n-11+j][i] = 0; m[i][n-11+j] = 0;
+      }
+    }
+  }
+
+  /* which modules the data may use: everything the function patterns left */
+  function reserved(v){
+    var n = 4*v + 17;
+    var m = blank(n);
+    functionPatterns(m, v);
+    var r = new Array(n), i, j;
+    for(i=0;i<n;i++){ r[i] = new Array(n); for(j=0;j<n;j++) r[i][j] = m[i][j] !== null; }
+    return { taken: r, base: m };
+  }
+
+  function placeData(m, taken, bytes, bitsLeft){
+    var n = m.length, dir = -1, row = n - 1, idx = 0, bit = 0;
+    function next(){
+      if(idx >= bytes.length){
+        if(bit < bitsLeft){ bit++; return 0; }   /* the remainder bits */
+        return null;
+      }
+      var b = (bytes[idx] >> (7 - bit)) & 1;
+      if(++bit === 8){ bit = 0; idx++; }
+      return b;
+    }
+    for(var col=n-1;col>0;col-=2){
+      if(col === 6) col--;                       /* the vertical timing line */
+      while(true){
+        for(var k=0;k<2;k++){
+          var c = col - k;
+          if(!taken[row][c]){
+            var b = next();
+            m[row][c] = (b === null) ? 0 : b;
+          }
+        }
+        row += dir;
+        if(row < 0 || row >= n){ row -= dir; dir = -dir; break; }
+      }
+    }
+  }
+
+  function maskFn(k){
+    return [
+      function(i,j){ return (i + j) % 2 === 0; },
+      function(i){ return i % 2 === 0; },
+      function(i,j){ return j % 3 === 0; },
+      function(i,j){ return (i + j) % 3 === 0; },
+      function(i,j){ return (Math.floor(i/2) + Math.floor(j/3)) % 2 === 0; },
+      function(i,j){ return (i*j) % 2 + (i*j) % 3 === 0; },
+      function(i,j){ return ((i*j) % 2 + (i*j) % 3) % 2 === 0; },
+      function(i,j){ return ((i+j) % 2 + (i*j) % 3) % 2 === 0; }
+    ][k];
+  }
+
+  /* the 15 bits that say which level and which mask, BCH-protected */
+  function formatBits(level, mask){
+    var data = (LEVEL_BITS[level] << 3) | mask;
+    var rem = data << 10;
+    for(var i=14;i>=10;i--) if((rem >> i) & 1) rem ^= 0x537 << (i - 10);
+    return ((data << 10) | rem) ^ 0x5412;
+  }
+  function versionBits(v){
+    var rem = v << 12;
+    for(var i=17;i>=12;i--) if((rem >> i) & 1) rem ^= 0x1f25 << (i - 12);
+    return (v << 12) | rem;
+  }
+
+  function writeFormat(m, level, mask){
+    var n = m.length, f = formatBits(level, mask), i;
+    for(i=0;i<15;i++){
+      var b = (f >> i) & 1;
+      /* the copy around the top-left finder */
+      if(i < 6) m[i][8] = b;
+      else if(i === 6) m[7][8] = b;
+      else if(i === 7) m[8][8] = b;
+      else if(i === 8) m[8][7] = b;
+      else m[8][14-i] = b;
+      /* and the second copy, split between the other two */
+      if(i < 8) m[8][n-1-i] = b;
+      else m[n-15+i][8] = b;
+    }
+    m[n-8][8] = 1;
+  }
+
+  function writeVersion(m, v){
+    if(v < 7) return;
+    var n = m.length, bits = versionBits(v);
+    for(var i=0;i<18;i++){
+      var b = (bits >> i) & 1;
+      var r = Math.floor(i / 3), c = i % 3;
+      m[n-11+c][r] = b;
+      m[r][n-11+c] = b;
+    }
+  }
+
+  /* the standard's four complaints about a hard-to-read picture */
+  function penalty(m){
+    var n = m.length, score = 0, i, j, k;
+    for(i=0;i<n;i++){
+      for(var pass=0;pass<2;pass++){
+        var run = 1, prev = pass ? m[0][i] : m[i][0];
+        for(j=1;j<n;j++){
+          var cur = pass ? m[j][i] : m[i][j];
+          if(cur === prev) run++;
+          else { if(run >= 5) score += run - 2; run = 1; prev = cur; }
+        }
+        if(run >= 5) score += run - 2;
+      }
+    }
+    for(i=0;i<n-1;i++) for(j=0;j<n-1;j++){
+      var a = m[i][j];
+      if(a === m[i][j+1] && a === m[i+1][j] && a === m[i+1][j+1]) score += 3;
+    }
+    var PAT1 = [1,0,1,1,1,0,1,0,0,0,0], PAT2 = [0,0,0,0,1,0,1,1,1,0,1];
+    for(i=0;i<n;i++) for(j=0;j<=n-11;j++){
+      var okH1 = true, okH2 = true, okV1 = true, okV2 = true;
+      for(k=0;k<11;k++){
+        if(m[i][j+k] !== PAT1[k]) okH1 = false;
+        if(m[i][j+k] !== PAT2[k]) okH2 = false;
+        if(m[j+k][i] !== PAT1[k]) okV1 = false;
+        if(m[j+k][i] !== PAT2[k]) okV2 = false;
+      }
+      if(okH1) score += 40; if(okH2) score += 40;
+      if(okV1) score += 40; if(okV2) score += 40;
+    }
+    var dark = 0;
+    for(i=0;i<n;i++) for(j=0;j<n;j++) if(m[i][j]) dark++;
+    var pct = dark * 100 / (n*n);
+    score += Math.floor(Math.abs(pct - 50) / 5) * 10;
+    return score;
+  }
+
+  /** the finished module grid: matrix[row][col], 1 dark, 0 light */
+  function matrix(text, opts){
+    opts = opts || {};
+    var bytes = utf8Bytes(String(text));
+    var level = opts.level || 'M';
+    var v = pickVersion(bytes.length, level);
+    if(!v && level !== 'L'){ level = 'L'; v = pickVersion(bytes.length, level); }
+    if(!v) throw new Error('qr-too-long');
+    if(opts.minVersion && v < opts.minVersion) v = opts.minVersion;
+
+    var words = codewords(bitStream(bytes, v, level), v, level);
+    var res = reserved(v);
+    var best = null, bestScore = Infinity;
+    for(var mask=0;mask<8;mask++){
+      var m = [], i, j;
+      for(i=0;i<res.base.length;i++) m.push(res.base[i].slice());
+      placeData(m, res.taken, words, remainderBits(v));
+      var fn = maskFn(mask);
+      for(i=0;i<m.length;i++) for(j=0;j<m.length;j++)
+        if(!res.taken[i][j] && fn(i,j)) m[i][j] ^= 1;
+      writeFormat(m, level, mask);
+      writeVersion(m, v);
+      var s = penalty(m);
+      if(s < bestScore){ bestScore = s; best = m; }
+    }
+    best.version = v; best.level = level;
+    return best;
+  }
+
+  /** an SVG string, sized to whatever box it is dropped into */
+  function svg(text, opts){
+    opts = opts || {};
+    var m = matrix(text, opts);
+    var n = m.length, quiet = opts.quiet === undefined ? 4 : opts.quiet;
+    var size = n + quiet*2;
+    var d = [], i, j;
+    for(i=0;i<n;i++){
+      j = 0;
+      while(j < n){
+        if(!m[i][j]){ j++; continue; }
+        var run = 0;
+        while(j + run < n && m[i][j+run]) run++;
+        d.push('M' + (j+quiet) + ' ' + (i+quiet) + 'h' + run + 'v1h-' + run + 'z');
+        j += run;
+      }
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + size + ' ' + size +
+           '" shape-rendering="crispEdges" role="img">' +
+           '<rect width="' + size + '" height="' + size + '" fill="' + (opts.light || '#fff') + '"/>' +
+           '<path fill="' + (opts.dark || '#000') + '" d="' + d.join('') + '"/></svg>';
+  }
+
+  return { matrix: matrix, svg: svg, capacity: dataCapacity,
+           blocks: function(v, level){ return ECB[level][v][1]; } };
+})();
+
 
 </script>
 <script>
@@ -5313,9 +5759,15 @@ function openExactRow(afterTr, ex){
       if(ex.fixed && !Object.keys(ex.fixed).length) delete ex.fixed;
       applyAutoRest(ex);
       /* not while the payer is typing in it — but the blink has to stop */
-      if(p.id === ex.payerId) inp.classList.remove('auto');
-      else paintAutoField(box, ex);
-      updatePerShare(); renderResults(); save(); refreshExactFoot(box, ex);
+      if(p.id === ex.payerId){
+        inp.classList.remove('auto');
+        updatePerShare(); renderResults(); save(); refreshExactFoot(box, ex);
+      }else{
+        /* Emptying the last of the other fields puts the strip back where it
+           started, so the suggestion at the payer comes back with it — the
+           alternative was an empty panel calling its own money unassigned. */
+        updatePerShare(); renderResults(); save(); refreshOpenExact();
+      }
     });
     cell.appendChild(inp);
     inputs.push(inp);
@@ -5352,7 +5804,7 @@ function openExactRow(afterTr, ex){
   autoLive = false;
   /* an empty panel gets the rest shown at the payer straight away; one that
      already carries amounts is left exactly as it stands */
-  box._proposal = autoArmed(ex) && !ex.fixed;
+  box._proposal = autoArmed(ex) && !hasFixedAny(ex);
   if(box._proposal) paintAutoField(box, ex);
   refreshExactFoot(box, ex);
   var first = box.querySelector('input');
@@ -5400,6 +5852,18 @@ function autoArmedBase(ex){
 }
 function autoArmed(ex){ return autoArmedBase(ex) && restTakers(ex) === 0; }
 function autoOn(ex){ return autoArmed(ex) && autoLive; }
+/* an empty ex.fixed is not "amounts are present" */
+function hasFixedAny(ex){
+  if(!ex || !ex.fixed) return false;
+  for(var k in ex.fixed) if(ex.fixed[k]) return true;
+  return false;
+}
+/* the strip on screen, if it belongs to this expense and is showing the
+   app's own figure rather than one the user typed */
+function openExactBox(){
+  var o = document.querySelector('#tbody tr.exactrow .exact, #tbody td.exactcell .exact');
+  return (o && o._ex) ? o : null;
+}
 /* what the others have claimed — the payer's automatic share is not a claim */
 function fixedByOthers(ex, exceptId){
   var sum = 0;
@@ -5416,15 +5880,21 @@ function fixedByOthers(ex, exceptId){
 }
 function applyAutoRest(ex){
   if(!autoArmedBase(ex)) return;
-  if(!ex.fixed) ex.fixed = {};
   /* a tick has appeared, or was there all along: the rest is theirs, and
      nothing belongs on the payer */
   if(restTakers(ex) > 0){
-    delete ex.fixed[ex.payerId];
-    if(!Object.keys(ex.fixed).length) delete ex.fixed;
+    if(ex.fixed){
+      delete ex.fixed[ex.payerId];
+      if(!Object.keys(ex.fixed).length) delete ex.fixed;
+    }
     return;
   }
   if(!autoLive) return;
+  /* Only from here on is there anything to write. Creating the object up front
+     left an empty {} behind on every pass that bailed out below — and an empty
+     object is still an object, so "nothing is itemised" then read as "amounts
+     are present" and the proposal at the payer never appeared. */
+  if(!ex.fixed) ex.fixed = {};
   var others = fixedByOthers(ex, null);
   /* Nothing itemised yet means there is nothing for the payer to hold the rest
      OF. Writing the whole expense onto them the moment the panel opens made an
@@ -5461,9 +5931,12 @@ function refreshOpenExact(){
   /* the strip is a row of its own in the list and a cell of the card in the
      rail — looking for only one of the two left the note standing while the
      numbers underneath it moved */
-  var open = document.querySelector('#tbody tr.exactrow .exact, #tbody td.exactcell .exact');
-  if(!open || !open._ex) return;
-  open._proposal = autoArmed(open._ex) && !open._ex.fixed;
+  var open = openExactBox();
+  if(!open) return;
+  /* Nothing typed and nobody ticked: the rest goes back to being the app's
+     suggestion. This is the way back too — removing the last tick has to bring
+     the blinking figure at the payer with it. */
+  open._proposal = autoArmed(open._ex) && !hasFixedAny(open._ex);
   paintAutoField(open, open._ex);
   refreshExactFoot(open, open._ex);
 }
@@ -5493,14 +5966,26 @@ function refreshExactFoot(box, ex, override){
   if(noAmount){ note.textContent = t('exact.noamount'); note.classList.add('bad'); return; }
   if(pe.overfixed){ note.textContent = t('exact.over', money(-pe.rest)); note.classList.add('bad'); }
   else if(pe.shortfixed){ note.textContent = t('exact.short', money(pe.rest)); note.classList.add('bad'); }
+  else if(box._proposal && autoArmed(ex)){
+    /* The figure blinking at the payer is a suggestion and not in the sheet
+       yet, which is why the row is still orange. The note says both, so the
+       colour and the field stop contradicting each other — and the row does
+       not change colour just because a panel was opened. */
+    note.textContent = t('exact.topayer', money((ex.cents || 0) - fixedByOthers(ex, null)),
+                         shownName(ex.payerId));
+    note.classList.add('bad');
+  }
   else {
     /* Who actually takes what is left. "108 € left over" on its own reads as
        money gone missing, when in fact one tick is collecting all of it. */
     var takers = 0;
     for(var q=0;q<pe.shares.length;q++) if(!pe.fixed[q] && pe.shares[q] > 0) takers++;
-    /* nobody splitting anything, and nothing to split: every cent is in a
-       fixed amount, which is a finished expense and not a rest of zero */
-    if(!takers) note.textContent = t('exact.allfixed');
+    /* Nobody splitting anything. With fixed amounts present that is a finished
+       expense — every cent is in one of them. With the fields empty it is the
+       opposite: nothing is attached to the money at all, and the note has to
+       say so rather than claim a distribution that does not exist. */
+    if(!takers && pe.hasFixed) note.textContent = t('exact.allfixed');
+    else if(!takers){ note.textContent = t('exact.short', money(pe.rest)); note.classList.add('bad'); }
     else note.textContent = t('exact.rest', money(pe.rest), nPeople(takers));
   }
 }
@@ -6242,7 +6727,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.4.0';
+var APP_VERSION = '6.5.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -7094,7 +7579,7 @@ function showCode(fresh){
       note(b, t(one ? 'code.intro.one' : 'code.intro'));
 
       var ta = field(b, t('code.field'), {area:true, value:code, mono:true, ro:true});
-      sendCopyRow(b, code, t('code.field'));
+      sendCopyRow(b, code, t('code.field'), true);
 
       if(!one){
         var pw = field(b, t('code.pw.field'), {value:syncPw, mono:true, ro:true});
@@ -7118,7 +7603,7 @@ function showCode(fresh){
 /* Send and copy, right under the thing they act on — the code and the password
    are meant to travel apart, so one shared pair of buttons at the bottom was
    the wrong shape. */
-function sendCopyRow(parent, text, what){
+function sendCopyRow(parent, text, what, withQr){
   var row = el('div','sendrow');
 
   var send = el('button','btn sm', t('code.share'));
@@ -7126,12 +7611,48 @@ function sendCopyRow(parent, text, what){
   send.addEventListener('click', function(){ shareText(text, what); });
   row.appendChild(send);
 
+  /* The third way across: the other phone's camera. Nothing leaves either
+     device and nothing is stored anywhere — which is more than can be said
+     for the chat app that "Send" reaches. Offered for the code only: a
+     password on screen as a picture is no safer than one as text, and the
+     whole point of the two-message split is that the two halves travel by
+     different routes. */
+  if(withQr){
+    var qr = el('button','btn sm', t('code.qr'));
+    qr.dataset.b = 'qr';
+    qr.addEventListener('click', function(){ toggleQr(row, text, qr); });
+    row.appendChild(qr);
+  }
+
   var copy = el('button','btn sm primary', t('code.copy'));
   copy.dataset.b = 'copy';
   copy.addEventListener('click', function(){ copyText(text); });
   row.appendChild(copy);
 
   parent.appendChild(row);
+}
+
+/* The picture is drawn once and kept: the encoder is not slow, but a code of
+   this length is a version 17-ish symbol and redrawing it on every tap of the
+   button is work for nothing. */
+function toggleQr(row, text, btn){
+  var box = row._qr;
+  if(box){
+    box.hidden = !box.hidden;
+    btn.classList.toggle('on', !box.hidden);
+    return;
+  }
+  var svg;
+  try{ svg = QR.svg(text, {level:'L', dark:'#000', light:'#fff'}); }
+  catch(e){ toast(t('code.qr.fail')); return; }
+  box = el('div','qrbox');
+  var pic = el('div','qrpic');
+  pic.innerHTML = svg;
+  box.appendChild(pic);
+  box.appendChild(el('div','qrhint', t('code.qr.hint')));
+  row.parentNode.insertBefore(box, row.nextSibling);
+  row._qr = box;
+  btn.classList.add('on');
 }
 
 function copyText(text){
