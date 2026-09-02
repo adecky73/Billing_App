@@ -700,22 +700,29 @@ body.all-final  #tripTitle{opacity:.62}
 .shaded{position:relative;opacity:.45;filter:saturate(.5)}
 .meshade{position:absolute;inset:0;z-index:3;cursor:not-allowed;background:transparent}
 
-/* Which cards still take input is otherwise only discoverable by trying one.
-   A thin ring says it up front, and its absence says the opposite — the
-   expenses lose theirs the moment the sheet is confirmed. */
-.card[data-edit]{outline:2px solid var(--outline-var);outline-offset:-2px}
-body.await-final .card[data-edit]:not([data-meok]),
-body.all-final  .card[data-edit]:not([data-meok]){outline:none}
+/* ---------- the ring round a card ----------
+   Drawn as an overlay rather than as an outline or a border, and that is the
+   whole trick: an outline sits under the card's own contents, so the table's
+   row lines and the first column's background painted straight over it — the
+   left edge went missing on a desktop and the row rules cut through it on a
+   phone. A pseudo-element is painted after everything inside, so nothing can
+   overdraw it, and it takes up no space so no layout moves. */
+.card{position:relative}
+.card::after{
+  content:'';position:absolute;inset:0;pointer-events:none;z-index:6;
+  border:2px solid var(--outline-var);border-radius:inherit;
+}
+/* A locked card says so by having none: the expenses lose their ring the
+   moment the sheet is confirmed. */
+body.await-final .card[data-edit]:not([data-meok])::after,
+body.all-final  .card[data-edit]:not([data-meok])::after{border-color:transparent}
 
 /* Once everybody agrees, the ring turns green on everything that is still
    live: the balance and the settlement, which are the result — and the people
    list, which is where the addresses for paying up are. Green is reserved for
    this state, so the neutral ring above is a different colour on purpose:
    a sheet that looked confirmed from the first tap would say nothing. */
-body.all-final .grid2 .card:not([data-edit]),
-body.all-final .card[data-edit][data-meok]{
-  outline:2px solid var(--success);outline-offset:-2px;
-}
+body.all-final .card::after{border-color:var(--success)}
 
 
 /* ---------- naming gate ---------- */
@@ -867,6 +874,24 @@ td.exactcell{display:none}
      shows at the edge — that peek is the whole point: it says there is more,
      which a single card on its own never does. Only the position is animated;
      the cards themselves are the same cards. */
+  /* ---------- the rail runs to the edge of the screen ----------
+     A card standing 12px short of the edge looks like a card that has been cut
+     off; a rail that reaches the glass looks like there is more of it, which is
+     exactly what is true. The card takes the page's own side padding back with
+     negative margins — the same move the header makes — and drops its ring,
+     because the neighbours are meant to slide out past where that ring was. */
+  body.card-mode #expCard{
+    margin-right:calc(-12px - env(safe-area-inset-right, 0px));
+    margin-left:calc(-12px - env(safe-area-inset-left, 0px));
+    border-radius:0;
+  }
+  body.card-mode #expCard::after{border-color:transparent}
+  /* the heading keeps the inset it had — the card moved out from under it,
+     so the padding has to make up the page margin the card gave back */
+  body.card-mode #expCard > .card-h{
+    padding-right:calc(26px + env(safe-area-inset-right, 0px));
+    padding-left:calc(26px + env(safe-area-inset-left, 0px));
+  }
   body.card-mode .tablewrap{overflow:hidden}
   body.card-mode tbody{
     transform:translateX(var(--rail, 0));
@@ -1530,7 +1555,7 @@ th.share .pname.isme,td.share .mlabel.isme{
     </div>
   </div>
 
-  <div class="card gated" data-edit>
+  <div class="card gated" id="expCard" data-edit>
     <div class="card-h">
       <h2 data-i18n="card.expenses">Expenses</h2>
       <!-- only a phone folds its expenses, so only a phone shows these two -->
@@ -1921,7 +1946,10 @@ en: {
   'code.field': 'Invitation code',
   'code.copy': 'Copy',
   'code.qr': 'QR code',
-  'code.qr.hint': 'Photograph this with the other phone — nothing is sent anywhere. Their camera shows the code; copy it into the app there.',
+  'code.qr.hint.link': 'Photograph this with the other phone. If the installed app is there, it opens straight into this sheet — nothing is sent anywhere and no browser is involved.',
+  'code.qr.hint.text': 'Photograph this with the other phone — nothing is sent anywhere. Their camera shows the code; paste it into the app there.',
+  'code.qr.astext': 'For a phone without the app (plain text)',
+  'code.qr.aslink': 'For a phone with the app (opens it)',
   'code.qr.fail': 'The code is too long for a QR code.',
   'code.share': 'Send…',
   'code.selected': 'Selected — copy it now.',
@@ -2314,7 +2342,10 @@ de: {
   'code.field': 'Einladungscode',
   'code.copy': 'Kopieren',
   'code.qr': 'QR-Code',
-  'code.qr.hint': 'Mit dem anderen Handy abfotografieren — es wird nichts verschickt. Dessen Kamera zeigt den Code an; dort in die App kopieren.',
+  'code.qr.hint.link': 'Mit dem anderen Handy abfotografieren. Ist dort die installierte App vorhanden, öffnet sie sich direkt mit dieser Abrechnung — es wird nichts verschickt, und kein Browser ist beteiligt.',
+  'code.qr.hint.text': 'Mit dem anderen Handy abfotografieren — es wird nichts verschickt. Dessen Kamera zeigt den Code an; dort in die App einfügen.',
+  'code.qr.astext': 'Für ein Handy ohne die App (reiner Text)',
+  'code.qr.aslink': 'Für ein Handy mit der App (öffnet sie)',
   'code.qr.fail': 'Der Code ist zu lang für einen QR-Code.',
   'code.share': 'Senden…',
   'code.selected': 'Markiert — jetzt kopieren.',
@@ -2900,9 +2931,35 @@ function settle(rows) {
     });
   }
 
+  /* ---------- the same code, as something a phone can open ----------
+     A QR code that only shows text leaves the reader copying a 450-character
+     string by hand. Wrapped in a link with the app's own scheme, the installed
+     app opens on it instead — and nothing else does: a private scheme is not a
+     web address, so it never reaches a browser, a history, or a server. Where
+     the app is not installed the reader still sees the text, and every field
+     that takes a code takes the whole link too. */
+  var LINK_SCHEME = 'billingtool';
+  var LINK_PREFIX = LINK_SCHEME + '://open?c=';
+
+  function makeLink(code) { return LINK_PREFIX + encodeURIComponent(String(code || '')); }
+
+  /** the bare code, whether it arrived on its own or inside a link */
+  function stripLink(s) {
+    var v = String(s || '').trim().replace(/\s+/g, '');
+    var m = /^[a-z][a-z0-9+.\-]*:(?:\/\/)?[^?#]*[?#](?:.*&)?c=([^&#]+)/i.exec(v);
+    if (m) { try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; } }
+    return v;
+  }
+
   /** true when the code brings its own password and none needs to be typed */
   function codeIsSelfContained(code) {
-    return String(code || '').trim().replace(/\s+/g, '').indexOf(CODE_FULL_PREFIX) === 0;
+    return stripLink(code).indexOf(CODE_FULL_PREFIX) === 0;
+  }
+
+  /** true when this looks like a code at all — a link or a bare one */
+  function looksLikeCode(s) {
+    var v = stripLink(s);
+    return v.indexOf(CODE_PREFIX) === 0 || v.indexOf(CODE_FULL_PREFIX) === 0;
   }
 
   function shaped(o, pw) {
@@ -2911,7 +2968,7 @@ function settle(rows) {
   }
 
   function parseCode(code, password) {
-    var s = String(code || '').trim().replace(/\s+/g, '');
+    var s = stripLink(code);
 
     if (s.indexOf(CODE_FULL_PREFIX) === 0) {
       try {
@@ -3231,7 +3288,9 @@ function settle(rows) {
     newSalt: newSalt, deriveKey: deriveKey, suggestPassword: suggestPassword, randomId: randomId,
     seal: seal, unseal: unseal, openSealed: openSealed, labelOf: labelOf,
     makeCode: makeCode, parseCode: parseCode, codeIsSelfContained: codeIsSelfContained,
+    makeLink: makeLink, stripLink: stripLink, looksLikeCode: looksLikeCode,
     CODE_PREFIX: CODE_PREFIX, CODE_FULL_PREFIX: CODE_FULL_PREFIX,
+    LINK_SCHEME: LINK_SCHEME,
     ghGet: ghGet, ghPut: ghPut, ghList: ghList, ghDelete: ghDelete,
     mergeState: mergeState, mergeList: mergeList, mergeClaims: mergeClaims,
     mergeFinal: mergeFinal, finalAlive: finalAlive, liveFinal: liveFinal,
@@ -6727,7 +6786,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.5.0';
+var APP_VERSION = '6.6.0';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
@@ -7632,24 +7691,49 @@ function sendCopyRow(parent, text, what, withQr){
   parent.appendChild(row);
 }
 
-/* The picture is drawn once and kept: the encoder is not slow, but a code of
-   this length is a version 17-ish symbol and redrawing it on every tap of the
-   button is work for nothing. */
+/* Two things can be in the picture, and they are for two different readers.
+
+   As a LINK it carries the app's own URL scheme, so a phone that has the
+   packaged app installed opens it straight into this sheet — with the password
+   already inside for a one-message code, and with the password field waiting
+   for a two-message one. Nothing on the web answers that scheme: it cannot
+   open a browser, so the code never touches a history or a server.
+
+   As plain TEXT it is just the code. That is what a phone WITHOUT the app can
+   do something with — the camera shows the string and it gets pasted in. Both
+   are accepted everywhere a code is, so a wrong guess here costs nothing. */
+function qrAsLink(){ return lsGet('billing-tool.qrlink') !== '0'; }
+
 function toggleQr(row, text, btn){
-  var box = row._qr;
-  if(box){
-    box.hidden = !box.hidden;
-    btn.classList.toggle('on', !box.hidden);
+  if(row._qr){
+    var open = row._qr.hidden;
+    row._qr.hidden = !open;
+    btn.classList.toggle('on', open);
     return;
   }
-  var svg;
-  try{ svg = QR.svg(text, {level:'L', dark:'#000', light:'#fff'}); }
-  catch(e){ toast(t('code.qr.fail')); return; }
-  box = el('div','qrbox');
+  var box = el('div','qrbox');
   var pic = el('div','qrpic');
-  pic.innerHTML = svg;
+  var hint = el('div','qrhint', '');
+  var sw = el('button','linkbtn', '');
+
+  function draw(){
+    var asLink = qrAsLink();
+    var payload = asLink ? Sync.makeLink(text) : text;
+    try{ pic.innerHTML = QR.svg(payload, {level:'L', dark:'#000', light:'#fff'}); }
+    catch(e){ toast(t('code.qr.fail')); return; }
+    hint.textContent = t(asLink ? 'code.qr.hint.link' : 'code.qr.hint.text');
+    sw.textContent = t(asLink ? 'code.qr.astext' : 'code.qr.aslink');
+  }
+  sw.addEventListener('click', function(){
+    lsSet('billing-tool.qrlink', qrAsLink() ? '0' : '1');
+    draw();
+  });
+  draw();
+  if(!pic.innerHTML) return;                 /* the encoder refused; it said so */
+
   box.appendChild(pic);
-  box.appendChild(el('div','qrhint', t('code.qr.hint')));
+  box.appendChild(hint);
+  box.appendChild(sw);
   row.parentNode.insertBefore(box, row.nextSibling);
   row._qr = box;
   btn.classList.add('on');
@@ -7699,7 +7783,7 @@ function shareText(text, what){
 /* Three ways in, in the order they are actually used: a sheet this device
    already knows, an invitation code somebody sent, or — with neither — the
    location typed by hand. None of them ever puts a path on screen. */
-function openShared(){
+function openShared(prefill){
   /* Switching sheets is not obviously destructive — the current one stays on
      the server — but it does clear the screen, so it gets asked once. */
   if(syncCfg && !confirm(t('confirm.switchshared'))) return;
@@ -7731,7 +7815,11 @@ function openShared(){
     };
     codeIn.addEventListener('input', syncPwField);
     codeIn.addEventListener('paste', function(){ setTimeout(syncPwField, 0); });
+    /* arrived by scanning: the code is already there, only the password is
+       still missing — so that is the field the cursor lands in */
+    if(prefill){ codeIn.value = prefill; }
     syncPwField();
+    if(prefill) setTimeout(function(){ pwIn.focus(); }, 0);
   }, [
     { label: t('btn.cancel'), act:'cancel', onClick: dlgClose },
     { label: t('open.manual'), act:'manual', onClick: function(){ dlgClose(); openManual(); } },
@@ -7882,6 +7970,39 @@ function applyOpened(f, pw){
     toast(t('open.ok', nPeople(state.people.length), nExpenses(state.expenses.length)));
   });
 }
+
+/* ---------- arriving by scan ----------
+   The packaged app registers one private URL scheme, and this is where those
+   openings land: cold start (getLaunchUrl) and while it is already running
+   (appUrlOpen). Nothing on the web answers that scheme, which is the point —
+   the link never reaches a browser, so a bearer code never lands in a browser
+   history or in a server log on the way. */
+function handleDeepLink(url){
+  if(!url || !Sync.looksLikeCode(url)) return false;
+  var code = Sync.stripLink(url);
+  if(Sync.codeIsSelfContained(code)){
+    /* everything is in the code — but a sheet appearing unasked because
+       something was pointed at a camera deserves one question first */
+    if(syncCfg && !confirm(t('confirm.switchshared'))) return true;
+    adoptCode(code, '');
+  }else{
+    openShared(code);
+  }
+  return true;
+}
+
+(function listenForScans(){
+  var P = window.Capacitor && window.Capacitor.Plugins;
+  if(!P || !P.App) return;
+  try{
+    P.App.addListener('appUrlOpen', function(ev){ handleDeepLink(ev && ev.url); });
+    if(P.App.getLaunchUrl){
+      Promise.resolve(P.App.getLaunchUrl())
+        .then(function(r){ if(r && r.url) setTimeout(function(){ handleDeepLink(r.url); }, 400); })
+        .catch(function(){});
+    }
+  }catch(e){}
+})();
 
 function adoptCode(code, pw){
   toast(t('sync.state.busy'), true);
