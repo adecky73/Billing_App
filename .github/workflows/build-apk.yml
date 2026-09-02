@@ -87,10 +87,33 @@ jobs:
           # without them an <a download> is silently ignored inside the WebView
           npm install --no-audit --no-fund \
             @capacitor/core@^7 @capacitor/cli@^7 @capacitor/android@^7 \
-            @capacitor/filesystem@^7 @capacitor/share@^7 @capacitor/status-bar@^7
+            @capacitor/filesystem@^7 @capacitor/share@^7 @capacitor/status-bar@^7 \
+            @capacitor/app@^7
           npx cap init "$APP_NAME" "$APP_ID" --web-dir www
           npx cap add android
           npx cap sync android
+          # ----------------------------------------------------------------
+          # One private URL scheme, so a scanned invitation QR code opens THIS
+          # app and nothing else. Deliberately not an https link: an https link
+          # is offered to the browser as well, and the invitation code would
+          # end up in a browser history. Capacitor's template already carries
+          # the intent-filter and reads the scheme from a string resource, so
+          # this normally only replaces the value — the rest is there in case
+          # a future template drops it.
+          # ----------------------------------------------------------------
+          STR=android/app/src/main/res/values/strings.xml
+          MAN=android/app/src/main/AndroidManifest.xml
+          if grep -q 'custom_url_scheme' "$STR"; then
+            sed -i 's#\(<string name="custom_url_scheme">\)[^<]*\(</string>\)#\1billingtool\2#' "$STR"
+          else
+            sed -i 's#</resources>#    <string name="custom_url_scheme">billingtool</string>\n</resources>#' "$STR"
+          fi
+          if ! grep -q 'custom_url_scheme' "$MAN"; then
+            perl -0pi -e 's#(\s*</activity>)#\n            <intent-filter>\n                <action android:name="android.intent.action.VIEW" />\n                <category android:name="android.intent.category.DEFAULT" />\n                <category android:name="android.intent.category.BROWSABLE" />\n                <data android:scheme="\@string/custom_url_scheme" />\n            </intent-filter>$1#' "$MAN"
+          fi
+          grep -q 'custom_url_scheme' "$MAN" && grep -q '>billingtool<' "$STR" || {
+            echo "::error::could not register the billingtool:// scheme"; exit 1; }
+          echo "scheme registered: billingtool://"
           # the exec bit can be lost when the template is copied out of node_modules
           chmod +x android/gradlew
           echo "--- versions ---"
