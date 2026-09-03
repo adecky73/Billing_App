@@ -919,6 +919,11 @@ td.exactcell{display:none}
   body.card-mode tbody > tr{
     flex:0 0 90%;margin:0 -6% 0 0;
     position:relative;z-index:1;
+    /* A hairline is enough for a line in a list; a card lying on a stack needs
+       an edge you can see. Both get the same weight — what separates them is
+       the colour and the shadow, so the one in focus stays the stronger of the
+       two without the ones behind looking like an afterthought. */
+    border-width:2px;
   }
   /* A colour of its own: in the list a row is a line among lines, here it is a
      card lying on the panel, and the ones behind are the same blue a step
@@ -6809,7 +6814,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.6.5';
+var APP_VERSION = '6.6.6';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
