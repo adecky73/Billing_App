@@ -81,6 +81,10 @@
   --r-xs:4px; --r-s:8px; --r-m:12px; --r-l:16px; --r-xl:28px; --r-full:999px;
   --e1:0 1px 2px rgba(0,0,0,.14), 0 1px 3px 1px rgba(0,0,0,.08);
   --e2:0 1px 2px rgba(0,0,0,.16), 0 2px 6px 2px rgba(0,0,0,.10);
+  /* the swipe stack, where the depth has to carry what a hairline cannot:
+     the card in front lifted clear of the page, the ones behind just off it */
+  --rail-e:0 2px 4px rgba(0,0,0,.16), 0 10px 22px 2px rgba(0,0,0,.15);
+  --rail-e-back:0 1px 3px rgba(0,0,0,.11), 0 4px 10px rgba(0,0,0,.08);
 }
 
 @media (prefers-color-scheme: dark){
@@ -124,6 +128,8 @@
     --note-line:#3f7ba8;
     --e1:0 1px 2px rgba(0,0,0,.5), 0 1px 3px 1px rgba(0,0,0,.3);
     --e2:0 1px 2px rgba(0,0,0,.55), 0 2px 6px 2px rgba(0,0,0,.35);
+    --rail-e:0 2px 4px rgba(0,0,0,.6), 0 10px 24px 2px rgba(0,0,0,.5);
+    --rail-e-back:0 1px 3px rgba(0,0,0,.45), 0 4px 12px rgba(0,0,0,.34);
   }
 }
 :root[data-theme="dark"]{
@@ -166,6 +172,8 @@
   --note-line:#3f7ba8;
   --e1:0 1px 2px rgba(0,0,0,.5), 0 1px 3px 1px rgba(0,0,0,.3);
   --e2:0 1px 2px rgba(0,0,0,.55), 0 2px 6px 2px rgba(0,0,0,.35);
+  --rail-e:0 2px 4px rgba(0,0,0,.6), 0 10px 24px 2px rgba(0,0,0,.5);
+  --rail-e-back:0 1px 3px rgba(0,0,0,.45), 0 4px 12px rgba(0,0,0,.34);
 }
 
 /* Adopt the phone's own accent colour where the browser exposes it, and
@@ -919,11 +927,10 @@ td.exactcell{display:none}
   body.card-mode tbody > tr{
     flex:0 0 90%;margin:0 -6% 0 0;
     position:relative;z-index:1;
-    /* A hairline is enough for a line in a list; a card lying on a stack needs
-       an edge you can see. Both get the same weight — what separates them is
-       the colour and the shadow, so the one in focus stays the stronger of the
-       two without the ones behind looking like an afterthought. */
-    border-width:2px;
+    /* The edge stays a hairline — a heavier one made the whole rail look
+       drawn rather than stacked. What tells the cards apart is depth: every
+       card carries a shadow, and the one in focus a much deeper one. */
+    box-shadow:var(--rail-e-back);
   }
   /* A colour of its own: in the list a row is a line among lines, here it is a
      card lying on the panel, and the ones behind are the same blue a step
@@ -947,7 +954,7 @@ td.exactcell{display:none}
      keeps its own solid colour; only its contents step back. */
   body.card-mode tbody > tr:not(.here) > *{opacity:.5;transition:opacity .28s}
   body.card-mode tbody > tr.here{
-    z-index:3;box-shadow:var(--e2);
+    z-index:3;box-shadow:var(--rail-e);
     background:var(--card-f);border-color:var(--card-f-line);
   }
   body.card-mode tbody > tr.unassigned{background:var(--warn-c)}
@@ -6814,7 +6821,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.6.6';
+var APP_VERSION = '6.6.7';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
