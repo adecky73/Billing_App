@@ -2,7 +2,7 @@
    The version below is a placeholder: build.py stamps the app's own
    APP_VERSION into it, so an installed copy never keeps serving a cache
    belonging to an older release. Do not maintain it by hand. */
-const CACHE = 'billing-tool-6.6.7';
+const CACHE = 'billing-tool-6.6.8';
 const ASSETS = [
   './',
   './index.html',
