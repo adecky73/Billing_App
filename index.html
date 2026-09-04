@@ -62,14 +62,14 @@
   --note-line:#7fb3dc;
   /* the card in focus while swiping: a blue of its own, lighter than a
      message so a message still sits clearly on top of it */
-  --card-f:#d8e9fa;
-  --card-f-line:#66a4d6;
+  --card-f:#e2eefb;
+  --card-f-line:#6ea9d8;
   /* The cards behind it: the same blue, a step LIGHTER. The card in focus is
      the one that keeps the full colour, so it reads as the near one and the
      stack recedes behind it — the other way round put the weight on the cards
      nobody is looking at. */
-  --card-back:#e6f0fc;
-  --card-back-line:#accbe7;
+  --card-back:#edf4fd;
+  --card-back-line:#b7d2ea;
   /* the ways of paying, wherever they appear: a warm ground that belongs to
      none of the other states in the sheet */
   --pay-c:#ffe2c2;
@@ -117,10 +117,10 @@
     --on-warn-c:#ffdf9e;
     --note-c:#123449;
     --on-note-c:#cfe4f7;
-    --card-f:#143a52;
-    --card-f-line:#4d8cb6;
-    --card-back:#1c4b66;
-    --card-back-line:#3d7899;
+    --card-f:#173343;
+    --card-f-line:#4d86ad;
+    --card-back:#1e4256;
+    --card-back-line:#3d7091;
     --pay-c:#3d2a14;
     --pay-line:#9a6a35;
     --on-pay-c:#ffd7a8;
@@ -161,10 +161,10 @@
   --on-warn-c:#ffdf9e;
   --note-c:#123449;
   --on-note-c:#cfe4f7;
-  --card-f:#143a52;
-  --card-f-line:#4d8cb6;
-  --card-back:#1c4b66;
-  --card-back-line:#3d7899;
+  --card-f:#173343;
+  --card-f-line:#4d86ad;
+  --card-back:#1e4256;
+  --card-back-line:#3d7091;
   --pay-c:#3d2a14;
   --pay-line:#9a6a35;
   --on-pay-c:#ffd7a8;
@@ -6821,7 +6821,7 @@ $('tripTitle').addEventListener('input', function(){
 })();
 
 /* PWA install + service worker */
-var APP_VERSION = '6.6.8';
+var APP_VERSION = '6.6.7';
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
             (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 /* Inside a Capacitor/Cordova shell the page IS the app — no install UI, and no
